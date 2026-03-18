@@ -5,7 +5,14 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
-// Add page imports here
+import { Navigate } from 'react-router-dom';
+import AppLayout from '@/components/layout/AppLayout';
+import Dashboard from '@/pages/Dashboard';
+import Placements from '@/pages/Placements';
+import Contracts from '@/pages/Contracts';
+import Timesheets from '@/pages/Timesheets';
+import Billing from '@/pages/Billing';
+import Reports from '@/pages/Reports';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -33,7 +40,15 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <Routes>
-      {/* Add your page Route elements here */}
+      <Route path="/" element={<Navigate to="/Dashboard" replace />} />
+      <Route element={<AppLayout />}>
+        <Route path="/Dashboard" element={<Dashboard />} />
+        <Route path="/Placements" element={<Placements />} />
+        <Route path="/Contracts" element={<Contracts />} />
+        <Route path="/Timesheets" element={<Timesheets />} />
+        <Route path="/Billing" element={<Billing />} />
+        <Route path="/Reports" element={<Reports />} />
+      </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
