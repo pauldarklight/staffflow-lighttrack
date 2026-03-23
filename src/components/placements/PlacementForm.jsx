@@ -171,7 +171,7 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
           </CardContent>
         </Card>
 
-        {/* Tarieven */
+        {/* Tarieven */}
         <Card>
           <CardHeader><CardTitle className="text-base">Tarieven & Data</CardTitle></CardHeader>
           <CardContent className="space-y-4">
