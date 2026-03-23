@@ -151,10 +151,27 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
               <Label>Facturatiemail / Peppol</Label>
               <Input value={form.client_billing_email} onChange={e => updateField('client_billing_email', e.target.value)} />
             </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1">
+                <span>📋</span> Referentie-instructies factuur/bestelbon
+              </Label>
+              <textarea
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                placeholder="Bijv: Referentie moet beginnen met PO- gevolgd door het projectnummer. Formaat: PO-XXXXXX"
+                value={form.reference_instructions || ''}
+                onChange={e => updateField('reference_instructions', e.target.value)}
+              />
+              {form.reference_instructions && (
+                <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-md text-xs text-amber-800">
+                  <span className="text-base leading-none">⚠️</span>
+                  <span><strong>Herinnering actief:</strong> bij het aanmaken van facturen of bestelbonnen voor deze klant zal een melding verschijnen.</span>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
-        {/* Tarieven */}
+        {/* Tarieven */
         <Card>
           <CardHeader><CardTitle className="text-base">Tarieven & Data</CardTitle></CardHeader>
           <CardContent className="space-y-4">

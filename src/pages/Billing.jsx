@@ -119,6 +119,18 @@ function StatusCell({ invoice, hasTimesheet, onMarkPaid, onSendReminder, sending
   );
 }
 
+function ReferenceReminder({ instructions }) {
+  const [dismissed, setDismissed] = useState(false);
+  if (!instructions || dismissed) return null;
+  return (
+    <div className="flex items-start gap-2 p-2 bg-amber-50 border border-amber-200 rounded-md text-xs text-amber-800 mb-1">
+      <span className="text-sm leading-none flex-shrink-0">⚠️</span>
+      <span className="flex-1"><strong>Referentie-instructie:</strong> {instructions}</span>
+      <button onClick={() => setDismissed(true)} className="text-amber-500 hover:text-amber-700 flex-shrink-0 font-bold">✕</button>
+    </div>
+  );
+}
+
 function InvoiceRef({ invoice }) {
   if (!invoice?.invoice_number) return <span className="text-xs text-muted-foreground">—</span>;
   return <div className="text-xs font-mono text-muted-foreground">{invoice.invoice_number}</div>;
@@ -424,6 +436,7 @@ export default function Billing() {
                         </div>
                       </td>
                       <td className="py-3 px-3 bg-primary/10">
+                        <ReferenceReminder instructions={row.placement?.reference_instructions} />
                         <InvoiceRef invoice={row.clientInvoice} />
                         <StatusCell invoice={row.clientInvoice} hasTimesheet={!!row.ts} onMarkPaid={markPaid} onSendReminder={sendReminder} sendingReminder={sendingReminderId === row.clientInvoice?.id} showTimesheetStatus={false} />
                       </td>
