@@ -382,18 +382,18 @@ export default function Billing() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/50">
-                  <th className="text-left py-3 px-3 font-medium text-muted-foreground">#</th>
-                  <th className="text-left py-3 px-3 font-medium text-muted-foreground">Consultant</th>
-                  <th className="text-left py-3 px-3 font-medium text-muted-foreground">BTW nr.</th>
-                  <th className="text-left py-3 px-3 font-medium text-muted-foreground">Klant</th>
-                  <th className="text-left py-3 px-3 font-medium text-muted-foreground">Contractduur</th>
-                  <th className="text-right py-3 px-3 font-medium text-muted-foreground">Dagen</th>
-                  <th className="text-right py-3 px-3 font-medium text-muted-foreground">Tarief</th>
-                  <th className="text-right py-3 px-3 font-medium text-muted-foreground bg-primary/5">Van klant</th>
-                  <th className="text-left py-3 px-3 font-medium text-muted-foreground bg-primary/5">Ref. / Status klant</th>
-                  <th className="text-right py-3 px-3 font-medium text-muted-foreground bg-muted/70">Aan consultant</th>
-                  <th className="text-left py-3 px-3 font-medium text-muted-foreground bg-muted/70">Ref. / Status cons.</th>
-                  <th className="text-right py-3 px-3 font-medium text-muted-foreground">Marge</th>
+                  <th className="text-left py-3 px-3 font-bold text-foreground">#</th>
+                  <th className="text-left py-3 px-3 font-bold text-foreground">Consultant</th>
+                  <th className="text-left py-3 px-3 font-bold text-foreground">BTW nr.</th>
+                  <th className="text-left py-3 px-3 font-bold text-foreground">Klant</th>
+                  <th className="text-left py-3 px-3 font-bold text-foreground">Contractduur</th>
+                  <th className="text-right py-3 px-3 font-bold text-foreground">Dagen</th>
+                  <th className="text-right py-3 px-3 font-bold text-foreground">Tarief</th>
+                  <th className="text-right py-3 px-3 font-bold text-white bg-primary">Van klant</th>
+                  <th className="text-left py-3 px-3 font-bold text-white bg-primary">Ref. / Status klant</th>
+                  <th className="text-right py-3 px-3 font-bold text-white bg-foreground">Aan consultant</th>
+                  <th className="text-left py-3 px-3 font-bold text-white bg-foreground">Ref. / Status cons.</th>
+                  <th className="text-right py-3 px-3 font-bold text-foreground">Marge</th>
                 </tr>
               </thead>
               <tbody>
@@ -402,38 +402,38 @@ export default function Billing() {
                   const consultantOverdue = row.consultantInvoice ? isOverdue(row.consultantInvoice) : false;
                   return (
                     <tr key={row.placement.id} className={`border-b border-border/50 transition-colors ${clientOverdue ? 'bg-red-50/40 hover:bg-red-50/60' : 'hover:bg-muted/20'}`}>
-                      <td className="py-3 px-3 text-muted-foreground">{row.idx}</td>
+                      <td className="py-3 px-3 font-bold text-foreground">{row.idx}</td>
                       <td className="py-3 px-3">
-                        <div className="font-medium">{row.placement.consultant_first_name} {row.placement.consultant_last_name}</div>
-                        {row.placement.consultant_company_name && <div className="text-xs text-muted-foreground">{row.placement.consultant_company_name}</div>}
+                        <div className="font-bold text-foreground">{row.placement.consultant_first_name} {row.placement.consultant_last_name}</div>
+                        {row.placement.consultant_company_name && <div className="text-xs text-muted-foreground font-normal">{row.placement.consultant_company_name}</div>}
                       </td>
                       <td className="py-3 px-3 text-xs text-muted-foreground">{row.placement.consultant_vat_number || '—'}</td>
                       <td className="py-3 px-3">
-                        <div className="font-medium">{row.placement.client_company_name}</div>
-                        {row.placement.client_vat_number && <div className="text-xs text-muted-foreground">{row.placement.client_vat_number}</div>}
+                        <div className="font-bold text-foreground">{row.placement.client_company_name}</div>
+                        {row.placement.client_vat_number && <div className="text-xs text-muted-foreground font-normal">{row.placement.client_vat_number}</div>}
                       </td>
                       <td className="py-3 px-3"><ContractDuration placement={row.placement} /></td>
                       <td className="py-3 px-3 text-right">
-                        {row.days > 0 ? <span className="font-semibold">{row.days}</span> : <span className="text-muted-foreground text-xs">geen TS</span>}
+                        {row.days > 0 ? <span className="font-bold text-foreground">{row.days}</span> : <span className="text-muted-foreground text-xs">geen TS</span>}
                       </td>
                       <td className="py-3 px-3 text-right text-xs text-muted-foreground">{formatCurrency(row.clientRate)}/dag</td>
-                      <td className={`py-3 px-3 text-right bg-primary/5 font-semibold ${clientOverdue ? 'text-red-600' : ''}`}>
+                      <td className={`py-3 px-3 text-right bg-primary/10 font-bold ${clientOverdue ? 'text-red-600' : 'text-primary'}`}>
                         <div className="flex items-center justify-end gap-1">
                           {clientOverdue && <AlertCircle className="w-3.5 h-3.5 text-red-500" />}
                           {fmtVal(row.clientAmountExcl)}
                         </div>
                       </td>
-                      <td className="py-3 px-3 bg-primary/5">
+                      <td className="py-3 px-3 bg-primary/10">
                         <InvoiceRef invoice={row.clientInvoice} />
                         <StatusCell invoice={row.clientInvoice} hasTimesheet={!!row.ts} onMarkPaid={markPaid} onSendReminder={sendReminder} sendingReminder={sendingReminderId === row.clientInvoice?.id} showTimesheetStatus={true} />
                       </td>
-                      <td className={`py-3 px-3 text-right bg-muted/40 font-semibold ${consultantOverdue ? 'text-red-600' : ''}`}>
+                      <td className={`py-3 px-3 text-right bg-foreground/8 font-bold border-l border-foreground/10 ${consultantOverdue ? 'text-red-600' : 'text-foreground'}`} style={{backgroundColor: 'rgba(0,0,0,0.06)'}}>
                         <div className="flex items-center justify-end gap-1">
                           {consultantOverdue && <AlertCircle className="w-3.5 h-3.5 text-red-500" />}
                           {fmtVal(row.consultantAmountExcl)}
                         </div>
                       </td>
-                      <td className="py-3 px-3 bg-muted/40">
+                      <td className="py-3 px-3 border-r border-foreground/10" style={{backgroundColor: 'rgba(0,0,0,0.06)'}}>
                         <InvoiceRef invoice={row.consultantInvoice} />
                         <StatusCell invoice={row.consultantInvoice} hasTimesheet={!!row.ts} onMarkPaid={markPaid} onSendReminder={sendReminder} sendingReminder={sendingReminderId === row.consultantInvoice?.id} showTimesheetStatus={false} />
                       </td>
@@ -449,11 +449,11 @@ export default function Billing() {
                 )}
                 {filteredFl.length > 0 && (
                   <tr className="bg-muted/40 font-semibold border-t-2">
-                    <td colSpan={7} className="py-3 px-3 text-right text-xs text-muted-foreground">Totaal (gefilterd)</td>
-                    <td className="py-3 px-3 text-right bg-primary/5">{fmtVal(filteredFl.reduce((s, r) => s + r.clientAmountExcl, 0))}</td>
-                    <td className="bg-primary/5" />
-                    <td className="py-3 px-3 text-right bg-muted/60">{fmtVal(filteredFl.reduce((s, r) => s + r.consultantAmountExcl, 0))}</td>
-                    <td className="bg-muted/60" />
+                    <td colSpan={7} className="py-3 px-3 text-right text-xs text-muted-foreground font-bold">Totaal (gefilterd)</td>
+                    <td className="py-3 px-3 text-right bg-primary/10 font-bold text-primary">{fmtVal(filteredFl.reduce((s, r) => s + r.clientAmountExcl, 0))}</td>
+                    <td className="bg-primary/10" />
+                    <td className="py-3 px-3 text-right font-bold" style={{backgroundColor:'rgba(0,0,0,0.06)'}}>{fmtVal(filteredFl.reduce((s, r) => s + r.consultantAmountExcl, 0))}</td>
+                    <td style={{backgroundColor:'rgba(0,0,0,0.06)'}} />
                     <td className="py-3 px-3 text-right text-primary">{fmtVal(filteredFl.reduce((s, r) => s + r.marginExcl, 0))}</td>
                   </tr>
                 )}
@@ -483,15 +483,15 @@ export default function Billing() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/50">
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">#</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Kandidaat</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Klant</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">BTW nr. klant</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Startdatum</th>
-                  <th className="text-right py-3 px-4 font-medium text-muted-foreground">Jaarloon</th>
-                  <th className="text-right py-3 px-4 font-medium text-muted-foreground">Fee %</th>
-                  <th className="text-right py-3 px-4 font-medium text-muted-foreground bg-primary/5">Fee aan klant</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground bg-primary/5">Ref. / Factuurstatus</th>
+                  <th className="text-left py-3 px-4 font-bold text-foreground">#</th>
+                  <th className="text-left py-3 px-4 font-bold text-foreground">Kandidaat</th>
+                  <th className="text-left py-3 px-4 font-bold text-foreground">Klant</th>
+                  <th className="text-left py-3 px-4 font-bold text-foreground">BTW nr. klant</th>
+                  <th className="text-left py-3 px-4 font-bold text-foreground">Startdatum</th>
+                  <th className="text-right py-3 px-4 font-bold text-foreground">Jaarloon</th>
+                  <th className="text-right py-3 px-4 font-bold text-foreground">Fee %</th>
+                  <th className="text-right py-3 px-4 font-bold text-white bg-primary">Fee aan klant</th>
+                  <th className="text-left py-3 px-4 font-bold text-white bg-primary">Ref. / Factuurstatus</th>
                 </tr>
               </thead>
               <tbody>
@@ -499,20 +499,20 @@ export default function Billing() {
                   const clientOverdue = row.clientInvoice ? isOverdue(row.clientInvoice) : false;
                   return (
                     <tr key={row.placement.id} className={`border-b border-border/50 transition-colors ${clientOverdue ? 'bg-red-50/40 hover:bg-red-50/60' : 'hover:bg-muted/20'}`}>
-                      <td className="py-3 px-4 text-muted-foreground">{row.idx}</td>
-                      <td className="py-3 px-4 font-medium">{row.placement.consultant_first_name} {row.placement.consultant_last_name}</td>
-                      <td className="py-3 px-4 font-medium">{row.placement.client_company_name}</td>
+                      <td className="py-3 px-4 font-bold text-foreground">{row.idx}</td>
+                      <td className="py-3 px-4 font-bold text-foreground">{row.placement.consultant_first_name} {row.placement.consultant_last_name}</td>
+                      <td className="py-3 px-4 font-bold text-foreground">{row.placement.client_company_name}</td>
                       <td className="py-3 px-4 text-xs text-muted-foreground">{row.placement.client_vat_number || '—'}</td>
                       <td className="py-3 px-4 text-xs text-muted-foreground">{formatDate(row.placement.start_date)}</td>
-                      <td className="py-3 px-4 text-right">{formatCurrency(row.placement.perm_annual_salary || 0)}</td>
-                      <td className="py-3 px-4 text-right">{row.placement.perm_fee_percentage || 20}%</td>
-                      <td className={`py-3 px-4 text-right bg-primary/5 font-semibold ${clientOverdue ? 'text-red-600' : ''}`}>
+                      <td className="py-3 px-4 text-right text-muted-foreground">{formatCurrency(row.placement.perm_annual_salary || 0)}</td>
+                      <td className="py-3 px-4 text-right text-muted-foreground">{row.placement.perm_fee_percentage || 20}%</td>
+                      <td className={`py-3 px-4 text-right bg-primary/10 font-bold ${clientOverdue ? 'text-red-600' : 'text-primary'}`}>
                         <div className="flex items-center justify-end gap-1">
                           {clientOverdue && <AlertCircle className="w-3.5 h-3.5 text-red-500" />}
                           {fmtVal(row.clientAmountExcl)}
                         </div>
                       </td>
-                      <td className="py-3 px-4 bg-primary/5">
+                      <td className="py-3 px-4 bg-primary/10">
                         <InvoiceRef invoice={row.clientInvoice} />
                         <StatusCell invoice={row.clientInvoice} hasTimesheet={false} onMarkPaid={markPaid} onSendReminder={sendReminder} sendingReminder={sendingReminderId === row.clientInvoice?.id} showTimesheetStatus={false} />
                       </td>
@@ -524,9 +524,9 @@ export default function Billing() {
                 )}
                 {filteredPm.length > 0 && (
                   <tr className="bg-muted/40 font-semibold border-t-2">
-                    <td colSpan={7} className="py-3 px-4 text-right text-xs text-muted-foreground">Totaal fees (gefilterd)</td>
-                    <td className="py-3 px-4 text-right bg-primary/5">{fmtVal(filteredPm.reduce((s, r) => s + r.clientAmountExcl, 0))}</td>
-                    <td className="bg-primary/5" />
+                    <td colSpan={7} className="py-3 px-4 text-right text-xs font-bold text-muted-foreground">Totaal fees (gefilterd)</td>
+                    <td className="py-3 px-4 text-right bg-primary/10 font-bold text-primary">{fmtVal(filteredPm.reduce((s, r) => s + r.clientAmountExcl, 0))}</td>
+                    <td className="bg-primary/10" />
                   </tr>
                 )}
               </tbody>
