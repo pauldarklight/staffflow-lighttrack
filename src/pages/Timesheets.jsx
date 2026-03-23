@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,19 +6,46 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Plus, Clock, Search } from 'lucide-react';
+import { Plus, Clock, Search, ArrowUpDown, X, AlertTriangle, ExternalLink } from 'lucide-react';
 import PageHeader from '@/components/shared/PageHeader';
 import StatCard from '@/components/shared/StatCard';
-import StatusBadge from '@/components/shared/StatusBadge';
 import EmptyState from '@/components/shared/EmptyState';
 import { formatCurrency, getMonthName } from '@/lib/formatters';
+
+// Returns true if timesheet is "late": created_date > 15 days after end of the month it covers
+function isLate(ts) {
+  if (!ts.month || !ts.year) return false;
+  // End of the performance month
+  const endOfMonth = new Date(ts.year, ts.month, 0); // last day of ts.month
+  const createdAt = ts.created_date ? new Date(ts.created_date) : null;
+  if (!createdAt) return false;
+  const diffDays = (createdAt - endOfMonth) / (1000 * 60 * 60 * 24);
+  return diffDays > 15;
+}
+
+const STATUS_LABELS = {
+  requested: 'Aangevraagd',
+  submitted: 'Ingediend',
+  approved: 'Goedgekeurd',
+  rejected: 'Afgewezen',
+};
+
+const STATUS_STYLES = {
+  requested: 'bg-amber-100 text-amber-700 border-amber-200',
+  submitted: 'bg-blue-100 text-blue-700 border-blue-200',
+  approved: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  rejected: 'bg-red-100 text-red-600 border-red-200',
+};
 
 export default function Timesheets() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [filterMonth, setFilterMonth] = useState(String(new Date().getMonth() + 1));
   const [filterYear, setFilterYear] = useState(String(new Date().getFullYear()));
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState('default');
   const queryClient = useQueryClient();
 
   const { data: timesheets = [] } = useQuery({
@@ -57,7 +84,6 @@ export default function Timesheets() {
     const days = parseFloat(form.days_worked) || 0;
     const clientRevenue = days * (placement?.client_rate || 0);
     const consultantRevenue = days * (placement?.consultant_rate || 0);
-
     const data = {
       ...form,
       month: parseInt(form.month),
@@ -70,7 +96,6 @@ export default function Timesheets() {
       consultant_name: placement ? `${placement.consultant_first_name} ${placement.consultant_last_name}` : '',
       client_company: placement?.client_company_name || '',
     };
-
     if (editing) {
       updateMutation.mutate({ id: editing.id, data });
     } else {
@@ -84,16 +109,55 @@ export default function Timesheets() {
     setShowForm(true);
   };
 
-  const filtered = timesheets.filter(t => 
-    t.month === parseInt(filterMonth) && t.year === parseInt(filterYear)
-  );
+  const years = [];
+  for (let y = 2024; y <= 2027; y++) years.push(y);
+
+  // Enrich timesheets with placement data
+  const enriched = useMemo(() => timesheets.map(t => {
+    const placement = placements.find(p => p.id === t.placement_id);
+    return {
+      ...t,
+      placement,
+      clientVat: placement?.client_vat_number || '',
+      clientRate: placement?.client_rate || 0,
+      consultantRate: placement?.consultant_rate || 0,
+      late: isLate(t),
+    };
+  }), [timesheets, placements]);
+
+  const filtered = useMemo(() => {
+    let rows = enriched.filter(t =>
+      t.month === parseInt(filterMonth) && t.year === parseInt(filterYear)
+    );
+
+    if (search) {
+      const q = search.toLowerCase();
+      rows = rows.filter(t =>
+        (t.consultant_name || '').toLowerCase().includes(q) ||
+        (t.client_company || '').toLowerCase().includes(q) ||
+        (t.clientVat || '').toLowerCase().includes(q)
+      );
+    }
+
+    if (sortBy !== 'default') {
+      rows = [...rows].sort((a, b) => {
+        if (sortBy === 'revenue_desc') return (b.client_revenue || 0) - (a.client_revenue || 0);
+        if (sortBy === 'revenue_asc') return (a.client_revenue || 0) - (b.client_revenue || 0);
+        if (sortBy === 'margin_desc') return (b.margin || 0) - (a.margin || 0);
+        if (sortBy === 'margin_asc') return (a.margin || 0) - (b.margin || 0);
+        if (sortBy === 'days_desc') return (b.days_worked || 0) - (a.days_worked || 0);
+        if (sortBy === 'days_asc') return (a.days_worked || 0) - (b.days_worked || 0);
+        return 0;
+      });
+    }
+
+    return rows;
+  }, [enriched, filterMonth, filterYear, search, sortBy]);
 
   const totalRevenue = filtered.reduce((s, t) => s + (t.client_revenue || 0), 0);
   const totalCost = filtered.reduce((s, t) => s + (t.consultant_revenue || 0), 0);
   const totalMargin = filtered.reduce((s, t) => s + (t.margin || 0), 0);
-
-  const years = [];
-  for (let y = 2024; y <= 2027; y++) years.push(y);
+  const lateCount = filtered.filter(t => t.late).length;
 
   return (
     <div>
@@ -103,12 +167,13 @@ export default function Timesheets() {
         </Button>
       </PageHeader>
 
+      {/* Month/Year filters */}
       <div className="flex items-center gap-3 mb-6">
         <Select value={filterMonth} onValueChange={setFilterMonth}>
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
-            {Array.from({length: 12}, (_, i) => (
-              <SelectItem key={i+1} value={String(i+1)}>{getMonthName(i+1)}</SelectItem>
+            {Array.from({ length: 12 }, (_, i) => (
+              <SelectItem key={i + 1} value={String(i + 1)}>{getMonthName(i + 1)}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -120,13 +185,55 @@ export default function Timesheets() {
         </Select>
       </div>
 
+      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <StatCard title="Omzet" value={formatCurrency(totalRevenue)} />
         <StatCard title="Kost" value={formatCurrency(totalCost)} />
         <StatCard title="Marge" value={formatCurrency(totalMargin)} />
       </div>
 
-      <Dialog open={showForm} onOpenChange={open => { setShowForm(open); if (!open) { setEditing(null); resetForm(); }}}>
+      {lateCount > 0 && (
+        <div className="mb-4 flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+          <span><strong>{lateCount}</strong> timesheet{lateCount > 1 ? 's' : ''} meer dan 15 dagen te laat ingediend.</span>
+        </div>
+      )}
+
+      {/* Search + Sort bar */}
+      <div className="flex flex-wrap items-center gap-2 mb-4 p-3 bg-muted/40 rounded-lg border border-border">
+        <div className="relative flex-1 min-w-[180px]">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Zoek op consultant, klant of BTW-nr..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-8 h-8 text-xs"
+          />
+        </div>
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="w-52 h-8 text-xs gap-1">
+            <ArrowUpDown className="w-3.5 h-3.5" />
+            <SelectValue placeholder="Sorteren op" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="default">Standaard</SelectItem>
+            <SelectItem value="revenue_desc">Hoogste omzet eerst</SelectItem>
+            <SelectItem value="revenue_asc">Laagste omzet eerst</SelectItem>
+            <SelectItem value="margin_desc">Hoogste marge eerst</SelectItem>
+            <SelectItem value="margin_asc">Laagste marge eerst</SelectItem>
+            <SelectItem value="days_desc">Meeste dagen eerst</SelectItem>
+            <SelectItem value="days_asc">Minste dagen eerst</SelectItem>
+          </SelectContent>
+        </Select>
+        {(search || sortBy !== 'default') && (
+          <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => { setSearch(''); setSortBy('default'); }}>
+            <X className="w-3.5 h-3.5 mr-1" /> Reset
+          </Button>
+        )}
+      </div>
+
+      {/* Form Dialog */}
+      <Dialog open={showForm} onOpenChange={open => { setShowForm(open); if (!open) { setEditing(null); resetForm(); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editing ? 'Timesheet Bewerken' : 'Nieuwe Timesheet'}</DialogTitle>
@@ -150,8 +257,8 @@ export default function Timesheets() {
                 <Select value={String(form.month)} onValueChange={v => setForm(p => ({ ...p, month: parseInt(v) }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {Array.from({length: 12}, (_, i) => (
-                      <SelectItem key={i+1} value={String(i+1)}>{getMonthName(i+1)}</SelectItem>
+                    {Array.from({ length: 12 }, (_, i) => (
+                      <SelectItem key={i + 1} value={String(i + 1)}>{getMonthName(i + 1)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -215,6 +322,7 @@ export default function Timesheets() {
         </DialogContent>
       </Dialog>
 
+      {/* Table */}
       {filtered.length === 0 ? (
         <EmptyState icon={Clock} title="Geen timesheets" description={`Geen timesheets voor ${getMonthName(parseInt(filterMonth))} ${filterYear}.`}>
           <Button onClick={() => setShowForm(true)}><Plus className="w-4 h-4 mr-1" /> Nieuwe Timesheet</Button>
@@ -226,31 +334,62 @@ export default function Timesheets() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Consultant</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Klant</th>
-                    <th className="text-right py-3 px-4 font-medium text-muted-foreground">Dagen</th>
-                    <th className="text-right py-3 px-4 font-medium text-muted-foreground">Omzet</th>
-                    <th className="text-right py-3 px-4 font-medium text-muted-foreground">Kost</th>
-                    <th className="text-right py-3 px-4 font-medium text-muted-foreground">Marge</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
-                    <th className="text-right py-3 px-4 font-medium text-muted-foreground">Acties</th>
+                    <th className="text-left py-3 px-4 font-bold text-foreground">Consultant</th>
+                    <th className="text-left py-3 px-4 font-normal text-foreground">Klant</th>
+                    <th className="text-left py-3 px-4 font-bold text-foreground">BTW nr. klant</th>
+                    <th className="text-right py-3 px-4 font-normal text-foreground">Dagen</th>
+                    <th className="text-right py-3 px-4 font-bold text-foreground">Tarief/dag</th>
+                    <th className="text-right py-3 px-4 font-normal text-white bg-primary">Omzet</th>
+                    <th className="text-right py-3 px-4 font-bold text-white bg-primary">Kost</th>
+                    <th className="text-right py-3 px-4 font-bold text-foreground">Marge</th>
+                    <th className="text-left py-3 px-4 font-normal text-foreground">Status</th>
+                    <th className="text-right py-3 px-4 font-normal text-foreground">Acties</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map(t => (
-                    <tr key={t.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                      <td className="py-3 px-4 font-medium">{t.consultant_name || '-'}</td>
-                      <td className="py-3 px-4 text-muted-foreground">{t.client_company || '-'}</td>
-                      <td className="py-3 px-4 text-right">{t.days_worked || 0}</td>
-                      <td className="py-3 px-4 text-right">{formatCurrency(t.client_revenue)}</td>
-                      <td className="py-3 px-4 text-right">{formatCurrency(t.consultant_revenue)}</td>
-                      <td className="py-3 px-4 text-right font-semibold text-emerald-600">{formatCurrency(t.margin)}</td>
-                      <td className="py-3 px-4"><StatusBadge status={t.status} /></td>
+                    <tr
+                      key={t.id}
+                      className={`border-b border-border/50 transition-colors ${t.late ? 'bg-red-50/50 hover:bg-red-50/70' : 'hover:bg-muted/20'}`}
+                    >
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-foreground">{t.consultant_name || '—'}</span>
+                          {t.late && <AlertTriangle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" title="Te laat ingediend (>15 dagen)" />}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-muted-foreground">{t.client_company || '—'}</td>
+                      <td className="py-3 px-4 font-bold text-foreground text-xs">{t.clientVat || '—'}</td>
+                      <td className="py-3 px-4 text-right text-muted-foreground">{t.days_worked || 0}</td>
+                      <td className="py-3 px-4 text-right font-bold text-foreground text-xs">
+                        <div>{formatCurrency(t.clientRate)}</div>
+                        <div className="text-muted-foreground font-normal">cons: {formatCurrency(t.consultantRate)}</div>
+                      </td>
+                      <td className="py-3 px-4 text-right bg-primary/10 text-muted-foreground">{formatCurrency(t.client_revenue)}</td>
+                      <td className="py-3 px-4 text-right bg-primary/10 font-bold text-foreground">{formatCurrency(t.consultant_revenue)}</td>
+                      <td className={`py-3 px-4 text-right font-bold ${(t.margin || 0) >= 0 ? 'text-primary' : 'text-red-500'}`}>
+                        {formatCurrency(t.margin)}
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge variant="outline" className={`text-xs ${STATUS_STYLES[t.status] || 'bg-muted text-muted-foreground'}`}>
+                          {STATUS_LABELS[t.status] || t.status}
+                        </Badge>
+                        {t.late && <div className="text-xs text-red-600 mt-1 font-medium">Te laat</div>}
+                      </td>
                       <td className="py-3 px-4 text-right">
                         <Button variant="ghost" size="sm" onClick={() => openEdit(t)}>Bewerken</Button>
                       </td>
                     </tr>
                   ))}
+                  {filtered.length > 0 && (
+                    <tr className="bg-muted/40 border-t-2 font-semibold">
+                      <td colSpan={5} className="py-3 px-4 text-right text-xs text-muted-foreground font-bold">Totaal (gefilterd)</td>
+                      <td className="py-3 px-4 text-right bg-primary/10 text-muted-foreground">{formatCurrency(filtered.reduce((s, t) => s + (t.client_revenue || 0), 0))}</td>
+                      <td className="py-3 px-4 text-right bg-primary/10 font-bold text-foreground">{formatCurrency(filtered.reduce((s, t) => s + (t.consultant_revenue || 0), 0))}</td>
+                      <td className="py-3 px-4 text-right text-primary font-bold">{formatCurrency(filtered.reduce((s, t) => s + (t.margin || 0), 0))}</td>
+                      <td colSpan={2} />
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
