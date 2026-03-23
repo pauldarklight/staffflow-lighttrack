@@ -3,9 +3,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, ExternalLink, CheckCircle2, Clock, FileText, Mail, Loader2, TrendingUp, Euro } from 'lucide-react';
+import {
+  AlertCircle, ExternalLink, CheckCircle2, Clock, FileText,
+  Mail, Loader2, TrendingUp, Euro, Search, ArrowUpDown, X
+} from 'lucide-react';
 import PageHeader from '@/components/shared/PageHeader';
 import { formatCurrency, getMonthName, formatDate } from '@/lib/formatters';
 import { toast } from 'sonner';
@@ -30,18 +34,18 @@ function contractRemaining(startDate, endDate) {
   const today = new Date();
   const totalDays = (end - start) / (1000 * 60 * 60 * 24);
   const elapsedDays = Math.max(0, (today - start) / (1000 * 60 * 60 * 24));
-  const remainingDays = Math.max(0, totalDays - elapsedDays);
   const totalMonths = Math.round(totalDays / 30);
   const elapsedMonths = Math.min(totalMonths, Math.round(elapsedDays / 30));
   const remainingMonths = Math.max(0, totalMonths - elapsedMonths);
-  return { totalMonths, elapsedMonths, remainingMonths, remainingDays: Math.round(remainingDays) };
+  const remainingDays = Math.max(0, Math.round(totalDays - elapsedDays));
+  return { totalMonths, elapsedMonths, remainingMonths, remainingDays };
 }
 
 function ContractDuration({ placement }) {
   const info = contractRemaining(placement.start_date, placement.end_date);
   if (!info) return (
     <div className="text-xs text-muted-foreground">
-      <div>{formatDate(placement.start_date)} → geen einddatum</div>
+      {formatDate(placement.start_date)} → geen einddatum
     </div>
   );
   const pct = info.totalMonths > 0 ? Math.min(100, (info.elapsedMonths / info.totalMonths) * 100) : 0;
@@ -52,7 +56,7 @@ function ContractDuration({ placement }) {
       <div className="w-full bg-muted rounded-full h-1.5">
         <div className={`h-1.5 rounded-full ${isNearEnd ? 'bg-red-400' : 'bg-primary'}`} style={{ width: `${pct}%` }} />
       </div>
-      <div className={`font-medium ${isNearEnd ? 'text-red-600' : 'text-foreground'}`}>
+      <div className={`font-medium ${isNearEnd ? 'text-red-600' : ''}`}>
         {info.remainingMonths > 0
           ? `${info.remainingMonths} mnd resterend (${info.elapsedMonths}/${info.totalMonths} mnd)`
           : `${info.remainingDays} dagen resterend`}
@@ -67,9 +71,9 @@ function StatusCell({ invoice, hasTimesheet, onMarkPaid, onSendReminder, sending
     <div className="flex flex-col gap-1">
       {!invoice ? (
         <>
-          <Badge variant="outline" className="bg-slate-100 text-slate-500 border-slate-200 text-xs w-fit">Geen factuur</Badge>
+          <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-xs w-fit">Geen factuur</Badge>
           {showTimesheetStatus && (
-            <span className={`text-xs flex items-center gap-1 ${hasTimesheet ? 'text-emerald-600' : 'text-amber-600'}`}>
+            <span className={`text-xs flex items-center gap-1 ${hasTimesheet ? 'text-primary' : 'text-amber-600'}`}>
               {hasTimesheet ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
               {hasTimesheet ? 'TS ontvangen' : 'Geen TS'}
             </span>
@@ -82,18 +86,18 @@ function StatusCell({ invoice, hasTimesheet, onMarkPaid, onSendReminder, sending
               <AlertCircle className="w-3 h-3 mr-1" /> Achterstallig
             </Badge>
           ) : invoice.status === 'paid' ? (
-            <Badge variant="outline" className="bg-emerald-100 text-emerald-700 border-emerald-200 text-xs w-fit">
+            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 text-xs w-fit">
               <CheckCircle2 className="w-3 h-3 mr-1" /> Betaald
             </Badge>
           ) : invoice.status === 'sent' ? (
-            <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200 text-xs w-fit">
+            <Badge variant="outline" className="bg-foreground/10 text-foreground border-foreground/20 text-xs w-fit">
               <FileText className="w-3 h-3 mr-1" /> Verstuurd
             </Badge>
           ) : (
-            <Badge variant="outline" className="bg-slate-100 text-slate-600 border-slate-200 text-xs w-fit">Concept</Badge>
+            <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-xs w-fit">Concept</Badge>
           )}
           {showTimesheetStatus && (
-            <span className={`text-xs flex items-center gap-1 ${hasTimesheet ? 'text-emerald-600' : 'text-amber-600'}`}>
+            <span className={`text-xs flex items-center gap-1 ${hasTimesheet ? 'text-primary' : 'text-amber-600'}`}>
               {hasTimesheet ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
               {hasTimesheet ? 'TS ontvangen' : 'TS ontbreekt'}
             </span>
@@ -104,7 +108,7 @@ function StatusCell({ invoice, hasTimesheet, onMarkPaid, onSendReminder, sending
             </button>
           )}
           {invoice.status === 'sent' && (
-            <button className="text-xs text-amber-700 hover:underline flex items-center gap-1 text-left" onClick={() => onSendReminder(invoice)} disabled={sendingReminder}>
+            <button className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 text-left" onClick={() => onSendReminder(invoice)} disabled={sendingReminder}>
               {sendingReminder ? <Loader2 className="w-3 h-3 animate-spin" /> : <Mail className="w-3 h-3" />}
               Herinnering sturen
             </button>
@@ -120,10 +124,12 @@ function InvoiceRef({ invoice }) {
   return <div className="text-xs font-mono text-muted-foreground">{invoice.invoice_number}</div>;
 }
 
-function SummaryBar({ label, expected, received, open, margin, showVat, vatRate }) {
-  const f = (v) => formatCurrency(showVat ? v * vatRate : v);
+function SummaryBar({ label, expected, received, open, margin, showVat }) {
+  const mult = showVat ? VAT_RATE : 1;
+  const f = (v) => formatCurrency(v * mult);
+  const pct = expected > 0 ? Math.min(100, (received / expected) * 100) : 0;
   return (
-    <Card className="mb-6">
+    <Card className="mb-4 border-border">
       <CardContent className="p-4">
         <div className="flex items-center gap-2 mb-3">
           <TrendingUp className="w-4 h-4 text-primary" />
@@ -134,21 +140,21 @@ function SummaryBar({ label, expected, received, open, margin, showVat, vatRate 
             <p className="text-xs text-muted-foreground mb-1">Te ontvangen</p>
             <p className="text-lg font-bold">{f(expected)}</p>
             <div className="w-full bg-muted rounded-full h-1.5 mt-1">
-              <div className="h-1.5 rounded-full bg-primary" style={{ width: expected > 0 ? `${Math.min(100, (received / expected) * 100)}%` : '0%' }} />
+              <div className="h-1.5 rounded-full bg-primary" style={{ width: `${pct}%` }} />
             </div>
           </div>
           <div>
             <p className="text-xs text-muted-foreground mb-1">Al ontvangen</p>
-            <p className="text-lg font-bold text-emerald-600">{f(received)}</p>
+            <p className="text-lg font-bold text-primary">{f(received)}</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground mb-1">Openstaand</p>
-            <p className="text-lg font-bold text-amber-600">{f(open)}</p>
+            <p className="text-lg font-bold">{f(open)}</p>
           </div>
           {margin !== undefined && (
             <div>
               <p className="text-xs text-muted-foreground mb-1">Marge</p>
-              <p className={`text-lg font-bold ${margin >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{f(margin)}</p>
+              <p className={`text-lg font-bold ${margin >= 0 ? 'text-primary' : 'text-red-500'}`}>{f(margin)}</p>
             </div>
           )}
         </div>
@@ -157,11 +163,67 @@ function SummaryBar({ label, expected, received, open, margin, showVat, vatRate 
   );
 }
 
+function FilterBar({ search, setSearch, statusFilter, setStatusFilter, sortBy, setSortBy, onReset, showSort = true }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 mb-4 p-3 bg-muted/40 rounded-lg border border-border">
+      <div className="relative flex-1 min-w-[160px]">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+        <Input
+          placeholder="Zoek op klant of consultant..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="pl-8 h-8 text-xs"
+        />
+      </div>
+      <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <SelectTrigger className="w-40 h-8 text-xs"><SelectValue placeholder="Betaalstatus" /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Alle statussen</SelectItem>
+          <SelectItem value="paid">Betaald</SelectItem>
+          <SelectItem value="sent">Verstuurd</SelectItem>
+          <SelectItem value="overdue">Achterstallig</SelectItem>
+          <SelectItem value="no_invoice">Geen factuur</SelectItem>
+        </SelectContent>
+      </Select>
+      {showSort && (
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="w-48 h-8 text-xs gap-1"><ArrowUpDown className="w-3.5 h-3.5" /><SelectValue placeholder="Sorteren op" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="default">Standaard</SelectItem>
+            <SelectItem value="revenue_desc">Hoogste omzet eerst</SelectItem>
+            <SelectItem value="revenue_asc">Laagste omzet eerst</SelectItem>
+            <SelectItem value="margin_desc">Hoogste marge eerst</SelectItem>
+            <SelectItem value="margin_asc">Laagste marge eerst</SelectItem>
+            <SelectItem value="date_asc">Startdatum (vroegste)</SelectItem>
+            <SelectItem value="date_desc">Startdatum (nieuwste)</SelectItem>
+          </SelectContent>
+        </Select>
+      )}
+      {(search || statusFilter !== 'all' || sortBy !== 'default') && (
+        <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={onReset}>
+          <X className="w-3.5 h-3.5 mr-1" /> Reset
+        </Button>
+      )}
+    </div>
+  );
+}
+
 export default function Billing() {
   const [filterMonth, setFilterMonth] = useState(String(new Date().getMonth() + 1));
   const [filterYear, setFilterYear] = useState(String(new Date().getFullYear()));
   const [showVat, setShowVat] = useState(true);
   const [sendingReminderId, setSendingReminderId] = useState(null);
+
+  // Freelancer filters
+  const [flSearch, setFlSearch] = useState('');
+  const [flStatus, setFlStatus] = useState('all');
+  const [flSort, setFlSort] = useState('default');
+
+  // PERM filters
+  const [pmSearch, setPmSearch] = useState('');
+  const [pmStatus, setPmStatus] = useState('all');
+  const [pmSort, setPmSort] = useState('default');
+
   const queryClient = useQueryClient();
 
   const { data: placements = [] } = useQuery({ queryKey: ['placements'], queryFn: () => base44.entities.Placement.list() });
@@ -196,45 +258,73 @@ export default function Billing() {
   const month = parseInt(filterMonth);
   const year = parseInt(filterYear);
 
+  const buildRow = (placement, idx) => {
+    const matchTs = (t) => t.placement_id === placement.id && t.year === year && (showAll || t.month === month);
+    const matchInv = (i, type) => i.placement_id === placement.id && i.year === year && i.invoice_type === type && (showAll || i.month === month);
+    const ts = timesheets.filter(matchTs)[0];
+    const clientInvoice = invoices.filter(i => matchInv(i, 'client_invoice'))[0];
+    const consultantInvoice = invoices.filter(i => matchInv(i, 'consultant_invoice'))[0];
+    const isPerm = placement.placement_type === 'perm';
+    const days = ts?.days_worked || 0;
+    const clientRate = placement.client_rate || 0;
+    const consultantRate = placement.consultant_rate || 0;
+    const clientAmountExcl = isPerm ? (placement.perm_fee_amount || 0) : days * clientRate;
+    const consultantAmountExcl = isPerm ? 0 : days * consultantRate;
+    const marginExcl = clientAmountExcl - consultantAmountExcl;
+    return { idx, placement, ts, clientInvoice, consultantInvoice, days, clientRate, consultantRate, clientAmountExcl, consultantAmountExcl, marginExcl, isPerm };
+  };
+
+  const applyFilters = (rows, search, statusFilter, sortBy) => {
+    let filtered = rows;
+    if (search) {
+      const q = search.toLowerCase();
+      filtered = filtered.filter(r =>
+        r.placement.client_company_name?.toLowerCase().includes(q) ||
+        `${r.placement.consultant_first_name} ${r.placement.consultant_last_name}`.toLowerCase().includes(q)
+      );
+    }
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(r => {
+        const inv = r.clientInvoice;
+        if (statusFilter === 'no_invoice') return !inv;
+        if (statusFilter === 'overdue') return inv && isOverdue(inv);
+        if (statusFilter === 'paid') return inv?.status === 'paid';
+        if (statusFilter === 'sent') return inv?.status === 'sent' && !isOverdue(inv);
+        return true;
+      });
+    }
+    if (sortBy !== 'default') {
+      filtered = [...filtered].sort((a, b) => {
+        if (sortBy === 'revenue_desc') return b.clientAmountExcl - a.clientAmountExcl;
+        if (sortBy === 'revenue_asc') return a.clientAmountExcl - b.clientAmountExcl;
+        if (sortBy === 'margin_desc') return b.marginExcl - a.marginExcl;
+        if (sortBy === 'margin_asc') return a.marginExcl - b.marginExcl;
+        if (sortBy === 'date_asc') return new Date(a.placement.start_date || 0) - new Date(b.placement.start_date || 0);
+        if (sortBy === 'date_desc') return new Date(b.placement.start_date || 0) - new Date(a.placement.start_date || 0);
+        return 0;
+      });
+    }
+    return filtered;
+  };
+
   const { freelancerRows, permRows } = useMemo(() => {
-    const buildRow = (placement, idx) => {
-      const matchTs = (t) => t.placement_id === placement.id && t.year === year && (showAll || t.month === month);
-      const matchInv = (i, type) => i.placement_id === placement.id && i.year === year && i.invoice_type === type && (showAll || i.month === month);
-
-      const ts = timesheets.filter(matchTs)[0];
-      const clientInvoice = invoices.filter(i => matchInv(i, 'client_invoice'))[0];
-      const consultantInvoice = invoices.filter(i => matchInv(i, 'consultant_invoice'))[0];
-
-      const isPerm = placement.placement_type === 'perm';
-      const days = ts?.days_worked || 0;
-      const clientRate = placement.client_rate || 0;
-      const consultantRate = placement.consultant_rate || 0;
-      const clientAmountExcl = isPerm ? (placement.perm_fee_amount || 0) : days * clientRate;
-      const consultantAmountExcl = isPerm ? 0 : days * consultantRate;
-      const marginExcl = clientAmountExcl - consultantAmountExcl;
-      const clientTotal = clientInvoice?.total_amount || clientAmountExcl * VAT_RATE;
-      const consultantTotal = consultantInvoice?.total_amount || consultantAmountExcl * VAT_RATE;
-
-      return { idx, placement, ts, clientInvoice, consultantInvoice, days, clientRate, consultantRate, clientAmountExcl, consultantAmountExcl, marginExcl, clientTotal, consultantTotal, isPerm };
-    };
-
     const freelancers = placements.filter(p => !p.placement_type || p.placement_type === 'freelancer').map((p, i) => buildRow(p, i + 1));
     const perms = placements.filter(p => p.placement_type === 'perm').map((p, i) => buildRow(p, i + 1));
     return { freelancerRows: freelancers, permRows: perms };
   }, [placements, timesheets, invoices, filterMonth, filterYear]);
 
-  const vatMult = showVat ? 1 : (1 / VAT_RATE);
+  const filteredFl = useMemo(() => applyFilters(freelancerRows, flSearch, flStatus, flSort), [freelancerRows, flSearch, flStatus, flSort]);
+  const filteredPm = useMemo(() => applyFilters(permRows, pmSearch, pmStatus, pmSort), [permRows, pmSearch, pmStatus, pmSort]);
+
   const fmtVal = (excl) => formatCurrency(excl * (showVat ? VAT_RATE : 1));
 
-  // Summary calculations (always excl BTW internally)
+  // Summary always over all rows (unfiltered) for accurate totals
   const flExpected = freelancerRows.reduce((s, r) => s + r.clientAmountExcl, 0);
   const flReceived = freelancerRows.filter(r => r.clientInvoice?.status === 'paid').reduce((s, r) => s + r.clientAmountExcl, 0);
-  const flOpen = flExpected - flReceived;
   const flMargin = freelancerRows.reduce((s, r) => s + r.marginExcl, 0);
 
   const pmExpected = permRows.reduce((s, r) => s + r.clientAmountExcl, 0);
   const pmReceived = permRows.filter(r => r.clientInvoice?.status === 'paid').reduce((s, r) => s + r.clientAmountExcl, 0);
-  const pmOpen = pmExpected - pmReceived;
 
   const periodLabel = showAll ? `Heel ${year}` : `${getMonthName(month)} ${year}`;
 
@@ -257,42 +347,35 @@ export default function Billing() {
               {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={() => setShowVat(v => !v)}
-          >
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowVat(v => !v)}>
             <Euro className="w-4 h-4" />
             {showVat ? 'Incl. BTW' : 'Excl. BTW'}
           </Button>
         </div>
-        <Button variant="outline" className="gap-2 border-orange-300 text-orange-700 hover:bg-orange-50"
+        <Button variant="outline" className="gap-2 border-border text-foreground/70 hover:bg-muted"
           onClick={() => alert('OkiOki koppeling vereist een Builder+ abonnement voor backend functies.')}>
           <ExternalLink className="w-4 h-4" /> OkiOki (Xerius)
         </Button>
       </PageHeader>
 
       {/* Summary bars */}
-      <SummaryBar
-        label={`Freelancers — ${periodLabel}`}
-        expected={flExpected} received={flReceived} open={flOpen} margin={flMargin}
-        showVat={showVat} vatRate={VAT_RATE}
-      />
-      <SummaryBar
-        label={`PERM — ${periodLabel}`}
-        expected={pmExpected} received={pmReceived} open={pmOpen}
-        showVat={showVat} vatRate={VAT_RATE}
-      />
+      <SummaryBar label={`Freelancers — ${periodLabel}`} expected={flExpected} received={flReceived} open={flExpected - flReceived} margin={flMargin} showVat={showVat} />
+      <SummaryBar label={`PERM — ${periodLabel}`} expected={pmExpected} received={pmReceived} open={pmExpected - pmReceived} showVat={showVat} />
 
       {/* ── FREELANCERS ── */}
       <Card className="mb-8">
         <CardHeader className="pb-2">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 mb-2">
             <CardTitle className="text-base font-semibold">Freelancers — {periodLabel}</CardTitle>
             <Badge className="bg-primary/10 text-primary border-primary/20">Freelancer</Badge>
             <span className="text-xs text-muted-foreground ml-auto">{showVat ? 'Incl. BTW' : 'Excl. BTW'}</span>
           </div>
+          <FilterBar
+            search={flSearch} setSearch={setFlSearch}
+            statusFilter={flStatus} setStatusFilter={setFlStatus}
+            sortBy={flSort} setSortBy={setFlSort}
+            onReset={() => { setFlSearch(''); setFlStatus('all'); setFlSort('default'); }}
+          />
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -306,15 +389,15 @@ export default function Billing() {
                   <th className="text-left py-3 px-3 font-medium text-muted-foreground">Contractduur</th>
                   <th className="text-right py-3 px-3 font-medium text-muted-foreground">Dagen</th>
                   <th className="text-right py-3 px-3 font-medium text-muted-foreground">Tarief</th>
-                  <th className="text-right py-3 px-3 font-medium text-muted-foreground bg-blue-50">Van klant</th>
-                  <th className="text-left py-3 px-3 font-medium text-muted-foreground bg-blue-50">Ref. / Status klant</th>
-                  <th className="text-right py-3 px-3 font-medium text-muted-foreground bg-amber-50">Aan consultant</th>
-                  <th className="text-left py-3 px-3 font-medium text-muted-foreground bg-amber-50">Ref. / Status cons.</th>
+                  <th className="text-right py-3 px-3 font-medium text-muted-foreground bg-primary/5">Van klant</th>
+                  <th className="text-left py-3 px-3 font-medium text-muted-foreground bg-primary/5">Ref. / Status klant</th>
+                  <th className="text-right py-3 px-3 font-medium text-muted-foreground bg-muted/70">Aan consultant</th>
+                  <th className="text-left py-3 px-3 font-medium text-muted-foreground bg-muted/70">Ref. / Status cons.</th>
                   <th className="text-right py-3 px-3 font-medium text-muted-foreground">Marge</th>
                 </tr>
               </thead>
               <tbody>
-                {freelancerRows.map(row => {
+                {filteredFl.map(row => {
                   const clientOverdue = row.clientInvoice ? isOverdue(row.clientInvoice) : false;
                   const consultantOverdue = row.consultantInvoice ? isOverdue(row.consultantInvoice) : false;
                   return (
@@ -333,45 +416,45 @@ export default function Billing() {
                       <td className="py-3 px-3 text-right">
                         {row.days > 0 ? <span className="font-semibold">{row.days}</span> : <span className="text-muted-foreground text-xs">geen TS</span>}
                       </td>
-                      <td className="py-3 px-3 text-right text-muted-foreground text-xs">{formatCurrency(row.clientRate)}/dag</td>
-                      <td className={`py-3 px-3 text-right bg-blue-50/50 font-semibold ${clientOverdue ? 'text-red-600' : ''}`}>
+                      <td className="py-3 px-3 text-right text-xs text-muted-foreground">{formatCurrency(row.clientRate)}/dag</td>
+                      <td className={`py-3 px-3 text-right bg-primary/5 font-semibold ${clientOverdue ? 'text-red-600' : ''}`}>
                         <div className="flex items-center justify-end gap-1">
                           {clientOverdue && <AlertCircle className="w-3.5 h-3.5 text-red-500" />}
                           {fmtVal(row.clientAmountExcl)}
                         </div>
                       </td>
-                      <td className="py-3 px-3 bg-blue-50/50">
+                      <td className="py-3 px-3 bg-primary/5">
                         <InvoiceRef invoice={row.clientInvoice} />
                         <StatusCell invoice={row.clientInvoice} hasTimesheet={!!row.ts} onMarkPaid={markPaid} onSendReminder={sendReminder} sendingReminder={sendingReminderId === row.clientInvoice?.id} showTimesheetStatus={true} />
                       </td>
-                      <td className={`py-3 px-3 text-right bg-amber-50/50 font-semibold ${consultantOverdue ? 'text-red-600' : ''}`}>
+                      <td className={`py-3 px-3 text-right bg-muted/40 font-semibold ${consultantOverdue ? 'text-red-600' : ''}`}>
                         <div className="flex items-center justify-end gap-1">
                           {consultantOverdue && <AlertCircle className="w-3.5 h-3.5 text-red-500" />}
                           {fmtVal(row.consultantAmountExcl)}
                         </div>
                       </td>
-                      <td className="py-3 px-3 bg-amber-50/50">
+                      <td className="py-3 px-3 bg-muted/40">
                         <InvoiceRef invoice={row.consultantInvoice} />
                         <StatusCell invoice={row.consultantInvoice} hasTimesheet={!!row.ts} onMarkPaid={markPaid} onSendReminder={sendReminder} sendingReminder={sendingReminderId === row.consultantInvoice?.id} showTimesheetStatus={false} />
                       </td>
-                      <td className={`py-3 px-3 text-right font-bold ${row.marginExcl >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                      <td className={`py-3 px-3 text-right font-bold ${row.marginExcl >= 0 ? 'text-primary' : 'text-red-500'}`}>
                         {fmtVal(row.marginExcl)}
                         {row.days > 0 && <div className="text-xs font-normal text-muted-foreground">{formatCurrency(row.clientRate - row.consultantRate)}/dag</div>}
                       </td>
                     </tr>
                   );
                 })}
-                {freelancerRows.length === 0 && (
-                  <tr><td colSpan={12} className="py-8 text-center text-muted-foreground text-sm">Geen freelancer placements</td></tr>
+                {filteredFl.length === 0 && (
+                  <tr><td colSpan={12} className="py-8 text-center text-muted-foreground text-sm">Geen resultaten gevonden</td></tr>
                 )}
-                {freelancerRows.length > 0 && (
+                {filteredFl.length > 0 && (
                   <tr className="bg-muted/40 font-semibold border-t-2">
-                    <td colSpan={7} className="py-3 px-3 text-right text-muted-foreground text-xs">Totaal</td>
-                    <td className="py-3 px-3 text-right bg-blue-50/70">{fmtVal(freelancerRows.reduce((s, r) => s + r.clientAmountExcl, 0))}</td>
-                    <td className="bg-blue-50/70" />
-                    <td className="py-3 px-3 text-right bg-amber-50/70">{fmtVal(freelancerRows.reduce((s, r) => s + r.consultantAmountExcl, 0))}</td>
-                    <td className="bg-amber-50/70" />
-                    <td className="py-3 px-3 text-right text-emerald-600">{fmtVal(flMargin)}</td>
+                    <td colSpan={7} className="py-3 px-3 text-right text-xs text-muted-foreground">Totaal (gefilterd)</td>
+                    <td className="py-3 px-3 text-right bg-primary/5">{fmtVal(filteredFl.reduce((s, r) => s + r.clientAmountExcl, 0))}</td>
+                    <td className="bg-primary/5" />
+                    <td className="py-3 px-3 text-right bg-muted/60">{fmtVal(filteredFl.reduce((s, r) => s + r.consultantAmountExcl, 0))}</td>
+                    <td className="bg-muted/60" />
+                    <td className="py-3 px-3 text-right text-primary">{fmtVal(filteredFl.reduce((s, r) => s + r.marginExcl, 0))}</td>
                   </tr>
                 )}
               </tbody>
@@ -383,12 +466,17 @@ export default function Billing() {
       {/* ── PERM ── */}
       <Card>
         <CardHeader className="pb-2">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 mb-2">
             <CardTitle className="text-base font-semibold">PERM — Vaste aanwervingen</CardTitle>
-            <Badge className="bg-purple-100 text-purple-700 border-purple-200">PERM</Badge>
+            <Badge className="bg-foreground/10 text-foreground border-foreground/20">PERM</Badge>
             <span className="text-xs text-muted-foreground ml-auto">{showVat ? 'Incl. BTW' : 'Excl. BTW'}</span>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">Eenmalige fee = jaarloon × fee%</p>
+          <FilterBar
+            search={pmSearch} setSearch={setPmSearch}
+            statusFilter={pmStatus} setStatusFilter={setPmStatus}
+            sortBy={pmSort} setSortBy={setPmSort}
+            onReset={() => { setPmSearch(''); setPmStatus('all'); setPmSort('default'); }}
+          />
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -402,45 +490,43 @@ export default function Billing() {
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Startdatum</th>
                   <th className="text-right py-3 px-4 font-medium text-muted-foreground">Jaarloon</th>
                   <th className="text-right py-3 px-4 font-medium text-muted-foreground">Fee %</th>
-                  <th className="text-right py-3 px-4 font-medium text-muted-foreground bg-blue-50">Fee aan klant</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground bg-blue-50">Ref. / Factuurstatus</th>
+                  <th className="text-right py-3 px-4 font-medium text-muted-foreground bg-primary/5">Fee aan klant</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground bg-primary/5">Ref. / Factuurstatus</th>
                 </tr>
               </thead>
               <tbody>
-                {permRows.map(row => {
+                {filteredPm.map(row => {
                   const clientOverdue = row.clientInvoice ? isOverdue(row.clientInvoice) : false;
                   return (
                     <tr key={row.placement.id} className={`border-b border-border/50 transition-colors ${clientOverdue ? 'bg-red-50/40 hover:bg-red-50/60' : 'hover:bg-muted/20'}`}>
                       <td className="py-3 px-4 text-muted-foreground">{row.idx}</td>
-                      <td className="py-3 px-4">
-                        <div className="font-medium">{row.placement.consultant_first_name} {row.placement.consultant_last_name}</div>
-                      </td>
+                      <td className="py-3 px-4 font-medium">{row.placement.consultant_first_name} {row.placement.consultant_last_name}</td>
                       <td className="py-3 px-4 font-medium">{row.placement.client_company_name}</td>
                       <td className="py-3 px-4 text-xs text-muted-foreground">{row.placement.client_vat_number || '—'}</td>
                       <td className="py-3 px-4 text-xs text-muted-foreground">{formatDate(row.placement.start_date)}</td>
                       <td className="py-3 px-4 text-right">{formatCurrency(row.placement.perm_annual_salary || 0)}</td>
                       <td className="py-3 px-4 text-right">{row.placement.perm_fee_percentage || 20}%</td>
-                      <td className={`py-3 px-4 text-right bg-blue-50/50 font-semibold ${clientOverdue ? 'text-red-600' : ''}`}>
+                      <td className={`py-3 px-4 text-right bg-primary/5 font-semibold ${clientOverdue ? 'text-red-600' : ''}`}>
                         <div className="flex items-center justify-end gap-1">
                           {clientOverdue && <AlertCircle className="w-3.5 h-3.5 text-red-500" />}
                           {fmtVal(row.clientAmountExcl)}
                         </div>
                       </td>
-                      <td className="py-3 px-4 bg-blue-50/50">
+                      <td className="py-3 px-4 bg-primary/5">
                         <InvoiceRef invoice={row.clientInvoice} />
                         <StatusCell invoice={row.clientInvoice} hasTimesheet={false} onMarkPaid={markPaid} onSendReminder={sendReminder} sendingReminder={sendingReminderId === row.clientInvoice?.id} showTimesheetStatus={false} />
                       </td>
                     </tr>
                   );
                 })}
-                {permRows.length === 0 && (
-                  <tr><td colSpan={9} className="py-8 text-center text-muted-foreground text-sm">Geen PERM placements</td></tr>
+                {filteredPm.length === 0 && (
+                  <tr><td colSpan={9} className="py-8 text-center text-muted-foreground text-sm">Geen resultaten gevonden</td></tr>
                 )}
-                {permRows.length > 0 && (
+                {filteredPm.length > 0 && (
                   <tr className="bg-muted/40 font-semibold border-t-2">
-                    <td colSpan={7} className="py-3 px-4 text-right text-muted-foreground text-xs">Totaal fees</td>
-                    <td className="py-3 px-4 text-right bg-blue-50/70">{fmtVal(pmExpected)}</td>
-                    <td className="bg-blue-50/70" />
+                    <td colSpan={7} className="py-3 px-4 text-right text-xs text-muted-foreground">Totaal fees (gefilterd)</td>
+                    <td className="py-3 px-4 text-right bg-primary/5">{fmtVal(filteredPm.reduce((s, r) => s + r.clientAmountExcl, 0))}</td>
+                    <td className="bg-primary/5" />
                   </tr>
                 )}
               </tbody>
@@ -449,12 +535,12 @@ export default function Billing() {
         </CardContent>
       </Card>
 
-      <Card className="mt-6 border-orange-200 bg-orange-50/50">
+      <Card className="mt-6 border-border bg-muted/30">
         <CardContent className="p-4 flex items-start gap-3">
-          <ExternalLink className="w-5 h-5 text-orange-500 mt-0.5 flex-shrink-0" />
+          <ExternalLink className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
           <div>
-            <p className="font-semibold text-orange-800 text-sm">OkiOki (Xerius) koppeling</p>
-            <p className="text-xs text-orange-700 mt-1">Directe API-koppeling voor automatisch aanmaken en versturen van facturen + referentienummers (+++xxx+++) beschikbaar via Builder+ abonnement.</p>
+            <p className="font-semibold text-sm">OkiOki (Xerius) koppeling</p>
+            <p className="text-xs text-muted-foreground mt-1">Directe API-koppeling voor automatisch aanmaken en versturen van facturen + referentienummers (+++xxx+++) beschikbaar via Builder+ abonnement.</p>
           </div>
         </CardContent>
       </Card>
