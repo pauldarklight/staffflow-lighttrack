@@ -404,19 +404,19 @@ export default function Billing() {
                     <tr key={row.placement.id} className={`border-b border-border/50 transition-colors ${clientOverdue ? 'bg-red-50/40 hover:bg-red-50/60' : 'hover:bg-muted/20'}`}>
                       <td className="py-3 px-3 font-bold text-foreground">{row.idx}</td>
                       <td className="py-3 px-3">
-                        <div className="font-bold text-foreground">{row.placement.consultant_first_name} {row.placement.consultant_last_name}</div>
-                        {row.placement.consultant_company_name && <div className="text-xs text-muted-foreground font-normal">{row.placement.consultant_company_name}</div>}
+                        <div className="font-normal text-foreground">{row.placement.consultant_first_name} {row.placement.consultant_last_name}</div>
+                        {row.placement.consultant_company_name && <div className="text-xs text-muted-foreground">{row.placement.consultant_company_name}</div>}
                       </td>
-                      <td className="py-3 px-3 text-xs text-muted-foreground">{row.placement.consultant_vat_number || '—'}</td>
+                      <td className="py-3 px-3 text-xs font-bold text-foreground">{row.placement.consultant_vat_number || '—'}</td>
                       <td className="py-3 px-3">
-                        <div className="font-bold text-foreground">{row.placement.client_company_name}</div>
-                        {row.placement.client_vat_number && <div className="text-xs text-muted-foreground font-normal">{row.placement.client_vat_number}</div>}
+                        <div className="font-normal text-foreground">{row.placement.client_company_name}</div>
+                        {row.placement.client_vat_number && <div className="text-xs text-muted-foreground">{row.placement.client_vat_number}</div>}
                       </td>
-                      <td className="py-3 px-3"><ContractDuration placement={row.placement} /></td>
+                      <td className="py-3 px-3 font-bold"><ContractDuration placement={row.placement} /></td>
                       <td className="py-3 px-3 text-right">
-                        {row.days > 0 ? <span className="font-bold text-foreground">{row.days}</span> : <span className="text-muted-foreground text-xs">geen TS</span>}
+                        {row.days > 0 ? <span className="font-normal text-foreground">{row.days}</span> : <span className="text-muted-foreground text-xs">geen TS</span>}
                       </td>
-                      <td className="py-3 px-3 text-right text-xs text-muted-foreground">{formatCurrency(row.clientRate)}/dag</td>
+                      <td className="py-3 px-3 text-right text-xs font-bold text-foreground">{formatCurrency(row.clientRate)}/dag</td>
                       <td className={`py-3 px-3 text-right bg-primary/10 font-bold ${clientOverdue ? 'text-red-600' : 'text-primary'}`}>
                         <div className="flex items-center justify-end gap-1">
                           {clientOverdue && <AlertCircle className="w-3.5 h-3.5 text-red-500" />}
@@ -437,9 +437,9 @@ export default function Billing() {
                         <InvoiceRef invoice={row.consultantInvoice} />
                         <StatusCell invoice={row.consultantInvoice} hasTimesheet={!!row.ts} onMarkPaid={markPaid} onSendReminder={sendReminder} sendingReminder={sendingReminderId === row.consultantInvoice?.id} showTimesheetStatus={false} />
                       </td>
-                      <td className={`py-3 px-3 text-right font-bold ${row.marginExcl >= 0 ? 'text-primary' : 'text-red-500'}`}>
+                      <td className={`py-3 px-3 text-right font-normal ${row.marginExcl >= 0 ? 'text-primary' : 'text-red-500'}`}>
                         {fmtVal(row.marginExcl)}
-                        {row.days > 0 && <div className="text-xs font-normal text-muted-foreground">{formatCurrency(row.clientRate - row.consultantRate)}/dag</div>}
+                        {row.days > 0 && <div className="text-xs text-muted-foreground">{formatCurrency(row.clientRate - row.consultantRate)}/dag</div>}
                       </td>
                     </tr>
                   );
@@ -500,12 +500,12 @@ export default function Billing() {
                   return (
                     <tr key={row.placement.id} className={`border-b border-border/50 transition-colors ${clientOverdue ? 'bg-red-50/40 hover:bg-red-50/60' : 'hover:bg-muted/20'}`}>
                       <td className="py-3 px-4 font-bold text-foreground">{row.idx}</td>
-                      <td className="py-3 px-4 font-bold text-foreground">{row.placement.consultant_first_name} {row.placement.consultant_last_name}</td>
+                      <td className="py-3 px-4 font-normal text-foreground">{row.placement.consultant_first_name} {row.placement.consultant_last_name}</td>
                       <td className="py-3 px-4 font-bold text-foreground">{row.placement.client_company_name}</td>
-                      <td className="py-3 px-4 text-xs text-muted-foreground">{row.placement.client_vat_number || '—'}</td>
-                      <td className="py-3 px-4 text-xs text-muted-foreground">{formatDate(row.placement.start_date)}</td>
-                      <td className="py-3 px-4 text-right text-muted-foreground">{formatCurrency(row.placement.perm_annual_salary || 0)}</td>
-                      <td className="py-3 px-4 text-right text-muted-foreground">{row.placement.perm_fee_percentage || 20}%</td>
+                      <td className="py-3 px-4 text-xs font-normal text-muted-foreground">{row.placement.client_vat_number || '—'}</td>
+                      <td className="py-3 px-4 text-xs font-bold text-foreground">{formatDate(row.placement.start_date)}</td>
+                      <td className="py-3 px-4 text-right font-normal text-muted-foreground">{formatCurrency(row.placement.perm_annual_salary || 0)}</td>
+                      <td className="py-3 px-4 text-right font-bold text-foreground">{row.placement.perm_fee_percentage || 20}%</td>
                       <td className={`py-3 px-4 text-right bg-primary/10 font-bold ${clientOverdue ? 'text-red-600' : 'text-primary'}`}>
                         <div className="flex items-center justify-end gap-1">
                           {clientOverdue && <AlertCircle className="w-3.5 h-3.5 text-red-500" />}
