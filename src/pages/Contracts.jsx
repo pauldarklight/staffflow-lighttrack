@@ -1,23 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Plus, FileText, Upload, Search } from 'lucide-react';
+import { Plus, FileText, Search, ArrowUpDown, X, CheckCircle2, Clock, Send } from 'lucide-react';
 import PageHeader from '@/components/shared/PageHeader';
-import StatusBadge from '@/components/shared/StatusBadge';
 import EmptyState from '@/components/shared/EmptyState';
-import { formatDate } from '@/lib/formatters';
+import { formatDate, formatCurrency } from '@/lib/formatters';
+
+const STATUS_STYLES = {
+  draft: 'bg-slate-100 text-slate-600 border-slate-200',
+  sent: 'bg-blue-100 text-blue-700 border-blue-200',
+  signed: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  expired: 'bg-red-100 text-red-600 border-red-200',
+};
+const STATUS_LABELS = {
+  draft: 'Concept', sent: 'Verstuurd', signed: 'Getekend', expired: 'Verlopen',
+};
+const TYPE_STYLES = {
+  client: 'bg-primary/10 text-primary border-primary/20',
+  consultant: 'bg-foreground/10 text-foreground border-foreground/20',
+};
+const TYPE_LABELS = { client: 'Klant', consultant: 'Consultant' };
 
 export default function Contracts() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('default');
   const queryClient = useQueryClient();
 
   const { data: contracts = [] } = useQuery({
@@ -30,9 +48,15 @@ export default function Contracts() {
     queryFn: () => base44.entities.Placement.list(),
   });
 
-  const [form, setForm] = useState({ placement_id: '', contract_type: 'client', status: 'draft', sent_date: '', signed_date: '', recipient_name: '', recipient_email: '', notes: '' });
+  const [form, setForm] = useState({
+    placement_id: '', contract_type: 'client', status: 'draft',
+    sent_date: '', signed_date: '', recipient_name: '', recipient_email: '', notes: '',
+  });
 
-  const resetForm = () => setForm({ placement_id: '', contract_type: 'client', status: 'draft', sent_date: '', signed_date: '', recipient_name: '', recipient_email: '', notes: '' });
+  const resetForm = () => setForm({
+    placement_id: '', contract_type: 'client', status: 'draft',
+    sent_date: '', signed_date: '', recipient_name: '', recipient_email: '', notes: '',
+  });
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Contract.create(data),
@@ -46,11 +70,8 @@ export default function Contracts() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (editing) {
-      updateMutation.mutate({ id: editing.id, data: form });
-    } else {
-      createMutation.mutate(form);
-    }
+    if (editing) updateMutation.mutate({ id: editing.id, data: form });
+    else createMutation.mutate(form);
   };
 
   const openEdit = (contract) => {
@@ -59,29 +80,118 @@ export default function Contracts() {
     setShowForm(true);
   };
 
-  const getPlacementLabel = (id) => {
-    const p = placements.find(pl => pl.id === id);
-    return p ? `${p.consultant_first_name} ${p.consultant_last_name} → ${p.client_company_name}` : id;
-  };
+  const getPlacement = (id) => placements.find(p => p.id === id);
 
-  const filtered = contracts.filter(c => {
-    const q = search.toLowerCase();
-    return !q || getPlacementLabel(c.placement_id).toLowerCase().includes(q) || c.recipient_name?.toLowerCase().includes(q);
-  });
+  // Enrich contracts with placement data
+  const enriched = useMemo(() => contracts.map(c => {
+    const p = getPlacement(c.placement_id);
+    return {
+      ...c,
+      placement: p,
+      consultantName: p ? `${p.consultant_first_name} ${p.consultant_last_name}` : '—',
+      clientName: p?.client_company_name || '—',
+      clientVat: p?.client_vat_number || '—',
+      consultantVat: p?.consultant_vat_number || '—',
+      clientRate: p?.client_rate || 0,
+      consultantRate: p?.consultant_rate || 0,
+      margin: (p?.client_rate || 0) - (p?.consultant_rate || 0),
+    };
+  }), [contracts, placements]);
+
+  const filtered = useMemo(() => {
+    let rows = enriched;
+
+    if (search) {
+      const q = search.toLowerCase();
+      rows = rows.filter(c =>
+        c.consultantName.toLowerCase().includes(q) ||
+        c.clientName.toLowerCase().includes(q) ||
+        (c.clientVat || '').toLowerCase().includes(q) ||
+        (c.recipient_name || '').toLowerCase().includes(q)
+      );
+    }
+
+    if (statusFilter !== 'all') rows = rows.filter(c => c.status === statusFilter);
+    if (typeFilter !== 'all') rows = rows.filter(c => c.contract_type === typeFilter);
+
+    if (sortBy !== 'default') {
+      rows = [...rows].sort((a, b) => {
+        if (sortBy === 'rate_desc') return b.clientRate - a.clientRate;
+        if (sortBy === 'rate_asc') return a.clientRate - b.clientRate;
+        if (sortBy === 'margin_desc') return b.margin - a.margin;
+        if (sortBy === 'margin_asc') return a.margin - b.margin;
+        if (sortBy === 'sent_desc') return new Date(b.sent_date || 0) - new Date(a.sent_date || 0);
+        if (sortBy === 'sent_asc') return new Date(a.sent_date || 0) - new Date(b.sent_date || 0);
+        return 0;
+      });
+    }
+
+    return rows;
+  }, [enriched, search, statusFilter, typeFilter, sortBy]);
+
+  const hasFilters = search || statusFilter !== 'all' || typeFilter !== 'all' || sortBy !== 'default';
 
   return (
     <div>
       <PageHeader title="Contracten" subtitle={`${contracts.length} contracten`}>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Zoeken..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 w-64" />
-        </div>
         <Button onClick={() => { setEditing(null); resetForm(); setShowForm(true); }}>
           <Plus className="w-4 h-4 mr-1" /> Nieuw Contract
         </Button>
       </PageHeader>
 
-      <Dialog open={showForm} onOpenChange={(open) => { setShowForm(open); if (!open) { setEditing(null); resetForm(); }}}>
+      {/* Filter bar */}
+      <div className="flex flex-wrap items-center gap-2 mb-6 p-3 bg-muted/40 rounded-lg border border-border">
+        <div className="relative flex-1 min-w-[180px]">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Zoek op naam, klant of BTW-nr..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-8 h-8 text-xs"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-36 h-8 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Alle statussen</SelectItem>
+            <SelectItem value="draft">Concept</SelectItem>
+            <SelectItem value="sent">Verstuurd</SelectItem>
+            <SelectItem value="signed">Getekend</SelectItem>
+            <SelectItem value="expired">Verlopen</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <SelectTrigger className="w-36 h-8 text-xs"><SelectValue placeholder="Type" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Alle types</SelectItem>
+            <SelectItem value="client">Klant</SelectItem>
+            <SelectItem value="consultant">Consultant</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="w-52 h-8 text-xs gap-1">
+            <ArrowUpDown className="w-3.5 h-3.5" />
+            <SelectValue placeholder="Sorteren op" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="default">Standaard</SelectItem>
+            <SelectItem value="rate_desc">Hoogste tarief eerst</SelectItem>
+            <SelectItem value="rate_asc">Laagste tarief eerst</SelectItem>
+            <SelectItem value="margin_desc">Hoogste marge eerst</SelectItem>
+            <SelectItem value="margin_asc">Laagste marge eerst</SelectItem>
+            <SelectItem value="sent_desc">Recentst verstuurd</SelectItem>
+            <SelectItem value="sent_asc">Oudst verstuurd</SelectItem>
+          </SelectContent>
+        </Select>
+        {hasFilters && (
+          <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => { setSearch(''); setStatusFilter('all'); setTypeFilter('all'); setSortBy('default'); }}>
+            <X className="w-3.5 h-3.5 mr-1" /> Reset
+          </Button>
+        )}
+      </div>
+
+      {/* Form Dialog */}
+      <Dialog open={showForm} onOpenChange={(open) => { setShowForm(open); if (!open) { setEditing(null); resetForm(); } }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{editing ? 'Contract Bewerken' : 'Nieuw Contract'}</DialogTitle>
@@ -155,8 +265,9 @@ export default function Contracts() {
         </DialogContent>
       </Dialog>
 
+      {/* Table */}
       {filtered.length === 0 ? (
-        <EmptyState icon={FileText} title="Nog geen contracten" description="Maak contracten aan voor je placements.">
+        <EmptyState icon={FileText} title="Geen contracten gevonden" description="Pas je filters aan of maak een nieuw contract aan.">
           <Button onClick={() => setShowForm(true)}><Plus className="w-4 h-4 mr-1" /> Nieuw Contract</Button>
         </EmptyState>
       ) : (
@@ -166,22 +277,62 @@ export default function Contracts() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Placement</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Type</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Ontvanger</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Verstuurd</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
-                    <th className="text-right py-3 px-4 font-medium text-muted-foreground">Acties</th>
+                    <th className="text-left py-3 px-4 font-bold text-foreground">Consultant</th>
+                    <th className="text-left py-3 px-4 font-normal text-foreground">Vennootschap klant</th>
+                    <th className="text-left py-3 px-4 font-bold text-foreground">BTW nr. klant</th>
+                    <th className="text-left py-3 px-4 font-normal text-foreground">Type</th>
+                    <th className="text-right py-3 px-4 font-bold text-foreground">Tarief/dag</th>
+                    <th className="text-right py-3 px-4 font-normal text-foreground">Marge/dag</th>
+                    <th className="text-left py-3 px-4 font-bold text-foreground">Verstuurd</th>
+                    <th className="text-left py-3 px-4 font-normal text-foreground">Getekend</th>
+                    <th className="text-left py-3 px-4 font-bold text-foreground">Status</th>
+                    <th className="text-right py-3 px-4 font-normal text-foreground">Acties</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map(c => (
-                    <tr key={c.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                      <td className="py-3 px-4 font-medium">{getPlacementLabel(c.placement_id)}</td>
-                      <td className="py-3 px-4"><StatusBadge status={c.contract_type} /></td>
-                      <td className="py-3 px-4 text-muted-foreground">{c.recipient_name || '-'}</td>
-                      <td className="py-3 px-4 text-muted-foreground">{formatDate(c.sent_date)}</td>
-                      <td className="py-3 px-4"><StatusBadge status={c.status} /></td>
+                    <tr key={c.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                      <td className="py-3 px-4">
+                        <div className="font-bold text-foreground">{c.consultantName}</div>
+                        {c.recipient_name && <div className="text-xs text-muted-foreground">{c.recipient_name}</div>}
+                      </td>
+                      <td className="py-3 px-4 text-muted-foreground">{c.clientName}</td>
+                      <td className="py-3 px-4 font-bold text-foreground text-xs">{c.clientVat}</td>
+                      <td className="py-3 px-4">
+                        <Badge variant="outline" className={`text-xs ${TYPE_STYLES[c.contract_type] || ''}`}>
+                          {TYPE_LABELS[c.contract_type] || c.contract_type}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <div className="font-bold text-foreground">{c.clientRate ? formatCurrency(c.clientRate) : '—'}</div>
+                        {c.consultantRate > 0 && <div className="text-xs text-muted-foreground">cons: {formatCurrency(c.consultantRate)}</div>}
+                      </td>
+                      <td className={`py-3 px-4 text-right text-muted-foreground ${c.margin > 0 ? 'text-primary' : ''}`}>
+                        {c.margin ? formatCurrency(c.margin) : '—'}
+                      </td>
+                      <td className="py-3 px-4">
+                        {c.sent_date ? (
+                          <div className="flex items-center gap-1 text-blue-600 text-xs">
+                            <Send className="w-3 h-3" /> {formatDate(c.sent_date)}
+                          </div>
+                        ) : <span className="text-muted-foreground text-xs">—</span>}
+                      </td>
+                      <td className="py-3 px-4">
+                        {c.signed_date ? (
+                          <div className="flex items-center gap-1 text-emerald-600 text-xs">
+                            <CheckCircle2 className="w-3 h-3" /> {formatDate(c.signed_date)}
+                          </div>
+                        ) : c.status === 'sent' ? (
+                          <div className="flex items-center gap-1 text-amber-600 text-xs">
+                            <Clock className="w-3 h-3" /> Wacht op handtekening
+                          </div>
+                        ) : <span className="text-muted-foreground text-xs">—</span>}
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge variant="outline" className={`text-xs ${STATUS_STYLES[c.status] || ''}`}>
+                          {STATUS_LABELS[c.status] || c.status}
+                        </Badge>
+                      </td>
                       <td className="py-3 px-4 text-right">
                         <Button variant="ghost" size="sm" onClick={() => openEdit(c)}>Bewerken</Button>
                       </td>
