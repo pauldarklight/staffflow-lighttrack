@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, Pencil, Trash2, ArrowUpDown, X } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, ArrowUpDown, X, RefreshCw } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import PageHeader from '@/components/shared/PageHeader';
@@ -25,6 +25,113 @@ const TYPE_STYLES = {
   perm: 'bg-purple-100 text-purple-700 border-purple-200',
 };
 const TYPE_LABELS = { freelancer: 'Freelancer', perm: 'PERM' };
+
+// Returns the effective end date (last extension or original end_date)
+function effectiveEndDate(p) {
+  const exts = p.extensions || [];
+  if (exts.length > 0) {
+    const sorted = [...exts].sort((a, b) => new Date(b.new_end_date) - new Date(a.new_end_date));
+    return sorted[0].new_end_date;
+  }
+  return p.end_date || null;
+}
+
+// Diff in fractional months between two dates
+function monthDiff(from, to) {
+  const f = new Date(from);
+  const t = new Date(to);
+  return (t.getFullYear() - f.getFullYear()) * 12 + (t.getMonth() - f.getMonth()) + (t.getDate() - f.getDate()) / 30;
+}
+
+function DurationCell({ p }) {
+  const endDate = effectiveEndDate(p);
+  if (!p.start_date || !endDate) {
+    return <span className="text-muted-foreground text-xs">Geen einddatum</span>;
+  }
+
+  const today = new Date();
+  const start = new Date(p.start_date);
+  const end = new Date(endDate);
+
+  const totalMonths = monthDiff(p.start_date, endDate);
+  const elapsedMonths = Math.max(0, Math.min(totalMonths, monthDiff(p.start_date, today.toISOString())));
+  const remainingMonths = Math.max(0, totalMonths - elapsedMonths);
+
+  // Short contract: show days
+  const isShort = totalMonths < 1;
+  const totalDays = Math.round((end - start) / (1000 * 60 * 60 * 24));
+  const elapsedDays = Math.max(0, Math.round((today - start) / (1000 * 60 * 60 * 24)));
+  const remainingDays = Math.max(0, totalDays - elapsedDays);
+
+  const pct = totalMonths > 0 ? Math.min(100, (elapsedMonths / totalMonths) * 100) : 0;
+  const isNearEnd = remainingMonths <= 1 && !isShort;
+
+  return (
+    <div className="min-w-[160px] space-y-1">
+      {isShort ? (
+        <div className="text-xs font-bold text-foreground">{totalDays} dagen totaal</div>
+      ) : (
+        <div className="text-xs font-bold text-foreground">{Math.round(totalMonths)} mnd totaal</div>
+      )}
+      <div className="w-full bg-muted rounded-full h-1.5">
+        <div className={`h-1.5 rounded-full ${isNearEnd ? 'bg-red-400' : 'bg-primary'}`} style={{ width: `${pct}%` }} />
+      </div>
+      <div className="flex gap-2 text-xs">
+        <span className="text-muted-foreground">
+          {isShort ? `${elapsedDays}d gepresteerd` : `${Math.round(elapsedMonths)} mnd gepresteerd`}
+        </span>
+        <span className={`font-medium ${isNearEnd ? 'text-red-600' : 'text-foreground'}`}>
+          {isShort ? `${remainingDays}d resterend` : `${Math.round(remainingMonths)} mnd resterend`}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function ContractValueCell({ p, totalRevenue, totalMargin }) {
+  const endDate = effectiveEndDate(p);
+  if (!p.start_date || !endDate || !p.client_rate) {
+    return (
+      <div className="text-right">
+        {totalRevenue > 0 ? <div className="font-bold text-primary">{formatCurrency(totalRevenue)}</div> : <span className="text-muted-foreground text-xs">—</span>}
+        {totalMargin > 0 && <div className="text-xs text-muted-foreground">marge: {formatCurrency(totalMargin)}</div>}
+      </div>
+    );
+  }
+
+  // Estimate contract value: ~21 working days/month
+  const totalMonths = monthDiff(p.start_date, endDate);
+  const estimatedDays = Math.round(totalMonths * 21);
+  const contractValue = estimatedDays * (p.client_rate || 0);
+  const contractMargin = estimatedDays * ((p.client_rate || 0) - (p.consultant_rate || 0));
+
+  return (
+    <div className="text-right min-w-[130px]">
+      <div className="text-xs text-muted-foreground">Totaalwaarde (est.)</div>
+      <div className="font-bold text-foreground">{formatCurrency(contractValue)}</div>
+      <div className="text-xs text-muted-foreground mt-1">Gerealiseerd</div>
+      <div className="font-bold text-primary">{totalRevenue > 0 ? formatCurrency(totalRevenue) : '—'}</div>
+      {totalMargin > 0 && <div className="text-xs text-muted-foreground">marge: {formatCurrency(totalMargin)}</div>}
+    </div>
+  );
+}
+
+function ExtensionCell({ p }) {
+  const exts = p.extensions || [];
+  const endDate = effectiveEndDate(p);
+  if (exts.length === 0) {
+    return <span className="text-muted-foreground text-xs">—</span>;
+  }
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-1">
+        <RefreshCw className="w-3 h-3 text-primary" />
+        <span className="text-xs font-bold text-primary">{exts.length}x verlengd</span>
+      </div>
+      <div className="text-xs text-muted-foreground">Tot: {formatDate(endDate)}</div>
+    </div>
+  );
+}
 
 export default function Placements() {
   const [showForm, setShowForm] = useState(false);
@@ -65,7 +172,6 @@ export default function Placements() {
     else createMutation.mutate(data);
   };
 
-  // Enrich placements with aggregated timesheet financials
   const enriched = useMemo(() => placements.map((p, idx) => {
     const pts = timesheets.filter(t => t.placement_id === p.id);
     const totalDays = pts.reduce((s, t) => s + (t.days_worked || 0), 0);
@@ -73,12 +179,13 @@ export default function Placements() {
     const totalCost = pts.reduce((s, t) => s + (t.consultant_revenue || 0), 0);
     const totalMargin = pts.reduce((s, t) => s + (t.margin || 0), 0);
     const marginPerDay = (p.client_rate || 0) - (p.consultant_rate || 0);
-    return { ...p, idx: idx + 1, totalDays, totalRevenue, totalCost, totalMargin, marginPerDay };
+    const endDate = effectiveEndDate(p);
+    const totalMonths = p.start_date && endDate ? monthDiff(p.start_date, endDate) : 0;
+    return { ...p, idx: idx + 1, totalDays, totalRevenue, totalCost, totalMargin, marginPerDay, totalMonths };
   }), [placements, timesheets]);
 
   const filtered = useMemo(() => {
     let rows = enriched;
-
     if (search) {
       const q = search.toLowerCase();
       rows = rows.filter(p =>
@@ -88,10 +195,8 @@ export default function Placements() {
         (p.client_vat_number || '').toLowerCase().includes(q)
       );
     }
-
     if (statusFilter !== 'all') rows = rows.filter(p => p.status === statusFilter);
     if (typeFilter !== 'all') rows = rows.filter(p => (p.placement_type || 'freelancer') === typeFilter);
-
     if (sortBy !== 'default') {
       rows = [...rows].sort((a, b) => {
         if (sortBy === 'revenue_desc') return b.totalRevenue - a.totalRevenue;
@@ -104,10 +209,11 @@ export default function Placements() {
         if (sortBy === 'rate_asc') return (a.client_rate || 0) - (b.client_rate || 0);
         if (sortBy === 'start_asc') return new Date(a.start_date || 0) - new Date(b.start_date || 0);
         if (sortBy === 'start_desc') return new Date(b.start_date || 0) - new Date(a.start_date || 0);
+        if (sortBy === 'duration_desc') return b.totalMonths - a.totalMonths;
+        if (sortBy === 'duration_asc') return a.totalMonths - b.totalMonths;
         return 0;
       });
     }
-
     return rows;
   }, [enriched, search, statusFilter, typeFilter, sortBy]);
 
@@ -166,6 +272,8 @@ export default function Placements() {
             <SelectItem value="rate_asc">Laagste tarief</SelectItem>
             <SelectItem value="start_asc">Startdatum (vroegst)</SelectItem>
             <SelectItem value="start_desc">Startdatum (nieuwst)</SelectItem>
+            <SelectItem value="duration_desc">Langste looptijd</SelectItem>
+            <SelectItem value="duration_asc">Kortste looptijd</SelectItem>
           </SelectContent>
         </Select>
         {hasFilters && (
@@ -206,12 +314,11 @@ export default function Placements() {
                     <th className="text-left py-3 px-3 font-bold text-foreground whitespace-nowrap">Consultant</th>
                     <th className="text-left py-3 px-3 font-normal text-foreground whitespace-nowrap">Firma klant</th>
                     <th className="text-left py-3 px-3 font-bold text-foreground whitespace-nowrap">Type</th>
-                    <th className="text-right py-3 px-3 font-normal text-foreground whitespace-nowrap">Dagen</th>
                     <th className="text-right py-3 px-3 font-bold text-foreground whitespace-nowrap">Tarief/dag</th>
-                    <th className="text-right py-3 px-3 font-normal text-white bg-primary whitespace-nowrap">Omzet</th>
-                    <th className="text-right py-3 px-3 font-bold text-white bg-primary whitespace-nowrap">Marge</th>
-                    <th className="text-left py-3 px-3 font-normal text-foreground whitespace-nowrap">Startdatum</th>
-                    <th className="text-left py-3 px-3 font-bold text-foreground whitespace-nowrap">Einddatum</th>
+                    <th className="text-left py-3 px-3 font-bold text-foreground whitespace-nowrap">Looptijd & Prestaties</th>
+                    <th className="text-left py-3 px-3 font-normal text-foreground whitespace-nowrap">Start → Einde</th>
+                    <th className="text-right py-3 px-3 font-normal text-white bg-primary whitespace-nowrap">Contractwaarde</th>
+                    <th className="text-left py-3 px-3 font-bold text-foreground whitespace-nowrap">Verlengingen</th>
                     <th className="text-left py-3 px-3 font-normal text-foreground whitespace-nowrap">Status</th>
                     <th className="text-right py-3 px-3 font-normal text-foreground whitespace-nowrap">Acties</th>
                   </tr>
@@ -234,27 +341,22 @@ export default function Placements() {
                           {TYPE_LABELS[p.placement_type || 'freelancer']}
                         </Badge>
                       </td>
-                      <td className="py-3 px-3 text-right text-muted-foreground">
-                        {p.totalDays > 0 ? p.totalDays : '—'}
-                      </td>
                       <td className="py-3 px-3 text-right">
                         <div className="font-bold text-foreground">{p.client_rate ? formatCurrency(p.client_rate) : '—'}</div>
                         {p.consultant_rate > 0 && <div className="text-xs text-muted-foreground">cons: {formatCurrency(p.consultant_rate)}</div>}
                       </td>
-                      <td className="py-3 px-3 text-right bg-primary/10 text-muted-foreground">
-                        {p.totalRevenue > 0 ? formatCurrency(p.totalRevenue) : '—'}
+                      <td className="py-3 px-3">
+                        <DurationCell p={p} />
                       </td>
-                      <td className="py-3 px-3 text-right bg-primary/10">
-                        <div className={`font-bold ${p.totalMargin > 0 ? 'text-primary' : p.totalMargin < 0 ? 'text-red-500' : 'text-muted-foreground'}`}>
-                          {p.totalMargin !== 0 ? formatCurrency(p.totalMargin) : '—'}
-                        </div>
-                        {p.marginPerDay > 0 && (
-                          <div className="text-xs text-muted-foreground">{formatCurrency(p.marginPerDay)}/dag</div>
-                        )}
+                      <td className="py-3 px-3 text-xs text-muted-foreground whitespace-nowrap">
+                        <div>{formatDate(p.start_date)}</div>
+                        <div className="font-bold text-foreground">{effectiveEndDate(p) ? formatDate(effectiveEndDate(p)) : '—'}</div>
                       </td>
-                      <td className="py-3 px-3 text-muted-foreground whitespace-nowrap">{formatDate(p.start_date)}</td>
-                      <td className="py-3 px-3 font-bold text-foreground whitespace-nowrap">
-                        {p.end_date ? formatDate(p.end_date) : <span className="text-muted-foreground font-normal">—</span>}
+                      <td className="py-3 px-3 bg-primary/10">
+                        <ContractValueCell p={p} totalRevenue={p.totalRevenue} totalMargin={p.totalMargin} />
+                      </td>
+                      <td className="py-3 px-3">
+                        <ExtensionCell p={p} />
                       </td>
                       <td className="py-3 px-3">
                         <Badge variant="outline" className={`text-xs ${STATUS_STYLES[p.status] || 'bg-muted text-muted-foreground'}`}>
