@@ -187,14 +187,31 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
             </div>
 
             {!isPerm && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Tarief Consultant (€/dag) *</Label>
-                  <Input type="number" step="0.01" value={form.consultant_rate} onChange={e => updateField('consultant_rate', e.target.value)} />
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Tarief Consultant (€/dag) *</Label>
+                    <Input type="number" step="0.01" value={form.consultant_rate} onChange={e => updateField('consultant_rate', e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Tarief Klant (€/dag) *</Label>
+                    <Input type="number" step="0.01" value={form.client_rate} onChange={e => updateField('client_rate', e.target.value)} />
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Tarief Klant (€/dag) *</Label>
-                  <Input type="number" step="0.01" value={form.client_rate} onChange={e => updateField('client_rate', e.target.value)} />
+                  <Label>Dagen per week *</Label>
+                  <Select value={String(form.days_per_week || 5)} onValueChange={v => updateField('days_per_week', parseFloat(v))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5/5 — voltijds</SelectItem>
+                      <SelectItem value="4">4/5 — 4 dagen/week</SelectItem>
+                      <SelectItem value="3">3/5 — 3 dagen/week</SelectItem>
+                      <SelectItem value="2.5">2.5/5 — halftijds</SelectItem>
+                      <SelectItem value="2">2/5 — 2 dagen/week</SelectItem>
+                      <SelectItem value="1">1/5 — 1 dag/week</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">Bepaalt het verwacht aantal werkdagen per maand in het maandoverzicht.</p>
                 </div>
               </div>
             )}
