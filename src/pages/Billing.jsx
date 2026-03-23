@@ -425,7 +425,7 @@ export default function Billing() {
                       </td>
                       <td className="py-3 px-3 bg-primary/10">
                         <InvoiceRef invoice={row.clientInvoice} />
-                        <StatusCell invoice={row.clientInvoice} hasTimesheet={!!row.ts} onMarkPaid={markPaid} onSendReminder={sendReminder} sendingReminder={sendingReminderId === row.clientInvoice?.id} showTimesheetStatus={true} />
+                        <StatusCell invoice={row.clientInvoice} hasTimesheet={!!row.ts} onMarkPaid={markPaid} onSendReminder={sendReminder} sendingReminder={sendingReminderId === row.clientInvoice?.id} showTimesheetStatus={false} />
                       </td>
                       <td className={`py-3 px-3 text-right bg-foreground/8 font-bold border-l border-foreground/10 ${consultantOverdue ? 'text-red-600' : 'text-foreground'}`} style={{backgroundColor: 'rgba(0,0,0,0.06)'}}>
                         <div className="flex items-center justify-end gap-1">
