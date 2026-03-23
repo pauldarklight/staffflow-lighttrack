@@ -30,12 +30,15 @@ export default function Sidebar({ collapsed, onToggle }) {
       "fixed left-0 top-0 h-screen bg-sidebar text-sidebar-foreground z-40 transition-all duration-300 flex flex-col",
       collapsed ? "w-16" : "w-64"
     )}>
-      <div className="flex items-center gap-3 px-4 h-16 border-b border-sidebar-border">
-        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
-          <Building2 className="w-4 h-4 text-primary-foreground" />
+      <div className={cn("flex items-center border-b border-sidebar-border", collapsed ? "justify-center py-4 px-2 h-16" : "px-5 py-4 gap-3 h-16")}>
+        <div className="flex-shrink-0 w-8 h-8 bg-sidebar-primary rounded-sm flex items-center justify-center">
+          <span className="text-white font-black text-sm leading-none">L</span>
         </div>
         {!collapsed && (
-          <span className="font-bold text-lg tracking-tight whitespace-nowrap">StaffingHub</span>
+          <div className="leading-none">
+            <div className="text-white font-bold text-base tracking-tight">Lighttrack</div>
+            <div className="text-sidebar-foreground/40 text-[10px] tracking-widest uppercase mt-0.5">by dark light.</div>
+          </div>
         )}
       </div>
 
