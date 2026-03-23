@@ -40,6 +40,10 @@ export default function MonthlyOverview({ placements }) {
       .sort((a, b) => b.clientRevenue - a.clientRevenue);
   }, [placements, month, year, workingDaysInMonth]);
 
+  const permRows = useMemo(() => {
+    return placements.filter(p => p.placement_type === 'perm');
+  }, [placements]);
+
   const totalRevenue = rows.reduce((s, r) => s + r.clientRevenue, 0);
   const totalCost = rows.reduce((s, r) => s + r.consultantCost, 0);
   const totalMargin = rows.reduce((s, r) => s + r.margin, 0);
@@ -125,6 +129,45 @@ export default function MonthlyOverview({ placements }) {
             </tbody>
           </table>
         </div>
+
+        {/* PERM section */}
+        {permRows.length > 0 && (
+          <div className="mt-4 border-t pt-4">
+            <div className="flex items-center gap-2 mb-3 px-4">
+              <span className="text-sm font-semibold text-foreground">PERM — Vaste aanwervingen</span>
+              <Badge className="bg-foreground/10 text-foreground border-foreground/20 text-xs">PERM</Badge>
+            </div>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="text-left py-3 px-4 font-bold text-foreground">Kandidaat</th>
+                  <th className="text-left py-3 px-4 font-normal text-foreground">Klant</th>
+                  <th className="text-left py-3 px-4 font-bold text-foreground">Status</th>
+                  <th className="text-right py-3 px-4 font-normal text-foreground">Jaarloon</th>
+                  <th className="text-right py-3 px-4 font-bold text-foreground">Fee %</th>
+                  <th className="text-right py-3 px-4 font-normal text-white bg-primary">Eenmalige fee</th>
+                </tr>
+              </thead>
+              <tbody>
+                {permRows.map(p => {
+                  const fee = p.perm_fee_amount || ((p.perm_annual_salary || 0) * ((p.perm_fee_percentage || 20) / 100));
+                  const statusLabel = { active: 'Actief', ended: 'Beëindigd', on_hold: 'On hold' }[p.status] || p.status;
+                  const statusStyle = { active: 'bg-emerald-100 text-emerald-700 border-emerald-200', ended: 'bg-slate-100 text-slate-600 border-slate-200', on_hold: 'bg-amber-100 text-amber-700 border-amber-200' }[p.status] || '';
+                  return (
+                    <tr key={p.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                      <td className="py-3 px-4 font-bold text-foreground">{p.consultant_first_name} {p.consultant_last_name}</td>
+                      <td className="py-3 px-4 text-muted-foreground">{p.client_company_name}</td>
+                      <td className="py-3 px-4"><Badge variant="outline" className={`text-xs ${statusStyle}`}>{statusLabel}</Badge></td>
+                      <td className="py-3 px-4 text-right text-muted-foreground">{formatCurrency(p.perm_annual_salary || 0)}</td>
+                      <td className="py-3 px-4 text-right font-bold text-foreground">{p.perm_fee_percentage || 20}%</td>
+                      <td className="py-3 px-4 text-right bg-primary/10 font-bold text-primary">{formatCurrency(fee)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
