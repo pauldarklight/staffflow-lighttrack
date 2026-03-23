@@ -17,6 +17,7 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
     consultant_vat_number: '',
     start_date: '',
     end_date: '',
+    extensions: [],
     consultant_rate: '',
     client_rate: '',
     perm_annual_salary: '',
@@ -64,6 +65,7 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
       perm_annual_salary: annualSalary,
       perm_fee_percentage: feePerc,
       perm_fee_amount: form.placement_type === 'perm' ? annualSalary * (feePerc / 100) : 0,
+      extensions: form.extensions || [],
       sales_contributors: (form.sales_contributors || []).map(c => ({
         ...c,
         percentage: parseFloat(c.percentage) || 0
@@ -218,6 +220,51 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
                 <Input value={form.vincere_id} onChange={e => updateField('vincere_id', e.target.value)} placeholder="Optioneel" />
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Verlengingen */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Verlengingen</CardTitle>
+            <Button type="button" variant="outline" size="sm" onClick={() => {
+              setForm(prev => ({
+                ...prev,
+                extensions: [...(prev.extensions || []), { extended_on: '', new_end_date: '', notes: '' }]
+              }));
+            }}>
+              <Plus className="w-4 h-4 mr-1" /> Verlenging toevoegen
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {(form.extensions || []).length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">Geen verlengingen geregistreerd</p>
+            )}
+            {(form.extensions || []).map((ext, idx) => (
+              <div key={idx} className="grid grid-cols-3 gap-2 items-end">
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Datum verlenging</label>
+                  <Input type="date" value={ext.extended_on} onChange={e => {
+                    const updated = [...(form.extensions || [])];
+                    updated[idx] = { ...updated[idx], extended_on: e.target.value };
+                    setForm(p => ({ ...p, extensions: updated }));
+                  }} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Nieuwe einddatum</label>
+                  <Input type="date" value={ext.new_end_date} onChange={e => {
+                    const updated = [...(form.extensions || [])];
+                    updated[idx] = { ...updated[idx], new_end_date: e.target.value };
+                    setForm(p => ({ ...p, extensions: updated }));
+                  }} />
+                </div>
+                <Button type="button" variant="ghost" size="icon" onClick={() => {
+                  setForm(p => ({ ...p, extensions: p.extensions.filter((_, i) => i !== idx) }));
+                }}>
+                  <Trash2 className="w-4 h-4 text-destructive" />
+                </Button>
+              </div>
+            ))}
           </CardContent>
         </Card>
 
