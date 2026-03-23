@@ -383,17 +383,17 @@ export default function Billing() {
               <thead>
                 <tr className="border-b bg-muted/50">
                   <th className="text-left py-3 px-3 font-bold text-foreground">#</th>
-                  <th className="text-left py-3 px-3 font-bold text-foreground">Consultant</th>
+                  <th className="text-left py-3 px-3 font-normal text-foreground">Consultant</th>
                   <th className="text-left py-3 px-3 font-bold text-foreground">BTW nr.</th>
-                  <th className="text-left py-3 px-3 font-bold text-foreground">Klant</th>
+                  <th className="text-left py-3 px-3 font-normal text-foreground">Klant</th>
                   <th className="text-left py-3 px-3 font-bold text-foreground">Contractduur</th>
-                  <th className="text-right py-3 px-3 font-bold text-foreground">Dagen</th>
+                  <th className="text-right py-3 px-3 font-normal text-foreground">Dagen</th>
                   <th className="text-right py-3 px-3 font-bold text-foreground">Tarief</th>
-                  <th className="text-right py-3 px-3 font-bold text-white bg-primary">Van klant</th>
-                  <th className="text-left py-3 px-3 font-bold text-white bg-primary">Ref. / Status klant</th>
-                  <th className="text-right py-3 px-3 font-bold text-white bg-foreground">Aan consultant</th>
-                  <th className="text-left py-3 px-3 font-bold text-white bg-foreground">Ref. / Status cons.</th>
-                  <th className="text-right py-3 px-3 font-bold text-foreground">Marge</th>
+                  <th className="text-right py-3 px-3 font-normal text-white bg-primary">Van klant</th>
+                  <th className="text-left py-3 px-3 font-bold text-white bg-primary">Ref. klant</th>
+                  <th className="text-right py-3 px-3 font-normal text-white bg-foreground">Aan consultant</th>
+                  <th className="text-left py-3 px-3 font-bold text-white bg-foreground">Ref. cons.</th>
+                  <th className="text-right py-3 px-3 font-normal text-foreground">Marge</th>
                 </tr>
               </thead>
               <tbody>
@@ -484,14 +484,14 @@ export default function Billing() {
               <thead>
                 <tr className="border-b bg-muted/50">
                   <th className="text-left py-3 px-4 font-bold text-foreground">#</th>
-                  <th className="text-left py-3 px-4 font-bold text-foreground">Kandidaat</th>
+                  <th className="text-left py-3 px-4 font-normal text-foreground">Kandidaat</th>
                   <th className="text-left py-3 px-4 font-bold text-foreground">Klant</th>
-                  <th className="text-left py-3 px-4 font-bold text-foreground">BTW nr. klant</th>
+                  <th className="text-left py-3 px-4 font-normal text-foreground">BTW nr. klant</th>
                   <th className="text-left py-3 px-4 font-bold text-foreground">Startdatum</th>
-                  <th className="text-right py-3 px-4 font-bold text-foreground">Jaarloon</th>
+                  <th className="text-right py-3 px-4 font-normal text-foreground">Jaarloon</th>
                   <th className="text-right py-3 px-4 font-bold text-foreground">Fee %</th>
-                  <th className="text-right py-3 px-4 font-bold text-white bg-primary">Fee aan klant</th>
-                  <th className="text-left py-3 px-4 font-bold text-white bg-primary">Ref. / Factuurstatus</th>
+                  <th className="text-right py-3 px-4 font-normal text-white bg-primary">Fee aan klant</th>
+                  <th className="text-left py-3 px-4 font-bold text-white bg-primary">Ref. klant</th>
                 </tr>
               </thead>
               <tbody>
