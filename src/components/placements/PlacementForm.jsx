@@ -5,9 +5,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Trash2, Save, X } from 'lucide-react';
+import { formatCurrency } from '@/lib/formatters';
 
 export default function PlacementForm({ placement, onSave, onCancel }) {
   const [form, setForm] = useState(placement || {
+    placement_type: 'freelancer',
     consultant_first_name: '',
     consultant_last_name: '',
     consultant_company_name: '',
@@ -17,6 +19,9 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
     end_date: '',
     consultant_rate: '',
     client_rate: '',
+    perm_annual_salary: '',
+    perm_fee_percentage: 20,
+    perm_fee_amount: '',
     sales_contributors: [],
     client_company_name: '',
     client_address: '',
@@ -50,10 +55,15 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const annualSalary = parseFloat(form.perm_annual_salary) || 0;
+    const feePerc = parseFloat(form.perm_fee_percentage) || 20;
     const data = {
       ...form,
       consultant_rate: parseFloat(form.consultant_rate) || 0,
       client_rate: parseFloat(form.client_rate) || 0,
+      perm_annual_salary: annualSalary,
+      perm_fee_percentage: feePerc,
+      perm_fee_amount: form.placement_type === 'perm' ? annualSalary * (feePerc / 100) : 0,
       sales_contributors: (form.sales_contributors || []).map(c => ({
         ...c,
         percentage: parseFloat(c.percentage) || 0
@@ -62,9 +72,31 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
     onSave(data);
   };
 
+  const isPerm = form.placement_type === 'perm';
+  const permFee = (parseFloat(form.perm_annual_salary) || 0) * ((parseFloat(form.perm_fee_percentage) || 20) / 100);
+
   return (
     <form onSubmit={handleSubmit}>
+      {/* Type selector */}
+      <div className="mb-6">
+        <Card>
+          <CardContent className="pt-4">
+            <div className="space-y-2">
+              <Label>Type placement *</Label>
+              <Select value={form.placement_type || 'freelancer'} onValueChange={v => updateField('placement_type', v)}>
+                <SelectTrigger className="w-64"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="freelancer">Freelancer</SelectItem>
+                  <SelectItem value="perm">PERM (vaste aanwerving)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Consultant */}
         <Card>
           <CardHeader><CardTitle className="text-base">Consultant</CardTitle></CardHeader>
           <CardContent className="space-y-4">
@@ -78,21 +110,26 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
                 <Input value={form.consultant_last_name} onChange={e => updateField('consultant_last_name', e.target.value)} required />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label>Bedrijfsnaam (freelancer)</Label>
-              <Input value={form.consultant_company_name} onChange={e => updateField('consultant_company_name', e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Adres bedrijf</Label>
-              <Input value={form.consultant_company_address} onChange={e => updateField('consultant_company_address', e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>BTW nummer</Label>
-              <Input value={form.consultant_vat_number} onChange={e => updateField('consultant_vat_number', e.target.value)} placeholder="BE0123.456.789" />
-            </div>
+            {!isPerm && (
+              <>
+                <div className="space-y-2">
+                  <Label>Bedrijfsnaam (freelancer)</Label>
+                  <Input value={form.consultant_company_name} onChange={e => updateField('consultant_company_name', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Adres bedrijf</Label>
+                  <Input value={form.consultant_company_address} onChange={e => updateField('consultant_company_address', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>BTW nummer</Label>
+                  <Input value={form.consultant_vat_number} onChange={e => updateField('consultant_vat_number', e.target.value)} placeholder="BE0123.456.789" />
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
+        {/* Klant */}
         <Card>
           <CardHeader><CardTitle className="text-base">Klant</CardTitle></CardHeader>
           <CardContent className="space-y-4">
@@ -115,6 +152,7 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
           </CardContent>
         </Card>
 
+        {/* Tarieven */}
         <Card>
           <CardHeader><CardTitle className="text-base">Tarieven & Data</CardTitle></CardHeader>
           <CardContent className="space-y-4">
@@ -128,16 +166,41 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
                 <Input type="date" value={form.end_date} onChange={e => updateField('end_date', e.target.value)} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Tarief Consultant (€/dag) *</Label>
-                <Input type="number" step="0.01" value={form.consultant_rate} onChange={e => updateField('consultant_rate', e.target.value)} required />
+
+            {!isPerm && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Tarief Consultant (€/dag) *</Label>
+                  <Input type="number" step="0.01" value={form.consultant_rate} onChange={e => updateField('consultant_rate', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Tarief Klant (€/dag) *</Label>
+                  <Input type="number" step="0.01" value={form.client_rate} onChange={e => updateField('client_rate', e.target.value)} />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Tarief Klant (€/dag) *</Label>
-                <Input type="number" step="0.01" value={form.client_rate} onChange={e => updateField('client_rate', e.target.value)} required />
+            )}
+
+            {isPerm && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Jaarloon kandidaat (€)</Label>
+                    <Input type="number" step="0.01" value={form.perm_annual_salary} onChange={e => updateField('perm_annual_salary', e.target.value)} placeholder="bijv. 60000" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Fee % (standaard 20%)</Label>
+                    <Input type="number" step="0.1" value={form.perm_fee_percentage} onChange={e => updateField('perm_fee_percentage', e.target.value)} />
+                  </div>
+                </div>
+                {form.perm_annual_salary && (
+                  <div className="bg-primary/10 rounded-lg p-3 text-sm">
+                    <span className="text-muted-foreground">Eenmalige fee aan klant: </span>
+                    <span className="font-bold text-primary">{formatCurrency(permFee)}</span>
+                  </div>
+                )}
               </div>
-            </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Status</Label>
@@ -158,6 +221,7 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
           </CardContent>
         </Card>
 
+        {/* Sales Contributors */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Sales Contributors</CardTitle>
@@ -168,19 +232,8 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
           <CardContent className="space-y-3">
             {(form.sales_contributors || []).map((c, idx) => (
               <div key={idx} className="flex items-center gap-3">
-                <Input 
-                  placeholder="Naam" 
-                  value={c.name} 
-                  onChange={e => updateContributor(idx, 'name', e.target.value)}
-                  className="flex-1"
-                />
-                <Input 
-                  type="number" 
-                  placeholder="%" 
-                  value={c.percentage} 
-                  onChange={e => updateContributor(idx, 'percentage', e.target.value)}
-                  className="w-20"
-                />
+                <Input placeholder="Naam" value={c.name} onChange={e => updateContributor(idx, 'name', e.target.value)} className="flex-1" />
+                <Input type="number" placeholder="%" value={c.percentage} onChange={e => updateContributor(idx, 'percentage', e.target.value)} className="w-20" />
                 <Button type="button" variant="ghost" size="icon" onClick={() => removeContributor(idx)}>
                   <Trash2 className="w-4 h-4 text-destructive" />
                 </Button>
