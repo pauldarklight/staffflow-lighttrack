@@ -6,25 +6,34 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, Pencil, Trash2, ArrowUpDown, X, RefreshCw } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, ArrowUpDown, X, RefreshCw, MessageSquare, ChevronDown } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import PageHeader from '@/components/shared/PageHeader';
 import EmptyState from '@/components/shared/EmptyState';
 import PlacementForm from '@/components/placements/PlacementForm';
+import ExtendContractDialog from '@/components/placements/ExtendContractDialog';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 
 const STATUS_STYLES = {
   active: 'bg-emerald-100 text-emerald-700 border-emerald-200',
   ended: 'bg-slate-100 text-slate-500 border-slate-200',
   on_hold: 'bg-amber-100 text-amber-700 border-amber-200',
+  ending_soon: 'bg-orange-100 text-orange-700 border-orange-300',
 };
-const STATUS_LABELS = { active: 'Actief', ended: 'Beëindigd', on_hold: 'On hold' };
+const STATUS_LABELS = { active: 'Actief', ended: 'Beëindigd', on_hold: 'On hold', ending_soon: 'Eindigt binnenkort' };
 const TYPE_STYLES = {
   freelancer: 'bg-blue-100 text-blue-700 border-blue-200',
   perm: 'bg-purple-100 text-purple-700 border-purple-200',
 };
 const TYPE_LABELS = { freelancer: 'Freelancer', perm: 'PERM' };
+
+function isEndingSoon(p) {
+  const endDate = effectiveEndDate(p);
+  if (!endDate || p.status !== 'active') return false;
+  const daysLeft = (new Date(endDate) - new Date()) / (1000 * 60 * 60 * 24);
+  return daysLeft >= 0 && daysLeft <= 56;
+}
 
 // Returns the effective end date (last extension or original end_date)
 function effectiveEndDate(p) {
@@ -145,11 +154,8 @@ function ExtensionCell({ p }) {
 export default function Placements() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [typeFilter, setTypeFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('default');
-  const queryClient = useQueryClient();
+  const [extendingPlacement, setExtendingPlacement] = useState(null);
+  const [expandedNotes, setExpandedNotes] = useState({});
 
   const { data: placements = [], isLoading } = useQuery({
     queryKey: ['placements'],
@@ -176,6 +182,11 @@ export default function Placements() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['placements'] }),
   });
 
+  const extendMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Placement.update(id, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['placements'] }); setExtendingPlacement(null); },
+  });
+
   const handleSave = (data) => {
     if (editing) updateMutation.mutate({ id: editing.id, data });
     else createMutation.mutate(data);
@@ -190,7 +201,8 @@ export default function Placements() {
     const marginPerDay = (p.client_rate || 0) - (p.consultant_rate || 0);
     const endDate = effectiveEndDate(p);
     const totalMonths = p.start_date && endDate ? monthDiff(p.start_date, endDate) : 0;
-    return { ...p, idx: idx + 1, totalDays, totalRevenue, totalCost, totalMargin, marginPerDay, totalMonths };
+    const endingSoon = isEndingSoon(p);
+    return { ...p, idx: idx + 1, totalDays, totalRevenue, totalCost, totalMargin, marginPerDay, totalMonths, endingSoon };
   }), [placements, timesheets]);
 
   const filtered = useMemo(() => {
@@ -307,6 +319,13 @@ export default function Placements() {
         </DialogContent>
       </Dialog>
 
+      <ExtendContractDialog
+        open={!!extendingPlacement}
+        placement={extendingPlacement}
+        onClose={() => setExtendingPlacement(null)}
+        onSave={(data) => extendMutation.mutate({ id: extendingPlacement.id, data })}
+      />
+
       {/* Table */}
       {filtered.length === 0 && !isLoading ? (
         <EmptyState icon={Plus} title="Geen placements gevonden" description="Pas je filters aan of maak een nieuwe placement aan.">
@@ -327,80 +346,106 @@ export default function Placements() {
                     <th className="text-left py-3 px-3 font-bold text-foreground whitespace-nowrap">Looptijd & Prestaties</th>
                     <th className="text-left py-3 px-3 font-normal text-foreground whitespace-nowrap">Start → Einde</th>
                     <th className="text-right py-3 px-3 font-normal text-white bg-primary whitespace-nowrap">Contractwaarde</th>
-                    <th className="text-left py-3 px-3 font-bold text-foreground whitespace-nowrap">Verlengingen</th>
+                    <th className="text-right py-3 px-3 font-bold text-foreground whitespace-nowrap">Omzet</th>
+                    <th className="text-right py-3 px-3 font-bold text-foreground whitespace-nowrap">Marge</th>
+                    <th className="text-left py-3 px-3 font-normal text-foreground whitespace-nowrap">Verlengingen</th>
                     <th className="text-left py-3 px-3 font-normal text-foreground whitespace-nowrap">Status</th>
                     <th className="text-right py-3 px-3 font-normal text-foreground whitespace-nowrap">Acties</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map(p => (
-                    <tr key={p.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
-                      <td className="py-3 px-3 font-bold text-foreground">{p.idx}</td>
-                      <td className="py-3 px-3">
-                        <div className="font-bold text-foreground whitespace-nowrap">{p.consultant_first_name} {p.consultant_last_name}</div>
-                        {p.consultant_company_name && <div className="text-xs text-muted-foreground">{p.consultant_company_name}</div>}
-                        {p.consultant_vat_number && <div className="text-xs text-muted-foreground font-mono">{p.consultant_vat_number}</div>}
-                      </td>
-                      <td className="py-3 px-3">
-                        <div className="font-bold text-foreground whitespace-nowrap">{p.client_company_name}</div>
-                        {p.client_vat_number && <div className="text-xs text-muted-foreground font-mono">{p.client_vat_number}</div>}
-                      </td>
-                      <td className="py-3 px-3">
-                        <Badge variant="outline" className={`text-xs ${TYPE_STYLES[p.placement_type || 'freelancer']}`}>
-                          {TYPE_LABELS[p.placement_type || 'freelancer']}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-3 text-right">
-                        <div className="font-bold text-foreground">{p.client_rate ? formatCurrency(p.client_rate) : '—'}</div>
-                        {p.consultant_rate > 0 && <div className="text-xs text-muted-foreground">cons: {formatCurrency(p.consultant_rate)}</div>}
-                      </td>
-                      <td className="py-3 px-3">
-                        <DurationCell p={p} />
-                      </td>
-                      <td className="py-3 px-3 text-xs text-muted-foreground whitespace-nowrap">
-                        <div>{formatDate(p.start_date)}</div>
-                        <div className="font-bold text-foreground">{effectiveEndDate(p) ? formatDate(effectiveEndDate(p)) : '—'}</div>
-                      </td>
-                      <td className="py-3 px-3 bg-primary/10">
-                        <ContractValueCell p={p} totalRevenue={p.totalRevenue} totalMargin={p.totalMargin} />
-                      </td>
-                      <td className="py-3 px-3">
-                        <ExtensionCell p={p} />
-                      </td>
-                      <td className="py-3 px-3">
-                        <Badge variant="outline" className={`text-xs ${STATUS_STYLES[p.status] || 'bg-muted text-muted-foreground'}`}>
-                          {STATUS_LABELS[p.status] || p.status}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-3">
-                        <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => { setEditing(p); setShowForm(true); }}>
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon"><Trash2 className="w-4 h-4 text-destructive" /></Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Verwijderen?</AlertDialogTitle>
-                                <AlertDialogDescription>Dit verwijdert deze placement permanent.</AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Annuleren</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => deleteMutation.mutate(p.id)}>Verwijderen</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </td>
-                    </tr>
+                    <React.Fragment key={p.id}>
+                      <tr className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                        <td className="py-3 px-3 font-bold text-foreground">{p.idx}</td>
+                        <td className="py-3 px-3">
+                          <div className="font-bold text-foreground whitespace-nowrap">{p.consultant_first_name} {p.consultant_last_name}</div>
+                          {p.consultant_company_name && <div className="text-xs text-muted-foreground">{p.consultant_company_name}</div>}
+                          {p.consultant_vat_number && <div className="text-xs text-muted-foreground font-mono">{p.consultant_vat_number}</div>}
+                        </td>
+                        <td className="py-3 px-3">
+                          <div className="font-bold text-foreground whitespace-nowrap">{p.client_company_name}</div>
+                          {p.client_vat_number && <div className="text-xs text-muted-foreground font-mono">{p.client_vat_number}</div>}
+                        </td>
+                        <td className="py-3 px-3">
+                          <Badge variant="outline" className={`text-xs ${TYPE_STYLES[p.placement_type || 'freelancer']}`}>
+                            {TYPE_LABELS[p.placement_type || 'freelancer']}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-3 text-right">
+                          <div className="font-bold text-foreground">{p.client_rate ? formatCurrency(p.client_rate) : '—'}</div>
+                          {p.consultant_rate > 0 && <div className="text-xs text-muted-foreground">cons: {formatCurrency(p.consultant_rate)}</div>}
+                        </td>
+                        <td className="py-3 px-3"><DurationCell p={p} /></td>
+                        <td className="py-3 px-3 text-xs text-muted-foreground whitespace-nowrap">
+                          <div>{formatDate(p.start_date)}</div>
+                          <div className="font-bold text-foreground">{effectiveEndDate(p) ? formatDate(effectiveEndDate(p)) : '—'}</div>
+                        </td>
+                        <td className="py-3 px-3 bg-primary/10">
+                          <ContractValueCell p={p} totalRevenue={p.totalRevenue} totalMargin={p.totalMargin} />
+                        </td>
+                        <td className="py-3 px-3 text-right">
+                          <div className="font-bold text-foreground">{p.totalRevenue > 0 ? formatCurrency(p.totalRevenue) : <span className="text-muted-foreground text-xs">—</span>}</div>
+                          <div className="text-xs text-muted-foreground">{p.totalDays > 0 ? `${p.totalDays}d` : ''}</div>
+                        </td>
+                        <td className="py-3 px-3 text-right">
+                          <div className={`font-bold ${p.totalMargin > 0 ? 'text-emerald-600' : 'text-muted-foreground'}`}>{p.totalMargin > 0 ? formatCurrency(p.totalMargin) : '—'}</div>
+                          {p.totalRevenue > 0 && p.totalMargin > 0 && <div className="text-xs text-muted-foreground">{((p.totalMargin / p.totalRevenue) * 100).toFixed(1)}%</div>}
+                        </td>
+                        <td className="py-3 px-3"><ExtensionCell p={p} /></td>
+                        <td className="py-3 px-3">
+                          <Badge variant="outline" className={`text-xs ${p.endingSoon ? STATUS_STYLES.ending_soon : (STATUS_STYLES[p.status] || 'bg-muted text-muted-foreground')}`}>
+                            {p.endingSoon ? '⚠️ Eindigt binnenkort' : (STATUS_LABELS[p.status] || p.status)}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-3">
+                          <div className="flex justify-end gap-1">
+                            <Button variant="ghost" size="icon" title="Verlengen" onClick={() => setExtendingPlacement(p)}>
+                              <RefreshCw className="w-4 h-4 text-primary" />
+                            </Button>
+                            {p.notes && (
+                              <Button variant="ghost" size="icon" title="Opmerkingen" onClick={() => setExpandedNotes(n => ({ ...n, [p.id]: !n[p.id] }))}>
+                                <MessageSquare className="w-4 h-4 text-amber-500" />
+                              </Button>
+                            )}
+                            <Button variant="ghost" size="icon" onClick={() => { setEditing(p); setShowForm(true); }}>
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon"><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Verwijderen?</AlertDialogTitle>
+                                  <AlertDialogDescription>Dit verwijdert deze placement permanent.</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => deleteMutation.mutate(p.id)}>Verwijderen</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </td>
+                      </tr>
+                      {expandedNotes[p.id] && p.notes && (
+                        <tr className="bg-amber-50 border-b border-amber-200">
+                          <td colSpan={13} className="px-4 py-2">
+                            <div className="flex items-start gap-2 text-sm text-amber-900">
+                              <MessageSquare className="w-4 h-4 mt-0.5 text-amber-500 shrink-0" />
+                              <span>{p.notes}</span>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   ))}
                 </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+                </table>
+                </div>
+                </CardContent>
+                </Card>
       )}
     </div>
   );

@@ -28,11 +28,12 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
     client_address: '',
     client_vat_number: '',
     client_billing_email: '',
+    notes: '',
     status: 'active',
     vincere_id: '',
-  });
+    });
 
-  const updateField = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+    const updateField = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
 
   const addContributor = () => {
     setForm(prev => ({
@@ -326,6 +327,24 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Opmerkingen */}
+      <Card className={`mt-6 ${form.notes ? 'border-amber-300 bg-amber-50/30' : ''}`}>
+        <CardHeader className="pb-3">
+          <CardTitle className={`text-base flex items-center gap-2 ${form.notes ? 'text-amber-700' : ''}`}>
+            {form.notes ? '💬' : '📝'} Extra Opmerkingen
+            {form.notes && <span className="text-xs font-normal text-amber-600">(ingevuld)</span>}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <textarea
+            className="flex min-h-[96px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            placeholder="Bijv: specifieke afspraken, escalatiepunten, aandachtspunten..."
+            value={form.notes || ''}
+            onChange={e => updateField('notes', e.target.value)}
+          />
+        </CardContent>
+      </Card>
 
       <div className="flex justify-end gap-3 mt-6">
         <Button type="button" variant="outline" onClick={onCancel}><X className="w-4 h-4 mr-1" /> Annuleren</Button>
