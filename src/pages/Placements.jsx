@@ -186,13 +186,22 @@ export default function Placements() {
   const createMutation = useMutation({
     mutationFn: async (data) => {
       const placement = await base44.entities.Placement.create(data);
-      // Auto-create a client contract linked to this placement
+      // Auto-create client contract
       await base44.entities.Contract.create({
         placement_id: placement.id,
         contract_type: 'client',
         status: 'draft',
-        recipient_name: '',
+        recipient_name: data.client_company_name || '',
         recipient_email: data.client_billing_email || '',
+        notes: '',
+      });
+      // Auto-create consultant contract
+      await base44.entities.Contract.create({
+        placement_id: placement.id,
+        contract_type: 'consultant',
+        status: 'draft',
+        recipient_name: `${data.consultant_first_name || ''} ${data.consultant_last_name || ''}`.trim(),
+        recipient_email: '',
         notes: '',
       });
       return placement;
