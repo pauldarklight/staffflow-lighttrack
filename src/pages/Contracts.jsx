@@ -89,12 +89,14 @@ export default function Contracts() {
 
   const [form, setForm] = useState({
     placement_id: '', contract_type: 'client', status: 'draft',
-    sent_date: '', signed_date: '', recipient_name: '', recipient_email: '', notes: '',
+    sent_date: '', signed_date: '', recipient_name: '', recipient_email: '',
+    agoria_index_client: '', agoria_index_consultant: '', notes: '',
   });
 
   const resetForm = () => setForm({
     placement_id: '', contract_type: 'client', status: 'draft',
-    sent_date: '', signed_date: '', recipient_name: '', recipient_email: '', notes: '',
+    sent_date: '', signed_date: '', recipient_name: '', recipient_email: '',
+    agoria_index_client: '', agoria_index_consultant: '', notes: '',
   });
 
   const createMutation = useMutation({
@@ -297,9 +299,24 @@ export default function Contracts() {
                 <Input type="date" value={form.signed_date} onChange={e => setForm(p => ({ ...p, signed_date: e.target.value }))} />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Agoria-index klant</Label>
+                <Input type="number" step="0.01" placeholder="bijv. 112.34" value={form.agoria_index_client} onChange={e => setForm(p => ({ ...p, agoria_index_client: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Agoria-index consultant</Label>
+                <Input type="number" step="0.01" placeholder="bijv. 112.34" value={form.agoria_index_consultant} onChange={e => setForm(p => ({ ...p, agoria_index_consultant: e.target.value }))} />
+              </div>
+            </div>
             <div className="space-y-2">
               <Label>Opmerkingen</Label>
-              <Textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} />
+              <Textarea
+                value={form.notes}
+                onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
+                className={form.notes ? 'border-blue-400 bg-blue-50 focus-visible:ring-blue-400' : ''}
+              />
+              {form.notes && <p className="text-xs text-blue-600 font-medium">📝 Opmerking aanwezig</p>}
             </div>
             <div className="flex justify-end gap-3">
               <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Annuleren</Button>
@@ -353,11 +370,13 @@ export default function Contracts() {
                       </td>
                       {/* Client contract */}
                       <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <Badge variant="outline" className={`text-xs ${TYPE_STYLES.client}`}>Klant</Badge>
                           {col.client ? (
                             <>
                               <Badge variant="outline" className={`text-xs ${STATUS_STYLES[col.client.status]}`}>{STATUS_LABELS[col.client.status]}</Badge>
+                              {col.client.agoria_index_client && <span className="text-xs text-muted-foreground font-mono">idx: {col.client.agoria_index_client}</span>}
+                              {col.client.notes && <span title={col.client.notes} className="text-xs bg-blue-100 text-blue-700 border border-blue-300 px-1.5 py-0.5 rounded font-medium cursor-help">📝</span>}
                               <Button variant="ghost" size="icon" title="Download klantcontract" onClick={() => generateContractPdf(col.client, col.placement)}>
                                 <Download className="w-3.5 h-3.5 text-primary" />
                               </Button>
@@ -368,11 +387,13 @@ export default function Contracts() {
                       </td>
                       {/* Consultant contract */}
                       <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <Badge variant="outline" className={`text-xs ${TYPE_STYLES.consultant}`}>Consultant</Badge>
                           {col.consultant ? (
                             <>
                               <Badge variant="outline" className={`text-xs ${STATUS_STYLES[col.consultant.status]}`}>{STATUS_LABELS[col.consultant.status]}</Badge>
+                              {col.consultant.agoria_index_consultant && <span className="text-xs text-muted-foreground font-mono">idx: {col.consultant.agoria_index_consultant}</span>}
+                              {col.consultant.notes && <span title={col.consultant.notes} className="text-xs bg-blue-100 text-blue-700 border border-blue-300 px-1.5 py-0.5 rounded font-medium cursor-help">📝</span>}
                               <Button variant="ghost" size="icon" title="Download consultantcontract" onClick={() => generateContractPdf(col.consultant, col.placement)}>
                                 <Download className="w-3.5 h-3.5 text-primary" />
                               </Button>

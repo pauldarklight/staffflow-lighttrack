@@ -1,0 +1,67 @@
+{
+  "name": "Contract",
+  "type": "object",
+  "properties": {
+    "placement_id": {
+      "type": "string",
+      "description": "Referentie naar placement"
+    },
+    "contract_type": {
+      "type": "string",
+      "enum": [
+        "client",
+        "consultant"
+      ],
+      "description": "Contract voor klant of consultant"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "sent",
+        "signed",
+        "expired"
+      ],
+      "default": "draft",
+      "description": "Status van het contract"
+    },
+    "sent_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Datum verstuurd"
+    },
+    "signed_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Datum ondertekend"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL van het contract document"
+    },
+    "agoria_index_client": {
+      "type": "number",
+      "description": "Agoria-index klant"
+    },
+    "agoria_index_consultant": {
+      "type": "number",
+      "description": "Agoria-index consultant"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Opmerkingen"
+    },
+    "recipient_name": {
+      "type": "string",
+      "description": "Naam ontvanger"
+    },
+    "recipient_email": {
+      "type": "string",
+      "description": "Email ontvanger"
+    }
+  },
+  "required": [
+    "placement_id",
+    "contract_type"
+  ]
+}
