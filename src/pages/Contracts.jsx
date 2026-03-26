@@ -373,14 +373,14 @@ export default function Contracts() {
                         <div className="text-xs space-y-1">
                           <div className="flex items-center gap-1">
                             <span className={`w-14 text-muted-foreground`}>Klant:</span>
-                            <span className={`font-mono font-bold ${col.client?.agoria_index_client ? 'text-foreground' : 'text-muted-foreground'}`}>
-                              {col.client?.agoria_index_client || '—'}
+                            <span className={`font-mono font-bold ${(col.client?.agoria_index_client || col.placement?.agoria_index_client) ? 'text-foreground' : 'text-muted-foreground'}`}>
+                              {col.client?.agoria_index_client || col.placement?.agoria_index_client || '—'}
                             </span>
                           </div>
                           <div className="flex items-center gap-1">
                             <span className="w-14 text-muted-foreground">Cons.:</span>
-                            <span className={`font-mono font-bold ${col.consultant?.agoria_index_consultant ? 'text-foreground' : 'text-muted-foreground'}`}>
-                              {col.consultant?.agoria_index_consultant || '—'}
+                            <span className={`font-mono font-bold ${(col.consultant?.agoria_index_consultant || col.placement?.agoria_index_consultant) ? 'text-foreground' : 'text-muted-foreground'}`}>
+                              {col.consultant?.agoria_index_consultant || col.placement?.agoria_index_consultant || '—'}
                             </span>
                           </div>
                         </div>
@@ -392,7 +392,7 @@ export default function Contracts() {
                           {col.client ? (
                             <>
                               <Badge variant="outline" className={`text-xs ${STATUS_STYLES[col.client.status]}`}>{STATUS_LABELS[col.client.status]}</Badge>
-                              {col.client.agoria_index_client && <span className="text-xs text-muted-foreground font-mono">idx: {col.client.agoria_index_client}</span>}
+                              {(col.client.agoria_index_client || col.placement?.agoria_index_client) && <span className="text-xs text-muted-foreground font-mono">idx: {col.client.agoria_index_client || col.placement?.agoria_index_client}</span>}
                               {col.client.notes && <span title={col.client.notes} className="text-xs bg-blue-100 text-blue-700 border border-blue-300 px-1.5 py-0.5 rounded font-medium cursor-help">📝</span>}
                               <Button variant="ghost" size="icon" title="Download klantcontract" onClick={() => generateContractPdf(col.client, col.placement)}>
                                 <Download className="w-3.5 h-3.5 text-primary" />
@@ -409,7 +409,7 @@ export default function Contracts() {
                           {col.consultant ? (
                             <>
                               <Badge variant="outline" className={`text-xs ${STATUS_STYLES[col.consultant.status]}`}>{STATUS_LABELS[col.consultant.status]}</Badge>
-                              {col.consultant.agoria_index_consultant && <span className="text-xs text-muted-foreground font-mono">idx: {col.consultant.agoria_index_consultant}</span>}
+                              {(col.consultant.agoria_index_consultant || col.placement?.agoria_index_consultant) && <span className="text-xs text-muted-foreground font-mono">idx: {col.consultant.agoria_index_consultant || col.placement?.agoria_index_consultant}</span>}
                               {col.consultant.notes && <span title={col.consultant.notes} className="text-xs bg-blue-100 text-blue-700 border border-blue-300 px-1.5 py-0.5 rounded font-medium cursor-help">📝</span>}
                               <Button variant="ghost" size="icon" title="Download consultantcontract" onClick={() => generateContractPdf(col.consultant, col.placement)}>
                                 <Download className="w-3.5 h-3.5 text-primary" />
