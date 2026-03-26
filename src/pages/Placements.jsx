@@ -209,15 +209,21 @@ export default function Placements() {
   };
 
   const enriched = useMemo(() => placements.map((p, idx) => {
+    const endDate = effectiveEndDate(p);
+    const totalMonths = p.start_date && endDate ? monthDiff(p.start_date, endDate) : 0;
+    const endingSoon = isEndingSoon(p);
+
+    if (p.placement_type === 'perm') {
+      const fee = p.perm_fee_amount || ((p.perm_annual_salary || 0) * ((p.perm_fee_percentage || 20) / 100));
+      return { ...p, idx: idx + 1, totalDays: 0, totalRevenue: fee, totalCost: 0, totalMargin: fee, marginPerDay: 0, totalMonths, endingSoon };
+    }
+
     const pts = timesheets.filter(t => t.placement_id === p.id);
     const totalDays = pts.reduce((s, t) => s + (t.days_worked || 0), 0);
     const totalRevenue = pts.reduce((s, t) => s + (t.client_revenue || 0), 0);
     const totalCost = pts.reduce((s, t) => s + (t.consultant_revenue || 0), 0);
     const totalMargin = pts.reduce((s, t) => s + (t.margin || 0), 0);
     const marginPerDay = (p.client_rate || 0) - (p.consultant_rate || 0);
-    const endDate = effectiveEndDate(p);
-    const totalMonths = p.start_date && endDate ? monthDiff(p.start_date, endDate) : 0;
-    const endingSoon = isEndingSoon(p);
     return { ...p, idx: idx + 1, totalDays, totalRevenue, totalCost, totalMargin, marginPerDay, totalMonths, endingSoon };
   }), [placements, timesheets]);
 
