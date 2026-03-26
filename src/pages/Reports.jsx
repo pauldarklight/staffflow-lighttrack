@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import VergelijkingDrillDown from '@/components/reports/VergelijkingDrillDown';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -135,6 +136,8 @@ export default function Reports() {
     return count;
   }
 
+  const [expandedMonth, setExpandedMonth] = useState(null);
+
   // Vergelijking: verwacht vs werkelijk per maand
   const vergelijkingData = useMemo(() => {
     const yr = parseInt(year);
@@ -149,7 +152,7 @@ export default function Reports() {
       const werkelijk = yearTs.filter(t => t.month === m).reduce((s, t) => s + (t.client_revenue || 0), 0);
       const afwijking = werkelijk - verwacht;
       const pct = verwacht > 0 ? (afwijking / verwacht) * 100 : 0;
-      return { name: getMonthName(m).slice(0, 3), m, verwacht, werkelijk, afwijking, pct };
+      return { name: getMonthName(m).slice(0, 3), m, verwacht, werkelijk, afwijking, pct, workDays };
     });
   }, [placements, yearTs, year, monthCount]);
 
@@ -394,7 +397,7 @@ export default function Reports() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Verwachte vs Werkelijke Omzet {ytd ? `YTD ${year}` : year}</CardTitle>
-              <p className="text-xs text-muted-foreground mt-1">Verwacht = actieve freelancers × werkdagen × tarief. Werkelijk = goedgekeurde timesheets.</p>
+              <p className="text-xs text-muted-foreground mt-1">Verwacht = actieve freelancers × werkdagen × tarief. Werkelijk = ingediende timesheets. Klik op een maand voor breakdown per consultant.</p>
             </CardHeader>
             <CardContent className="p-0">
               <table className="w-full text-sm">
@@ -414,35 +417,53 @@ export default function Reports() {
                     const isOk = Math.abs(row.pct) <= 5;
                     const isWarn = Math.abs(row.pct) > 5 && Math.abs(row.pct) <= 15;
                     const isDanger = Math.abs(row.pct) > 15;
+                    const isExpanded = expandedMonth === row.m;
                     return (
-                      <tr key={row.m} className={`border-b border-border/50 ${
-                        !hasData ? '' : isDanger ? 'bg-red-50/40' : isWarn ? 'bg-amber-50/30' : 'bg-emerald-50/20'
-                      }`}>
-                        <td className="py-3 px-4 font-medium text-foreground">{row.name}</td>
-                        <td className="py-3 px-4 text-right text-muted-foreground">{formatCurrency(row.verwacht)}</td>
-                        <td className="py-3 px-4 text-right font-semibold">{hasData ? formatCurrency(row.werkelijk) : <span className="text-muted-foreground text-xs">Geen TS</span>}</td>
-                        <td className={`py-3 px-4 text-right font-semibold ${
-                          !hasData ? 'text-muted-foreground' : row.afwijking >= 0 ? 'text-emerald-600' : 'text-red-600'
-                        }`}>
-                          {hasData ? (row.afwijking >= 0 ? '+' : '') + formatCurrency(row.afwijking) : '—'}
-                        </td>
-                        <td className={`py-3 px-4 text-right font-semibold ${
-                          !hasData ? 'text-muted-foreground' : isOk ? 'text-emerald-600' : isWarn ? 'text-amber-600' : 'text-red-600'
-                        }`}>
-                          {hasData ? (row.pct >= 0 ? '+' : '') + row.pct.toFixed(1) + '%' : '—'}
-                        </td>
-                        <td className="py-3 px-4">
-                          {!hasData ? (
-                            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground border">Geen data</span>
-                          ) : isOk ? (
-                            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">✓ OK</span>
-                          ) : isWarn ? (
-                            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">⚠ Kleine afwijking</span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200">✗ Grote afwijking</span>
-                          )}
-                        </td>
-                      </tr>
+                      <React.Fragment key={row.m}>
+                        <tr
+                          className={`border-b border-border/50 cursor-pointer select-none ${
+                            !hasData ? 'hover:bg-muted/20' : isDanger ? 'bg-red-50/40 hover:bg-red-50/60' : isWarn ? 'bg-amber-50/30 hover:bg-amber-50/50' : 'bg-emerald-50/20 hover:bg-emerald-50/40'
+                          } ${isExpanded ? 'border-b-0' : ''}`}
+                          onClick={() => setExpandedMonth(isExpanded ? null : row.m)}
+                        >
+                          <td className="py-3 px-4 font-medium text-foreground flex items-center gap-2">
+                            <span className={`text-xs transition-transform ${isExpanded ? 'rotate-90' : ''}`}>▶</span>
+                            {row.name}
+                          </td>
+                          <td className="py-3 px-4 text-right text-muted-foreground">{formatCurrency(row.verwacht)}</td>
+                          <td className="py-3 px-4 text-right font-semibold">{hasData ? formatCurrency(row.werkelijk) : <span className="text-muted-foreground text-xs">Geen TS</span>}</td>
+                          <td className={`py-3 px-4 text-right font-semibold ${
+                            !hasData ? 'text-muted-foreground' : row.afwijking >= 0 ? 'text-emerald-600' : 'text-red-600'
+                          }`}>
+                            {hasData ? (row.afwijking >= 0 ? '+' : '') + formatCurrency(row.afwijking) : '—'}
+                          </td>
+                          <td className={`py-3 px-4 text-right font-semibold ${
+                            !hasData ? 'text-muted-foreground' : isOk ? 'text-emerald-600' : isWarn ? 'text-amber-600' : 'text-red-600'
+                          }`}>
+                            {hasData ? (row.pct >= 0 ? '+' : '') + row.pct.toFixed(1) + '%' : '—'}
+                          </td>
+                          <td className="py-3 px-4">
+                            {!hasData ? (
+                              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground border">Geen data</span>
+                            ) : isOk ? (
+                              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">✓ OK</span>
+                            ) : isWarn ? (
+                              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">⚠ Kleine afwijking</span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200">✗ Grote afwijking</span>
+                            )}
+                          </td>
+                        </tr>
+                        {isExpanded && (
+                          <VergelijkingDrillDown
+                            placements={placements}
+                            timesheets={timesheets}
+                            month={row.m}
+                            year={year}
+                            workingDays={row.workDays}
+                          />
+                        )}
+                      </React.Fragment>
                     );
                   })}
                 </tbody>
