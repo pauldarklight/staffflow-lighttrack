@@ -44,6 +44,7 @@ export default function Timesheets() {
   const [editing, setEditing] = useState(null);
   const [filterMonth, setFilterMonth] = useState(String(new Date().getMonth() + 1));
   const [filterYear, setFilterYear] = useState(String(new Date().getFullYear()));
+  const [viewMode, setViewMode] = useState('month'); // 'month' | 'ytd' | 'year'
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('default');
   const queryClient = useQueryClient();
@@ -126,9 +127,16 @@ export default function Timesheets() {
   }), [timesheets, placements]);
 
   const filtered = useMemo(() => {
-    let rows = enriched.filter(t =>
-      t.month === parseInt(filterMonth) && t.year === parseInt(filterYear)
-    );
+    let rows;
+    const yr = parseInt(filterYear);
+    const currentMonth = new Date().getFullYear() === yr ? new Date().getMonth() + 1 : 12;
+    if (viewMode === 'month') {
+      rows = enriched.filter(t => t.month === parseInt(filterMonth) && t.year === yr);
+    } else if (viewMode === 'ytd') {
+      rows = enriched.filter(t => t.year === yr && t.month <= currentMonth);
+    } else {
+      rows = enriched.filter(t => t.year === yr);
+    }
 
     if (search) {
       const q = search.toLowerCase();
@@ -152,7 +160,7 @@ export default function Timesheets() {
     }
 
     return rows;
-  }, [enriched, filterMonth, filterYear, search, sortBy]);
+  }, [enriched, filterMonth, filterYear, viewMode, search, sortBy]);
 
   const totalRevenue = filtered.reduce((s, t) => s + (t.client_revenue || 0), 0);
   const totalCost = filtered.reduce((s, t) => s + (t.consultant_revenue || 0), 0);
@@ -168,28 +176,52 @@ export default function Timesheets() {
       </PageHeader>
 
       {/* Month/Year filters */}
-      <div className="flex items-center gap-3 mb-6">
-        <Select value={filterMonth} onValueChange={setFilterMonth}>
-          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {Array.from({ length: 12 }, (_, i) => (
-              <SelectItem key={i + 1} value={String(i + 1)}>{getMonthName(i + 1)}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="flex flex-wrap items-center gap-3 mb-6">
+        {/* View mode toggle */}
+        <div className="flex rounded-md border border-border overflow-hidden">
+          {[['month', 'Maand'], ['ytd', 'YTD'], ['year', 'Volledig jaar']].map(([mode, label]) => (
+            <button
+              key={mode}
+              onClick={() => setViewMode(mode)}
+              className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                viewMode === mode
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-background text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {viewMode === 'month' && (
+          <Select value={filterMonth} onValueChange={setFilterMonth}>
+            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {Array.from({ length: 12 }, (_, i) => (
+                <SelectItem key={i + 1} value={String(i + 1)}>{getMonthName(i + 1)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         <Select value={filterYear} onValueChange={setFilterYear}>
           <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
           <SelectContent>
             {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
           </SelectContent>
         </Select>
+        {viewMode !== 'month' && (
+          <span className="text-xs text-muted-foreground">
+            {viewMode === 'ytd' ? `YTD t/m ${getMonthName(Math.min(new Date().getMonth() + 1, 12))} ${filterYear}` : `Volledig jaar ${filterYear}`}
+          </span>
+        )}
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <StatCard title="Omzet" value={formatCurrency(totalRevenue)} />
-        <StatCard title="Kost" value={formatCurrency(totalCost)} />
-        <StatCard title="Marge" value={formatCurrency(totalMargin)} />
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+        <StatCard title={viewMode === 'month' ? 'Omzet' : 'Gecumuleerde Omzet'} value={formatCurrency(totalRevenue)} />
+        <StatCard title={viewMode === 'month' ? 'Kost' : 'Gecumuleerde Kost'} value={formatCurrency(totalCost)} />
+        <StatCard title={viewMode === 'month' ? 'Marge' : 'Gecumuleerde Marge'} value={formatCurrency(totalMargin)} />
+        <StatCard title="Dagen" value={`${filtered.reduce((s, t) => s + (t.days_worked || 0), 0)}d`} />
       </div>
 
       {lateCount > 0 && (
