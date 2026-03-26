@@ -46,6 +46,15 @@ function monthDiff(from, to) {
 function DurationCell({ p }) {
   const endDate = effectiveEndDate(p);
   if (!p.start_date || !endDate) {
+    if (p.placement_type === 'perm') {
+      return (
+        <div className="min-w-[160px] space-y-1">
+          <div className="text-xs font-bold text-foreground">Vaste aanwerving</div>
+          <div className="text-xs text-muted-foreground">Onbepaalde duur</div>
+          <div className="text-xs text-muted-foreground">Vanaf {formatDate(p.start_date)}</div>
+        </div>
+      );
+    }
     return <span className="text-muted-foreground text-xs">Geen einddatum</span>;
   }
 

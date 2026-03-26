@@ -68,9 +68,19 @@ export default function Reports() {
   // Sales contributors overview
   const salesData = {};
   placements.forEach(p => {
-    const pTs = yearTs.filter(t => t.placement_id === p.id);
-    const totalMargin = pTs.reduce((s, t) => s + (t.margin || 0), 0);
-    const totalRevenue = pTs.reduce((s, t) => s + (t.client_revenue || 0), 0);
+    let totalRevenue, totalMargin;
+    if (p.placement_type === 'perm') {
+      // PERM: one-time fee, only count in the year of start_date to avoid duplication
+      const startYear = p.start_date ? new Date(p.start_date).getFullYear() : null;
+      if (startYear !== parseInt(year)) return;
+      const fee = p.perm_fee_amount || ((p.perm_annual_salary || 0) * ((p.perm_fee_percentage || 20) / 100));
+      totalRevenue = fee;
+      totalMargin = fee; // full fee is margin for PERM
+    } else {
+      const pTs = yearTs.filter(t => t.placement_id === p.id);
+      totalRevenue = pTs.reduce((s, t) => s + (t.client_revenue || 0), 0);
+      totalMargin = pTs.reduce((s, t) => s + (t.margin || 0), 0);
+    }
     (p.sales_contributors || []).forEach(sc => {
       if (sc.name) {
         if (!salesData[sc.name]) salesData[sc.name] = { omzet: 0, marge: 0 };
@@ -85,14 +95,25 @@ export default function Reports() {
   // Commission per quarter for sales
   const quarterCommission = {};
   placements.forEach(p => {
-    const pTs = yearTs.filter(t => t.placement_id === p.id);
     (p.sales_contributors || []).forEach(sc => {
-      if (sc.name) {
+      if (!sc.name) return;
+      const pct = (sc.percentage || 0) / 100;
+      if (p.placement_type === 'perm') {
+        // PERM: one-time fee in Q of start_date, only in correct year
+        const startDate = p.start_date ? new Date(p.start_date) : null;
+        if (!startDate || startDate.getFullYear() !== parseInt(year)) return;
+        const q = getQuarter(startDate.getMonth() + 1);
+        const key = `${sc.name}-${q}`;
+        const fee = p.perm_fee_amount || ((p.perm_annual_salary || 0) * ((p.perm_fee_percentage || 20) / 100));
+        if (!quarterCommission[key]) quarterCommission[key] = { name: sc.name, quarter: q, marge: 0 };
+        quarterCommission[key].marge += fee * pct;
+      } else {
+        const pTs = yearTs.filter(t => t.placement_id === p.id);
         pTs.forEach(t => {
           const q = getQuarter(t.month);
           const key = `${sc.name}-${q}`;
           if (!quarterCommission[key]) quarterCommission[key] = { name: sc.name, quarter: q, marge: 0 };
-          quarterCommission[key].marge += (t.margin || 0) * ((sc.percentage || 0) / 100);
+          quarterCommission[key].marge += (t.margin || 0) * pct;
         });
       }
     });
