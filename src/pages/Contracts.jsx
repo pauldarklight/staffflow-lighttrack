@@ -9,7 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Plus, FileText, Search, ArrowUpDown, X, CheckCircle2, Clock, Send, Download } from 'lucide-react';
+import { Plus, FileText, Search, ArrowUpDown, X, CheckCircle2, Clock, Send, Download, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 import { generateContractPdf } from '@/lib/contractPdf';
 import PageHeader from '@/components/shared/PageHeader';
 import MonthlyOverview from '@/components/contracts/MonthlyOverview';
@@ -39,6 +40,42 @@ export default function Contracts() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [sortBy, setSortBy] = useState('default');
   const queryClient = useQueryClient();
+  const [syncing, setSyncing] = useState(false);
+
+  const syncMissingContracts = async () => {
+    setSyncing(true);
+    let created = 0;
+    for (const p of placements) {
+      const existing = contracts.filter(c => c.placement_id === p.id);
+      const hasClient = existing.some(c => c.contract_type === 'client');
+      const hasConsultant = existing.some(c => c.contract_type === 'consultant');
+      if (!hasClient) {
+        await base44.entities.Contract.create({
+          placement_id: p.id,
+          contract_type: 'client',
+          status: 'draft',
+          recipient_name: p.client_company_name || '',
+          recipient_email: p.client_billing_email || '',
+          notes: '',
+        });
+        created++;
+      }
+      if (!hasConsultant) {
+        await base44.entities.Contract.create({
+          placement_id: p.id,
+          contract_type: 'consultant',
+          status: 'draft',
+          recipient_name: `${p.consultant_first_name || ''} ${p.consultant_last_name || ''}`.trim(),
+          recipient_email: '',
+          notes: '',
+        });
+        created++;
+      }
+    }
+    await queryClient.invalidateQueries({ queryKey: ['contracts'] });
+    setSyncing(false);
+    toast.success(`${created} ontbrekende contract(en) aangemaakt.`);
+  };
 
   const { data: contracts = [] } = useQuery({
     queryKey: ['contracts'],
@@ -136,6 +173,10 @@ export default function Contracts() {
   return (
     <div>
       <PageHeader title="Contracten" subtitle={`${contracts.length} contracten`}>
+        <Button variant="outline" onClick={syncMissingContracts} disabled={syncing}>
+          <RefreshCw className={`w-4 h-4 mr-1 ${syncing ? 'animate-spin' : ''}`} />
+          {syncing ? 'Bezig...' : 'Sync ontbrekende contracten'}
+        </Button>
         <Button onClick={() => { setEditing(null); resetForm(); setShowForm(true); }}>
           <Plus className="w-4 h-4 mr-1" /> Nieuw Contract
         </Button>
