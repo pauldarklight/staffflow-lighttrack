@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -123,6 +123,36 @@ export default function Reports() {
   const years = [];
   for (let y = 2024; y <= 2027; y++) years.push(y);
 
+  // Working days per month helper
+  function getWorkingDays(y, m) {
+    let count = 0;
+    const date = new Date(y, m - 1, 1);
+    while (date.getMonth() === m - 1) {
+      const day = date.getDay();
+      if (day !== 0 && day !== 6) count++;
+      date.setDate(date.getDate() + 1);
+    }
+    return count;
+  }
+
+  // Vergelijking: verwacht vs werkelijk per maand
+  const vergelijkingData = useMemo(() => {
+    const yr = parseInt(year);
+    const activePlacements = placements.filter(p => !p.placement_type || p.placement_type === 'freelancer');
+    return Array.from({ length: monthCount }, (_, i) => {
+      const m = i + 1;
+      const workDays = getWorkingDays(yr, m);
+      const verwacht = activePlacements.reduce((sum, p) => {
+        const fraction = (p.days_per_week || 5) / 5;
+        return sum + (workDays * fraction * (p.client_rate || 0));
+      }, 0);
+      const werkelijk = yearTs.filter(t => t.month === m).reduce((s, t) => s + (t.client_revenue || 0), 0);
+      const afwijking = werkelijk - verwacht;
+      const pct = verwacht > 0 ? (afwijking / verwacht) * 100 : 0;
+      return { name: getMonthName(m).slice(0, 3), m, verwacht, werkelijk, afwijking, pct };
+    });
+  }, [placements, yearTs, year, monthCount]);
+
   return (
     <div>
       <PageHeader title="Rapportering" subtitle="Overzichten en analyses">
@@ -147,7 +177,7 @@ export default function Reports() {
       </PageHeader>
 
       <Tabs defaultValue="monthly" className="space-y-6">
-        <TabsList className="bg-muted">
+        <TabsList className="bg-muted flex-wrap">
           <TabsTrigger value="monthly">Maandoverzicht</TabsTrigger>
           <TabsTrigger value="clients">Per Klant</TabsTrigger>
           <TabsTrigger value="consultants">Per Consultant</TabsTrigger>
@@ -155,6 +185,7 @@ export default function Reports() {
           <TabsTrigger value="commission">Commissie</TabsTrigger>
           <TabsTrigger value="cash">Cashplanning</TabsTrigger>
           <TabsTrigger value="invoiced">Facturatiestatus</TabsTrigger>
+          <TabsTrigger value="vergelijking">Verwacht vs Werkelijk</TabsTrigger>
         </TabsList>
 
         <TabsContent value="monthly">
@@ -357,6 +388,88 @@ export default function Reports() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="vergelijking">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Verwachte vs Werkelijke Omzet {ytd ? `YTD ${year}` : year}</CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">Verwacht = actieve freelancers × werkdagen × tarief. Werkelijk = goedgekeurde timesheets.</p>
+            </CardHeader>
+            <CardContent className="p-0">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/50">
+                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Maand</th>
+                    <th className="text-right py-3 px-4 font-medium text-muted-foreground">Verwacht</th>
+                    <th className="text-right py-3 px-4 font-medium text-muted-foreground">Werkelijk</th>
+                    <th className="text-right py-3 px-4 font-medium text-muted-foreground">Afwijking</th>
+                    <th className="text-right py-3 px-4 font-medium text-muted-foreground">% Afwijking</th>
+                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {vergelijkingData.map(row => {
+                    const hasData = row.werkelijk > 0;
+                    const isOk = Math.abs(row.pct) <= 5;
+                    const isWarn = Math.abs(row.pct) > 5 && Math.abs(row.pct) <= 15;
+                    const isDanger = Math.abs(row.pct) > 15;
+                    return (
+                      <tr key={row.m} className={`border-b border-border/50 ${
+                        !hasData ? '' : isDanger ? 'bg-red-50/40' : isWarn ? 'bg-amber-50/30' : 'bg-emerald-50/20'
+                      }`}>
+                        <td className="py-3 px-4 font-medium text-foreground">{row.name}</td>
+                        <td className="py-3 px-4 text-right text-muted-foreground">{formatCurrency(row.verwacht)}</td>
+                        <td className="py-3 px-4 text-right font-semibold">{hasData ? formatCurrency(row.werkelijk) : <span className="text-muted-foreground text-xs">Geen TS</span>}</td>
+                        <td className={`py-3 px-4 text-right font-semibold ${
+                          !hasData ? 'text-muted-foreground' : row.afwijking >= 0 ? 'text-emerald-600' : 'text-red-600'
+                        }`}>
+                          {hasData ? (row.afwijking >= 0 ? '+' : '') + formatCurrency(row.afwijking) : '—'}
+                        </td>
+                        <td className={`py-3 px-4 text-right font-semibold ${
+                          !hasData ? 'text-muted-foreground' : isOk ? 'text-emerald-600' : isWarn ? 'text-amber-600' : 'text-red-600'
+                        }`}>
+                          {hasData ? (row.pct >= 0 ? '+' : '') + row.pct.toFixed(1) + '%' : '—'}
+                        </td>
+                        <td className="py-3 px-4">
+                          {!hasData ? (
+                            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground border">Geen data</span>
+                          ) : isOk ? (
+                            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">✓ OK</span>
+                          ) : isWarn ? (
+                            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">⚠ Kleine afwijking</span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200">✗ Grote afwijking</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 bg-muted/40 font-semibold">
+                    <td className="py-3 px-4">Totaal</td>
+                    <td className="py-3 px-4 text-right">{formatCurrency(vergelijkingData.reduce((s, r) => s + r.verwacht, 0))}</td>
+                    <td className="py-3 px-4 text-right">{formatCurrency(vergelijkingData.reduce((s, r) => s + r.werkelijk, 0))}</td>
+                    <td className={`py-3 px-4 text-right ${
+                      vergelijkingData.reduce((s, r) => s + r.afwijking, 0) >= 0 ? 'text-emerald-600' : 'text-red-600'
+                    }`}>
+                      {(() => { const t = vergelijkingData.reduce((s, r) => s + r.afwijking, 0); return (t >= 0 ? '+' : '') + formatCurrency(t); })()}
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      {(() => {
+                        const tv = vergelijkingData.reduce((s, r) => s + r.verwacht, 0);
+                        const tw = vergelijkingData.reduce((s, r) => s + r.werkelijk, 0);
+                        const p = tv > 0 ? ((tw - tv) / tv * 100) : 0;
+                        return <span className={p >= 0 ? 'text-emerald-600' : 'text-red-600'}>{(p >= 0 ? '+' : '') + p.toFixed(1)}%</span>;
+                      })()}
+                    </td>
+                    <td />
+                  </tr>
+                </tfoot>
+              </table>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
