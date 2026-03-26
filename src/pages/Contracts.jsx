@@ -343,6 +343,7 @@ export default function Contracts() {
                     <th className="text-left py-3 px-4 font-bold text-foreground whitespace-nowrap">Klant</th>
                     <th className="text-left py-3 px-4 font-bold text-foreground whitespace-nowrap">Periode</th>
                     <th className="text-right py-3 px-4 font-bold text-foreground whitespace-nowrap">Tarief/dag</th>
+                    <th className="text-left py-3 px-4 font-bold text-foreground whitespace-nowrap">Agoria-index</th>
                     <th className="text-center py-3 px-4 font-bold text-foreground whitespace-nowrap" colSpan={2}>Contracten</th>
                   </tr>
                 </thead>
@@ -367,6 +368,22 @@ export default function Contracts() {
                       <td className="py-3 px-4 text-right">
                         <div className="font-bold text-foreground">{col.clientRate ? formatCurrency(col.clientRate) : '—'}</div>
                         {col.margin > 0 && <div className="text-xs text-emerald-600">+{formatCurrency(col.margin)}/dag</div>}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="text-xs space-y-1">
+                          <div className="flex items-center gap-1">
+                            <span className={`w-14 text-muted-foreground`}>Klant:</span>
+                            <span className={`font-mono font-bold ${col.client?.agoria_index_client ? 'text-foreground' : 'text-muted-foreground'}`}>
+                              {col.client?.agoria_index_client || '—'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="w-14 text-muted-foreground">Cons.:</span>
+                            <span className={`font-mono font-bold ${col.consultant?.agoria_index_consultant ? 'text-foreground' : 'text-muted-foreground'}`}>
+                              {col.consultant?.agoria_index_consultant || '—'}
+                            </span>
+                          </div>
+                        </div>
                       </td>
                       {/* Client contract */}
                       <td className="py-3 px-4">
