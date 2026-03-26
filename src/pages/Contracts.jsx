@@ -13,7 +13,7 @@ import { Plus, FileText, Search, ArrowUpDown, X, CheckCircle2, Clock, Send, Down
 import { toast } from 'sonner';
 import { generateContractPdf } from '@/lib/contractPdf';
 import PageHeader from '@/components/shared/PageHeader';
-import MonthlyOverview from '@/components/contracts/MonthlyOverview';
+
 import EmptyState from '@/components/shared/EmptyState';
 import { formatDate, formatCurrency } from '@/lib/formatters';
 
@@ -195,7 +195,7 @@ export default function Contracts() {
         </Button>
       </PageHeader>
 
-      <MonthlyOverview placements={placements} />
+
 
       {/* Filter bar */}
       <div className="flex flex-wrap items-center gap-2 mb-6 p-3 bg-muted/40 rounded-lg border border-border">
