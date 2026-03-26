@@ -184,8 +184,20 @@ export default function Placements() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Placement.create(data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['placements'] }); setShowForm(false); },
+    mutationFn: async (data) => {
+      const placement = await base44.entities.Placement.create(data);
+      // Auto-create a client contract linked to this placement
+      await base44.entities.Contract.create({
+        placement_id: placement.id,
+        contract_type: 'client',
+        status: 'draft',
+        recipient_name: '',
+        recipient_email: data.client_billing_email || '',
+        notes: '',
+      });
+      return placement;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['placements'] }); queryClient.invalidateQueries({ queryKey: ['contracts'] }); setShowForm(false); },
   });
 
   const updateMutation = useMutation({

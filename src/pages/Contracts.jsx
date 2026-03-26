@@ -9,7 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Plus, FileText, Search, ArrowUpDown, X, CheckCircle2, Clock, Send } from 'lucide-react';
+import { Plus, FileText, Search, ArrowUpDown, X, CheckCircle2, Clock, Send, Download } from 'lucide-react';
+import { generateContractPdf } from '@/lib/contractPdf';
 import PageHeader from '@/components/shared/PageHeader';
 import MonthlyOverview from '@/components/contracts/MonthlyOverview';
 import EmptyState from '@/components/shared/EmptyState';
@@ -337,7 +338,12 @@ export default function Contracts() {
                         </Badge>
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <Button variant="ghost" size="sm" onClick={() => openEdit(c)}>Bewerken</Button>
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" title="Download PDF" onClick={() => generateContractPdf(c, c.placement)}>
+                            <Download className="w-4 h-4 text-primary" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => openEdit(c)}>Bewerken</Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
