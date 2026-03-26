@@ -107,6 +107,18 @@ function DurationCell({ p }) {
 }
 
 function ContractValueCell({ p, totalRevenue, totalMargin }) {
+  // PERM: show fee directly
+  if (p.placement_type === 'perm') {
+    const fee = p.perm_fee_amount || ((p.perm_annual_salary || 0) * ((p.perm_fee_percentage || 20) / 100));
+    return (
+      <div className="text-right min-w-[130px]">
+        <div className="text-xs text-muted-foreground">Eenmalige fee</div>
+        <div className="font-bold text-foreground">{fee > 0 ? formatCurrency(fee) : '—'}</div>
+        {p.perm_fee_percentage && <div className="text-xs text-muted-foreground">{p.perm_fee_percentage}% van jaarloon</div>}
+      </div>
+    );
+  }
+
   const endDate = effectiveEndDate(p);
   if (!p.start_date || !endDate || !p.client_rate) {
     return (
