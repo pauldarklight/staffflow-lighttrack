@@ -10,6 +10,7 @@ import MissingTimesheets from '@/components/dashboard/MissingTimesheets';
 import ExpiringContracts from '@/components/dashboard/ExpiringContracts';
 import MissedInvoices from '@/components/dashboard/MissedInvoices';
 import RevenueChart from '@/components/dashboard/RevenueChart';
+import TopClients from '@/components/dashboard/TopClients';
 
 const COLORS = ['hsl(221, 83%, 53%)', 'hsl(262, 83%, 58%)', 'hsl(160, 60%, 45%)', 'hsl(43, 74%, 66%)', 'hsl(0, 84%, 60%)'];
 
@@ -93,30 +94,7 @@ export default function Dashboard() {
       </div>
 
       {/* Top clients */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base font-semibold">Top Klanten (Omzet all-time)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {topClients.length > 0 ? (
-            <div className="space-y-4">
-              {topClients.map((client, idx) => (
-                <div key={client.name} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white" style={{ backgroundColor: COLORS[idx % COLORS.length] }}>
-                      {client.name.charAt(0)}
-                    </div>
-                    <span className="text-sm font-medium truncate max-w-[160px]">{client.name}</span>
-                  </div>
-                  <span className="text-sm font-semibold">{formatCurrency(client.value)}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground text-center py-8">Nog geen data beschikbaar</p>
-          )}
-        </CardContent>
-      </Card>
+      <TopClients timesheets={timesheets} />
     </div>
   );
 }
