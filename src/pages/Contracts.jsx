@@ -121,58 +121,71 @@ export default function Contracts() {
 
   const getPlacement = (id) => placements.find(p => p.id === id);
 
-  // Enrich contracts with placement data
-  const enriched = useMemo(() => contracts.map(c => {
-    const p = getPlacement(c.placement_id);
-    return {
-      ...c,
-      placement: p,
-      consultantName: p ? `${p.consultant_first_name} ${p.consultant_last_name}` : '—',
-      clientName: p?.client_company_name || '—',
-      clientVat: p?.client_vat_number || '—',
-      consultantVat: p?.consultant_vat_number || '—',
-      clientRate: p?.client_rate || 0,
-      consultantRate: p?.consultant_rate || 0,
-      margin: (p?.client_rate || 0) - (p?.consultant_rate || 0),
-    };
-  }), [contracts, placements]);
+  // Group contracts by placement → one row per collaboration
+  const collaborations = useMemo(() => {
+    const map = {};
+    contracts.forEach(c => {
+      if (!c.placement_id) return;
+      if (!map[c.placement_id]) map[c.placement_id] = { placement_id: c.placement_id, client: null, consultant: null };
+      if (c.contract_type === 'client') map[c.placement_id].client = c;
+      else map[c.placement_id].consultant = c;
+    });
+    return Object.values(map).map(col => {
+      const p = getPlacement(col.placement_id);
+      // Generate reference: REF-YYYY-NNN based on start date + index
+      const year = p?.start_date ? new Date(p.start_date).getFullYear() : new Date().getFullYear();
+      return {
+        ...col,
+        placement: p,
+        consultantName: p ? `${p.consultant_first_name} ${p.consultant_last_name}` : '—',
+        clientName: p?.client_company_name || '—',
+        clientRate: p?.client_rate || 0,
+        consultantRate: p?.consultant_rate || 0,
+        margin: (p?.client_rate || 0) - (p?.consultant_rate || 0),
+        startDate: p?.start_date || null,
+        endDate: p?.end_date || null,
+        year,
+      };
+    });
+  }, [contracts, placements]);
+
+  // Add reference numbers per year
+  const collaborationsWithRef = useMemo(() => {
+    const byYear = {};
+    const sorted = [...collaborations].sort((a, b) => new Date(a.startDate || 0) - new Date(b.startDate || 0));
+    return sorted.map(col => {
+      byYear[col.year] = (byYear[col.year] || 0) + 1;
+      const ref = `REF-${col.year}-${String(byYear[col.year]).padStart(3, '0')}`;
+      return { ...col, reference: ref };
+    });
+  }, [collaborations]);
 
   const filtered = useMemo(() => {
-    let rows = enriched;
-
+    let rows = collaborationsWithRef;
     if (search) {
       const q = search.toLowerCase();
       rows = rows.filter(c =>
         c.consultantName.toLowerCase().includes(q) ||
         c.clientName.toLowerCase().includes(q) ||
-        (c.clientVat || '').toLowerCase().includes(q) ||
-        (c.recipient_name || '').toLowerCase().includes(q)
+        (c.reference || '').toLowerCase().includes(q)
       );
     }
-
-    if (statusFilter !== 'all') rows = rows.filter(c => c.status === statusFilter);
-    if (typeFilter !== 'all') rows = rows.filter(c => c.contract_type === typeFilter);
-
-    if (sortBy !== 'default') {
-      rows = [...rows].sort((a, b) => {
-        if (sortBy === 'rate_desc') return b.clientRate - a.clientRate;
-        if (sortBy === 'rate_asc') return a.clientRate - b.clientRate;
-        if (sortBy === 'margin_desc') return b.margin - a.margin;
-        if (sortBy === 'margin_asc') return a.margin - b.margin;
-        if (sortBy === 'sent_desc') return new Date(b.sent_date || 0) - new Date(a.sent_date || 0);
-        if (sortBy === 'sent_asc') return new Date(a.sent_date || 0) - new Date(b.sent_date || 0);
-        return 0;
-      });
+    if (statusFilter !== 'all') {
+      rows = rows.filter(c =>
+        c.client?.status === statusFilter || c.consultant?.status === statusFilter
+      );
     }
-
+    if (typeFilter !== 'all') {
+      rows = rows.filter(c => typeFilter === 'client' ? !!c.client : !!c.consultant);
+    }
     return rows;
-  }, [enriched, search, statusFilter, typeFilter, sortBy]);
+  }, [collaborationsWithRef, search, statusFilter, typeFilter]);
 
-  const hasFilters = search || statusFilter !== 'all' || typeFilter !== 'all' || sortBy !== 'default';
+  const hasFilters = search || statusFilter !== 'all' || typeFilter !== 'all';
 
   return (
     <div>
-      <PageHeader title="Contracten" subtitle={`${contracts.length} contracten`}>
+      <PageHeader title="Contracten" subtitle={`${collaborationsWithRef.length} samenwerkingen · ${contracts.length} contracten`}>
         <Button variant="outline" onClick={syncMissingContracts} disabled={syncing}>
           <RefreshCw className={`w-4 h-4 mr-1 ${syncing ? 'animate-spin' : ''}`} />
           {syncing ? 'Bezig...' : 'Sync ontbrekende contracten'}
@@ -213,23 +226,9 @@ export default function Contracts() {
             <SelectItem value="consultant">Consultant</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-52 h-8 text-xs gap-1">
-            <ArrowUpDown className="w-3.5 h-3.5" />
-            <SelectValue placeholder="Sorteren op" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="default">Standaard</SelectItem>
-            <SelectItem value="rate_desc">Hoogste tarief eerst</SelectItem>
-            <SelectItem value="rate_asc">Laagste tarief eerst</SelectItem>
-            <SelectItem value="margin_desc">Hoogste marge eerst</SelectItem>
-            <SelectItem value="margin_asc">Laagste marge eerst</SelectItem>
-            <SelectItem value="sent_desc">Recentst verstuurd</SelectItem>
-            <SelectItem value="sent_asc">Oudst verstuurd</SelectItem>
-          </SelectContent>
-        </Select>
+
         {hasFilters && (
-          <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => { setSearch(''); setStatusFilter('all'); setTypeFilter('all'); setSortBy('default'); }}>
+          <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => { setSearch(''); setStatusFilter('all'); setTypeFilter('all'); }}>
             <X className="w-3.5 h-3.5 mr-1" /> Reset
           </Button>
         )}
@@ -310,9 +309,9 @@ export default function Contracts() {
         </DialogContent>
       </Dialog>
 
-      {/* Table */}
+      {/* Collaborations Table */}
       {filtered.length === 0 ? (
-        <EmptyState icon={FileText} title="Geen contracten gevonden" description="Pas je filters aan of maak een nieuw contract aan.">
+        <EmptyState icon={FileText} title="Geen samenwerkingen gevonden" description="Pas je filters aan of maak een nieuwe placement aan.">
           <Button onClick={() => setShowForm(true)}><Plus className="w-4 h-4 mr-1" /> Nieuw Contract</Button>
         </EmptyState>
       ) : (
@@ -322,68 +321,64 @@ export default function Contracts() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="text-left py-3 px-4 font-bold text-foreground">Consultant</th>
-                    <th className="text-left py-3 px-4 font-normal text-foreground">Vennootschap klant</th>
-                    <th className="text-left py-3 px-4 font-bold text-foreground">BTW nr. klant</th>
-                    <th className="text-left py-3 px-4 font-normal text-foreground">Type</th>
-                    <th className="text-right py-3 px-4 font-bold text-foreground">Tarief/dag</th>
-                    <th className="text-right py-3 px-4 font-normal text-foreground">Marge/dag</th>
-                    <th className="text-left py-3 px-4 font-bold text-foreground">Verstuurd</th>
-                    <th className="text-left py-3 px-4 font-normal text-foreground">Getekend</th>
-                    <th className="text-left py-3 px-4 font-bold text-foreground">Status</th>
-                    <th className="text-right py-3 px-4 font-normal text-foreground">Acties</th>
+                    <th className="text-left py-3 px-4 font-bold text-foreground whitespace-nowrap">Referentie</th>
+                    <th className="text-left py-3 px-4 font-bold text-foreground whitespace-nowrap">Consultant</th>
+                    <th className="text-left py-3 px-4 font-bold text-foreground whitespace-nowrap">Klant</th>
+                    <th className="text-left py-3 px-4 font-bold text-foreground whitespace-nowrap">Periode</th>
+                    <th className="text-right py-3 px-4 font-bold text-foreground whitespace-nowrap">Tarief/dag</th>
+                    <th className="text-center py-3 px-4 font-bold text-foreground whitespace-nowrap" colSpan={2}>Contracten</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map(c => (
-                    <tr key={c.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                  {filtered.map(col => (
+                    <tr key={col.placement_id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
                       <td className="py-3 px-4">
-                        <div className="font-bold text-foreground">{c.consultantName}</div>
-                        {c.recipient_name && <div className="text-xs text-muted-foreground">{c.recipient_name}</div>}
+                        <span className="font-mono text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">{col.reference}</span>
                       </td>
-                      <td className="py-3 px-4 text-muted-foreground">{c.clientName}</td>
-                      <td className="py-3 px-4 font-bold text-foreground text-xs">{c.clientVat}</td>
                       <td className="py-3 px-4">
-                        <Badge variant="outline" className={`text-xs ${TYPE_STYLES[c.contract_type] || ''}`}>
-                          {TYPE_LABELS[c.contract_type] || c.contract_type}
-                        </Badge>
+                        <div className="font-bold text-foreground">{col.consultantName}</div>
+                        {col.placement?.consultant_company_name && <div className="text-xs text-muted-foreground">{col.placement.consultant_company_name}</div>}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="font-bold text-foreground">{col.clientName}</div>
+                        {col.placement?.client_vat_number && <div className="text-xs text-muted-foreground font-mono">{col.placement.client_vat_number}</div>}
+                      </td>
+                      <td className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap">
+                        <div>{formatDate(col.startDate)}</div>
+                        <div className="font-medium text-foreground">{col.endDate ? formatDate(col.endDate) : '—'}</div>
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <div className="font-bold text-foreground">{c.clientRate ? formatCurrency(c.clientRate) : '—'}</div>
-                        {c.consultantRate > 0 && <div className="text-xs text-muted-foreground">cons: {formatCurrency(c.consultantRate)}</div>}
+                        <div className="font-bold text-foreground">{col.clientRate ? formatCurrency(col.clientRate) : '—'}</div>
+                        {col.margin > 0 && <div className="text-xs text-emerald-600">+{formatCurrency(col.margin)}/dag</div>}
                       </td>
-                      <td className={`py-3 px-4 text-right text-muted-foreground ${c.margin > 0 ? 'text-primary' : ''}`}>
-                        {c.margin ? formatCurrency(c.margin) : '—'}
-                      </td>
+                      {/* Client contract */}
                       <td className="py-3 px-4">
-                        {c.sent_date ? (
-                          <div className="flex items-center gap-1 text-blue-600 text-xs">
-                            <Send className="w-3 h-3" /> {formatDate(c.sent_date)}
-                          </div>
-                        ) : <span className="text-muted-foreground text-xs">—</span>}
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className={`text-xs ${TYPE_STYLES.client}`}>Klant</Badge>
+                          {col.client ? (
+                            <>
+                              <Badge variant="outline" className={`text-xs ${STATUS_STYLES[col.client.status]}`}>{STATUS_LABELS[col.client.status]}</Badge>
+                              <Button variant="ghost" size="icon" title="Download klantcontract" onClick={() => generateContractPdf(col.client, col.placement)}>
+                                <Download className="w-3.5 h-3.5 text-primary" />
+                              </Button>
+                              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openEdit(col.client)}>Bewerken</Button>
+                            </>
+                          ) : <span className="text-xs text-muted-foreground">Ontbreekt</span>}
+                        </div>
                       </td>
+                      {/* Consultant contract */}
                       <td className="py-3 px-4">
-                        {c.signed_date ? (
-                          <div className="flex items-center gap-1 text-emerald-600 text-xs">
-                            <CheckCircle2 className="w-3 h-3" /> {formatDate(c.signed_date)}
-                          </div>
-                        ) : c.status === 'sent' ? (
-                          <div className="flex items-center gap-1 text-amber-600 text-xs">
-                            <Clock className="w-3 h-3" /> Wacht op handtekening
-                          </div>
-                        ) : <span className="text-muted-foreground text-xs">—</span>}
-                      </td>
-                      <td className="py-3 px-4">
-                        <Badge variant="outline" className={`text-xs ${STATUS_STYLES[c.status] || ''}`}>
-                          {STATUS_LABELS[c.status] || c.status}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" title="Download PDF" onClick={() => generateContractPdf(c, c.placement)}>
-                            <Download className="w-4 h-4 text-primary" />
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => openEdit(c)}>Bewerken</Button>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className={`text-xs ${TYPE_STYLES.consultant}`}>Consultant</Badge>
+                          {col.consultant ? (
+                            <>
+                              <Badge variant="outline" className={`text-xs ${STATUS_STYLES[col.consultant.status]}`}>{STATUS_LABELS[col.consultant.status]}</Badge>
+                              <Button variant="ghost" size="icon" title="Download consultantcontract" onClick={() => generateContractPdf(col.consultant, col.placement)}>
+                                <Download className="w-3.5 h-3.5 text-primary" />
+                              </Button>
+                              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openEdit(col.consultant)}>Bewerken</Button>
+                            </>
+                          ) : <span className="text-xs text-muted-foreground">Ontbreekt</span>}
                         </div>
                       </td>
                     </tr>
