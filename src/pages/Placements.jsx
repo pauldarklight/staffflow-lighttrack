@@ -193,6 +193,7 @@ export default function Placements() {
         status: 'draft',
         recipient_name: data.client_company_name || '',
         recipient_email: data.client_billing_email || '',
+        agoria_index_client: data.agoria_index_client || null,
         notes: '',
       });
       // Auto-create consultant contract
@@ -202,6 +203,7 @@ export default function Placements() {
         status: 'draft',
         recipient_name: `${data.consultant_first_name || ''} ${data.consultant_last_name || ''}`.trim(),
         recipient_email: '',
+        agoria_index_consultant: data.agoria_index_consultant || null,
         notes: '',
       });
       return placement;

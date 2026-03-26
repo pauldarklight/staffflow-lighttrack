@@ -20,6 +20,8 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
     extensions: [],
     consultant_rate: '',
     client_rate: '',
+    agoria_index_client: '',
+    agoria_index_consultant: '',
     perm_annual_salary: '',
     perm_fee_percentage: 20,
     perm_fee_amount: '',
@@ -63,6 +65,8 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
       ...form,
       consultant_rate: parseFloat(form.consultant_rate) || 0,
       client_rate: parseFloat(form.client_rate) || 0,
+      agoria_index_client: parseFloat(form.agoria_index_client) || null,
+      agoria_index_consultant: parseFloat(form.agoria_index_consultant) || null,
       perm_annual_salary: annualSalary,
       perm_fee_percentage: feePerc,
       perm_fee_amount: form.placement_type === 'perm' ? annualSalary * (feePerc / 100) : 0,
@@ -197,6 +201,16 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
                   <div className="space-y-2">
                     <Label>Tarief Klant (€/dag) *</Label>
                     <Input type="number" step="0.01" value={form.client_rate} onChange={e => updateField('client_rate', e.target.value)} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Agoria-index klant</Label>
+                    <Input type="number" step="0.01" value={form.agoria_index_client || ''} onChange={e => updateField('agoria_index_client', e.target.value)} placeholder="bijv. 110.25" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Agoria-index consultant</Label>
+                    <Input type="number" step="0.01" value={form.agoria_index_consultant || ''} onChange={e => updateField('agoria_index_consultant', e.target.value)} placeholder="bijv. 108.50" />
                   </div>
                 </div>
                 <div className="space-y-2">

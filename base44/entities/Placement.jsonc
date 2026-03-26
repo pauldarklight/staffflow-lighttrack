@@ -1,0 +1,154 @@
+{
+  "name": "Placement",
+  "type": "object",
+  "properties": {
+    "placement_type": {
+      "type": "string",
+      "enum": [
+        "freelancer",
+        "perm"
+      ],
+      "default": "freelancer",
+      "description": "Type placement: freelancer of PERM (vaste aanwerving)"
+    },
+    "consultant_first_name": {
+      "type": "string",
+      "description": "Voornaam consultant"
+    },
+    "consultant_last_name": {
+      "type": "string",
+      "description": "Achternaam consultant"
+    },
+    "consultant_company_name": {
+      "type": "string",
+      "description": "Bedrijfsnaam consultant (freelancers)"
+    },
+    "consultant_company_address": {
+      "type": "string",
+      "description": "Adres bedrijf consultant"
+    },
+    "consultant_vat_number": {
+      "type": "string",
+      "description": "BTW nummer consultant"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Startdatum placement"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Einddatum placement (origineel)"
+    },
+    "extensions": {
+      "type": "array",
+      "description": "Verlengingen van het contract",
+      "items": {
+        "type": "object",
+        "properties": {
+          "extended_on": {
+            "type": "string",
+            "format": "date"
+          },
+          "new_end_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "consultant_rate": {
+            "type": "number",
+            "description": "Tarief consultant bij verlenging"
+          },
+          "client_rate": {
+            "type": "number",
+            "description": "Tarief klant bij verlenging"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "days_per_week": {
+      "type": "number",
+      "default": 5
+    },
+    "consultant_rate": {
+      "type": "number",
+      "description": "Dagtarief consultant (EUR)"
+    },
+    "client_rate": {
+      "type": "number",
+      "description": "Dagtarief klant (EUR)"
+    },
+    "agoria_index_client": {
+      "type": "number",
+      "description": "Agoria-index klant"
+    },
+    "agoria_index_consultant": {
+      "type": "number",
+      "description": "Agoria-index consultant"
+    },
+    "perm_annual_salary": {
+      "type": "number"
+    },
+    "perm_fee_percentage": {
+      "type": "number",
+      "default": 20
+    },
+    "perm_fee_amount": {
+      "type": "number"
+    },
+    "sales_contributors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "percentage": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "client_company_name": {
+      "type": "string"
+    },
+    "client_address": {
+      "type": "string"
+    },
+    "client_vat_number": {
+      "type": "string"
+    },
+    "client_billing_email": {
+      "type": "string"
+    },
+    "reference_instructions": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Extra opmerkingen bij placement"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "ended",
+        "on_hold"
+      ],
+      "default": "active"
+    },
+    "vincere_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "consultant_first_name",
+    "consultant_last_name",
+    "client_company_name",
+    "start_date"
+  ]
+}
