@@ -368,8 +368,8 @@ export default function Placements() {
                     <th className="text-left py-3 px-3 font-bold text-foreground whitespace-nowrap">Looptijd & Prestaties</th>
                     <th className="text-left py-3 px-3 font-normal text-foreground whitespace-nowrap">Start → Einde</th>
                     <th className="text-right py-3 px-3 font-normal text-white bg-primary whitespace-nowrap">Contractwaarde</th>
-                    <th className="text-right py-3 px-3 font-bold text-foreground whitespace-nowrap">Omzet</th>
-                    <th className="text-right py-3 px-3 font-bold text-foreground whitespace-nowrap">Marge</th>
+                    <th className="text-right py-3 px-3 font-bold text-foreground whitespace-nowrap">Gerealiseerde Omzet</th>
+                    <th className="text-right py-3 px-3 font-bold text-foreground whitespace-nowrap">Gerealiseerde Marge</th>
                     <th className="text-left py-3 px-3 font-normal text-foreground whitespace-nowrap">Verlengingen</th>
                     <th className="text-left py-3 px-3 font-normal text-foreground whitespace-nowrap">Status</th>
                     <th className="text-right py-3 px-3 font-normal text-foreground whitespace-nowrap">Acties</th>
