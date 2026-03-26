@@ -156,6 +156,10 @@ export default function Placements() {
   const [editing, setEditing] = useState(null);
   const [extendingPlacement, setExtendingPlacement] = useState(null);
   const [expandedNotes, setExpandedNotes] = useState({});
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('default');
 
   const { data: placements = [], isLoading } = useQuery({
     queryKey: ['placements'],
