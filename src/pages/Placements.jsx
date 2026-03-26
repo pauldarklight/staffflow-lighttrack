@@ -238,7 +238,8 @@ export default function Placements() {
         (p.client_vat_number || '').toLowerCase().includes(q)
       );
     }
-    if (statusFilter !== 'all') rows = rows.filter(p => p.status === statusFilter);
+    if (statusFilter === 'ending_soon') rows = rows.filter(p => p.endingSoon);
+    else if (statusFilter !== 'all') rows = rows.filter(p => p.status === statusFilter);
     if (typeFilter !== 'all') rows = rows.filter(p => (p.placement_type || 'freelancer') === typeFilter);
     if (sortBy !== 'default') {
       rows = [...rows].sort((a, b) => {
@@ -282,10 +283,11 @@ export default function Placements() {
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-36 h-8 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectTrigger className="w-44 h-8 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Alle statussen</SelectItem>
             <SelectItem value="active">Actief</SelectItem>
+            <SelectItem value="ending_soon">⚠️ Eindigt binnenkort</SelectItem>
             <SelectItem value="ended">Beëindigd</SelectItem>
             <SelectItem value="on_hold">On hold</SelectItem>
           </SelectContent>
