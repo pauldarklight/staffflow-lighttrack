@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -49,7 +50,8 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
     notes: '',
     status: 'active',
     vincere_id: '',
-    contract_type: 'contract_client',
+    contract_template_ids: placement?.contract_template_ids || [],
+    invoice_template_ids: placement?.invoice_template_ids || [],
     });
 
     const updateField = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
@@ -334,32 +336,55 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
           </CardContent>
         </Card>
 
-        {/* Contract */}
+        {/* Contract sjablonen */}
         <Card>
-          <CardHeader><CardTitle className="text-base">Contract</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Kies sjabloon voor automatisch invullen</Label>
-              <Select value={form.template_id || ''} onValueChange={v => updateField('template_id', v)}>
-                <SelectTrigger><SelectValue placeholder="Selecteer een sjabloon..." /></SelectTrigger>
-                <SelectContent>
-                  {templates.length === 0 && <SelectItem value={null} disabled>Geen sjablonen beschikbaar</SelectItem>}
-                  {templates.map(t => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name} — {TYPE_LABELS[t.template_type] || t.template_type} ({t.language?.toUpperCase() || 'NL'}){t.is_active ? ' ✓' : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {form.template_id && (() => {
-                const tpl = templates.find(t => t.id === form.template_id);
-                return tpl ? (
-                  <p className="text-xs text-muted-foreground">
-                    {TYPE_LABELS[tpl.template_type]} · {tpl.language?.toUpperCase()} · {tpl.version || 'v1.0'}{tpl.is_active ? ' · ✅ Actief' : ''}
-                  </p>
-                ) : null;
-              })()}
-            </div>
+          <CardHeader><CardTitle className="text-base">Sjablonen die automatisch moeten worden ingevuld</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            {templates.filter(t => !['invoice_client','invoice_consultant'].includes(t.template_type)).length === 0 && (
+              <p className="text-sm text-muted-foreground">Geen contractsjablonen beschikbaar</p>
+            )}
+            {templates.filter(t => !['invoice_client','invoice_consultant'].includes(t.template_type)).map(t => (
+              <div key={t.id} className="flex items-center gap-3">
+                <Checkbox
+                  id={`ct-${t.id}`}
+                  checked={(form.contract_template_ids || []).includes(t.id)}
+                  onCheckedChange={checked => {
+                    const ids = form.contract_template_ids || [];
+                    updateField('contract_template_ids', checked ? [...ids, t.id] : ids.filter(id => id !== t.id));
+                  }}
+                />
+                <label htmlFor={`ct-${t.id}`} className="text-sm cursor-pointer flex items-center gap-2">
+                  <span className="font-medium">{t.name}</span>
+                  <span className="text-xs text-muted-foreground">{TYPE_LABELS[t.template_type]} · {t.language?.toUpperCase()}{t.is_active ? ' · ✓' : ''}</span>
+                </label>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* Factuur sjablonen */}
+        <Card>
+          <CardHeader><CardTitle className="text-base">Facturen die automatisch worden aangemaakt</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            {templates.filter(t => ['invoice_client','invoice_consultant'].includes(t.template_type)).length === 0 && (
+              <p className="text-sm text-muted-foreground">Geen factuursjablonen beschikbaar</p>
+            )}
+            {templates.filter(t => ['invoice_client','invoice_consultant'].includes(t.template_type)).map(t => (
+              <div key={t.id} className="flex items-center gap-3">
+                <Checkbox
+                  id={`it-${t.id}`}
+                  checked={(form.invoice_template_ids || []).includes(t.id)}
+                  onCheckedChange={checked => {
+                    const ids = form.invoice_template_ids || [];
+                    updateField('invoice_template_ids', checked ? [...ids, t.id] : ids.filter(id => id !== t.id));
+                  }}
+                />
+                <label htmlFor={`it-${t.id}`} className="text-sm cursor-pointer flex items-center gap-2">
+                  <span className="font-medium">{t.name}</span>
+                  <span className="text-xs text-muted-foreground">{TYPE_LABELS[t.template_type]} · {t.language?.toUpperCase()}{t.is_active ? ' · ✓' : ''}</span>
+                </label>
+              </div>
+            ))}
           </CardContent>
         </Card>
 
