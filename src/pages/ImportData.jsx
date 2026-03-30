@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, AlertTriangle, Upload, Loader2, FileSpreadsheet } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Upload, Loader2, FileSpreadsheet, RefreshCw } from 'lucide-react';
 import PageHeader from '@/components/shared/PageHeader';
 import { formatCurrency } from '@/lib/formatters';
 
-const FILE_URL = 'https://media.base44.com/files/public/69babb9b316585d1576607e8/668a0c88f_KopievanActuals.xlsx';
-
 export default function ImportData() {
-  const [status, setStatus] = useState('idle'); // idle | extracting | creating | done | error
+  const [status, setStatus] = useState('idle'); // idle | extracting | preview | creating | done | error
+  const [updateStatus, setUpdateStatus] = useState('idle'); // idle | running | done | error
+  const [updateResults, setUpdateResults] = useState({ updated: 0, skipped: 0, details: [] });
   const [extracted, setExtracted] = useState([]);
   const [results, setResults] = useState({ created: [], skipped: [] });
   const [errorMsg, setErrorMsg] = useState('');
@@ -47,17 +47,13 @@ export default function ImportData() {
       const marge = parseFloat(row.marge_per_dag) || 0;
       const consultantRate = parseFloat(row.consultant_rate) || (dagfee - marge);
 
-      // Check duplicates
       const existing = await base44.entities.Placement.filter({
         consultant_first_name: firstName,
         consultant_last_name: lastName,
         client_company_name: row.client_company.trim(),
       });
 
-      if (existing && existing.length > 0) {
-        skipped.push({ ...row, reason: 'Bestaat al' });
-        continue;
-      }
+      if (existing && existing.length > 0) { skipped.push({ ...row, reason: 'Bestaat al' }); continue; }
 
       const placement = await base44.entities.Placement.create({
         placement_type: 'freelancer',
@@ -66,38 +62,25 @@ export default function ImportData() {
         client_company_name: row.client_company.trim(),
         client_rate: dagfee,
         consultant_rate: consultantRate > 0 ? consultantRate : 0,
+        start_date: row.start_date || null,
+        end_date: row.end_date || null,
         sales_contributors: (row.sales_contributors || []).filter(s => s.name && s.percentage > 0),
         notes: 'Geïmporteerd vanuit Actuals Excel – Jan 2026',
       });
 
-      // Auto-create contracts
-      await base44.entities.Contract.create({
-        placement_id: placement.id, contract_type: 'client', status: 'draft',
-        recipient_name: row.client_company.trim(), recipient_email: '',
-        notes: 'Auto aangemaakt via import Jan 2026',
-      });
-      await base44.entities.Contract.create({
-        placement_id: placement.id, contract_type: 'consultant', status: 'draft',
-        recipient_name: row.consultant_name.trim(), recipient_email: '',
-        notes: 'Auto aangemaakt via import Jan 2026',
-      });
+      await base44.entities.Contract.create({ placement_id: placement.id, contract_type: 'client', status: 'draft', recipient_name: row.client_company.trim(), recipient_email: '', notes: 'Auto aangemaakt via import Jan 2026' });
+      await base44.entities.Contract.create({ placement_id: placement.id, contract_type: 'consultant', status: 'draft', recipient_name: row.consultant_name.trim(), recipient_email: '', notes: 'Auto aangemaakt via import Jan 2026' });
 
-      // Create timesheet for Jan 2026 if days worked known
       if (row.days_worked > 0) {
         const daysWorked = parseFloat(row.days_worked);
         const clientRevenue = parseFloat(row.omzet) || (daysWorked * dagfee);
         const consultantCost = daysWorked * consultantRate;
         const margin = parseFloat(row.total_marge) || (daysWorked * marge);
         await base44.entities.Timesheet.create({
-          placement_id: placement.id,
-          month: 1, year: 2026,
-          days_worked: daysWorked,
-          client_revenue: clientRevenue,
-          consultant_revenue: consultantCost,
-          margin: margin,
-          status: 'approved',
-          consultant_name: row.consultant_name.trim(),
-          client_company: row.client_company.trim(),
+          placement_id: placement.id, month: 1, year: 2026,
+          days_worked: daysWorked, client_revenue: clientRevenue,
+          consultant_revenue: consultantCost, margin: margin,
+          status: 'approved', consultant_name: row.consultant_name.trim(), client_company: row.client_company.trim(),
         });
       }
 
@@ -111,11 +94,145 @@ export default function ImportData() {
     setStatus('done');
   };
 
+  const handleUpdate = async () => {
+    setUpdateStatus('running');
+    setUpdateResults({ updated: 0, skipped: 0, details: [] });
+
+    try {
+      // First extract latest data from Excel
+      const response = await base44.functions.invoke('parseActuals', {});
+      const rows = (response.data?.rows || []).filter(r => r.consultant_name && r.client_company);
+
+      let updated = 0;
+      let skipped = 0;
+      const details = [];
+
+      for (const row of rows) {
+        const nameParts = row.consultant_name.trim().split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        const dagfee = parseFloat(row.client_rate) || 0;
+        const marge = parseFloat(row.marge_per_dag) || 0;
+        const consultantRate = parseFloat(row.consultant_rate) || (dagfee - marge);
+
+        const existing = await base44.entities.Placement.filter({
+          consultant_first_name: firstName,
+          consultant_last_name: lastName,
+          client_company_name: row.client_company.trim(),
+        });
+
+        if (!existing || existing.length === 0) { skipped++; continue; }
+
+        const placement = existing[0];
+
+        // Update placement with latest rates, dates and sales contributors
+        await base44.entities.Placement.update(placement.id, {
+          client_rate: dagfee,
+          consultant_rate: consultantRate > 0 ? consultantRate : placement.consultant_rate,
+          start_date: row.start_date || placement.start_date,
+          end_date: row.end_date || placement.end_date,
+          sales_contributors: (row.sales_contributors || []).filter(s => s.name && s.percentage > 0),
+        });
+
+        // Ensure contracts exist
+        const contracts = await base44.entities.Contract.filter({ placement_id: placement.id });
+        const hasClient = contracts.some(c => c.contract_type === 'client');
+        const hasConsultant = contracts.some(c => c.contract_type === 'consultant');
+
+        if (!hasClient) {
+          await base44.entities.Contract.create({ placement_id: placement.id, contract_type: 'client', status: 'draft', recipient_name: row.client_company.trim(), recipient_email: '' });
+          details.push(`${row.consultant_name}: klantcontract aangemaakt`);
+        }
+        if (!hasConsultant) {
+          await base44.entities.Contract.create({ placement_id: placement.id, contract_type: 'consultant', status: 'draft', recipient_name: row.consultant_name.trim(), recipient_email: '' });
+          details.push(`${row.consultant_name}: consultantcontract aangemaakt`);
+        }
+
+        // Ensure Jan 2026 timesheet exists
+        if (row.days_worked > 0) {
+          const timesheets = await base44.entities.Timesheet.filter({ placement_id: placement.id, month: 1, year: 2026 });
+          if (timesheets.length === 0) {
+            const daysWorked = parseFloat(row.days_worked);
+            const clientRevenue = parseFloat(row.omzet) || (daysWorked * dagfee);
+            const consultantCost = daysWorked * consultantRate;
+            const margin = parseFloat(row.total_marge) || (daysWorked * marge);
+            await base44.entities.Timesheet.create({
+              placement_id: placement.id, month: 1, year: 2026,
+              days_worked: daysWorked, client_revenue: clientRevenue,
+              consultant_revenue: consultantCost, margin: margin,
+              status: 'approved', consultant_name: row.consultant_name.trim(), client_company: row.client_company.trim(),
+            });
+            details.push(`${row.consultant_name}: timesheet jan 2026 aangemaakt`);
+          } else {
+            // Update existing timesheet with correct figures
+            const daysWorked = parseFloat(row.days_worked);
+            const clientRevenue = parseFloat(row.omzet) || (daysWorked * dagfee);
+            const consultantCost = daysWorked * consultantRate;
+            const margin = parseFloat(row.total_marge) || (daysWorked * marge);
+            await base44.entities.Timesheet.update(timesheets[0].id, {
+              days_worked: daysWorked, client_revenue: clientRevenue,
+              consultant_revenue: consultantCost, margin: margin, status: 'approved',
+            });
+          }
+        }
+
+        updated++;
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['placements'] });
+      queryClient.invalidateQueries({ queryKey: ['contracts'] });
+      queryClient.invalidateQueries({ queryKey: ['timesheets'] });
+      setUpdateResults({ updated, skipped, details });
+      setUpdateStatus('done');
+    } catch (e) {
+      setUpdateStatus('error');
+      setUpdateResults({ updated: 0, skipped: 0, details: [e.message] });
+    }
+  };
+
   return (
     <div>
       <PageHeader title="Data Import" subtitle="Verwerk historische Excel-data naar placements, contracten en timesheets" />
 
       <div className="space-y-6 max-w-4xl">
+        {/* Update button */}
+        <div className="flex justify-end gap-3">
+          <Button
+            variant="outline"
+            onClick={handleUpdate}
+            disabled={updateStatus === 'running'}
+            className="gap-2"
+          >
+            {updateStatus === 'running' ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            {updateStatus === 'running' ? 'Bezig met bijwerken...' : 'Werk placements bij'}
+          </Button>
+        </div>
+
+        {updateStatus === 'done' && (
+          <Card className="border-emerald-200 bg-emerald-50/30">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                <span className="font-semibold text-emerald-700">{updateResults.updated} placements bijgewerkt · {updateResults.skipped} niet gevonden</span>
+              </div>
+              {updateResults.details.length > 0 && (
+                <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-0.5 mt-1">
+                  {updateResults.details.map((d, i) => <li key={i}>{d}</li>)}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {updateStatus === 'error' && (
+          <Card className="border-red-200 bg-red-50/30">
+            <CardContent className="p-4 flex items-center gap-2 text-red-700 text-sm">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              {updateResults.details[0] || 'Onbekende fout'}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Source file info */}
         <Card className="border-blue-200 bg-blue-50/30">
           <CardContent className="p-4 flex items-center gap-4">
@@ -138,7 +255,7 @@ export default function ImportData() {
             <CardHeader><CardTitle className="text-base">Stap 1 — Gegevens extraheren</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Klik op "Extraheer Data" om de consultants, tarieven en prestaties uit de Jan 2026 tab te lezen via AI-extractie.
+                Klik op "Extraheer Data" om de consultants, tarieven en prestaties uit de Jan 2026 tab te lezen.
               </p>
               {status === 'error' && (
                 <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
@@ -182,7 +299,7 @@ export default function ImportData() {
                       <th className="text-left py-2 px-3">Klant</th>
                       <th className="text-right py-2 px-3">Dagfee</th>
                       <th className="text-right py-2 px-3">Marge/dag</th>
-                    <th className="text-right py-2 px-3">Cons. tarief</th>
+                      <th className="text-right py-2 px-3">Cons. tarief</th>
                       <th className="text-right py-2 px-3">Dagen jan</th>
                       <th className="text-left py-2 px-3">Start</th>
                       <th className="text-left py-2 px-3">Einde</th>
