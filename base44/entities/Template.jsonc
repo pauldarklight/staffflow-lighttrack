@@ -11,10 +11,21 @@
       "enum": [
         "contract_client",
         "contract_consultant",
+        "contract_subcontractor",
+        "contract_addendum",
         "invoice_client",
         "invoice_consultant"
       ],
       "description": "Type sjabloon"
+    },
+    "language": {
+      "type": "string",
+      "enum": [
+        "nl",
+        "en"
+      ],
+      "default": "nl",
+      "description": "Taal van het sjabloon: NL of EN"
     },
     "file_url": {
       "type": "string",
@@ -31,7 +42,7 @@
     "is_active": {
       "type": "boolean",
       "default": true,
-      "description": "Of dit het actieve sjabloon is voor dit type"
+      "description": "Of dit het actieve sjabloon is voor dit type + taal"
     },
     "version": {
       "type": "string",

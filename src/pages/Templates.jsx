@@ -17,25 +17,32 @@ import { formatDate } from '@/lib/formatters';
 const TYPE_LABELS = {
   contract_client: 'Contract Klant',
   contract_consultant: 'Contract Consultant',
+  contract_subcontractor: 'Contract Onderaannemer',
+  contract_addendum: 'Addendum',
   invoice_client: 'Factuur Klant',
   invoice_consultant: 'Factuur Consultant',
 };
 const TYPE_STYLES = {
   contract_client: 'bg-primary/10 text-primary border-primary/20',
   contract_consultant: 'bg-foreground/10 text-foreground border-foreground/20',
+  contract_subcontractor: 'bg-orange-100 text-orange-700 border-orange-200',
+  contract_addendum: 'bg-purple-100 text-purple-700 border-purple-200',
   invoice_client: 'bg-emerald-100 text-emerald-700 border-emerald-200',
   invoice_consultant: 'bg-blue-100 text-blue-700 border-blue-200',
 };
 
+const LANG_LABELS = { nl: '🇧🇪 NL', en: '🇬🇧 EN' };
+
 const GROUPS = [
-  { key: 'contract', label: 'Contracten', types: ['contract_client', 'contract_consultant'] },
+
+  { key: 'contract', label: 'Contracten', types: ['contract_client', 'contract_consultant', 'contract_subcontractor', 'contract_addendum'] },
   { key: 'invoice', label: 'Facturen', types: ['invoice_client', 'invoice_consultant'] },
 ];
 
 export default function Templates() {
   const [showForm, setShowForm] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [form, setForm] = useState({ name: '', template_type: 'contract_client', description: '', version: 'v1.0', is_active: true });
+  const [form, setForm] = useState({ name: '', template_type: 'contract_client', language: 'nl', description: '', version: 'v1.0', is_active: true });
   const [file, setFile] = useState(null);
   const queryClient = useQueryClient();
 
@@ -55,16 +62,15 @@ export default function Templates() {
   });
 
   const activateMutation = useMutation({
-    mutationFn: async ({ id, type }) => {
-      // Deactivate others of same type
-      const sameType = templates.filter(t => t.template_type === type && t.id !== id);
+    mutationFn: async ({ id, type, language }) => {
+      const sameType = templates.filter(t => t.template_type === type && t.language === language && t.id !== id);
       await Promise.all(sameType.map(t => base44.entities.Template.update(t.id, { is_active: false })));
       return base44.entities.Template.update(id, { is_active: true });
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['templates'] }),
   });
 
-  const resetForm = () => { setForm({ name: '', template_type: 'contract_client', description: '', version: 'v1.0', is_active: true }); setFile(null); };
+  const resetForm = () => { setForm({ name: '', template_type: 'contract_client', language: 'nl', description: '', version: 'v1.0', is_active: true }); setFile(null); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -78,7 +84,7 @@ export default function Templates() {
     }
     // Deactivate others of same type if this is active
     if (form.is_active) {
-      const sameType = templates.filter(t => t.template_type === form.template_type);
+      const sameType = templates.filter(t => t.template_type === form.template_type && t.language === form.language);
       await Promise.all(sameType.map(t => base44.entities.Template.update(t.id, { is_active: false })));
     }
     createMutation.mutate({ ...form, file_url: fileUrl, file_name: fileName });
@@ -116,6 +122,16 @@ export default function Templates() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {Object.entries(TYPE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Taal *</Label>
+              <Select value={form.language} onValueChange={v => setForm(p => ({ ...p, language: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nl">🇧🇪 Nederlands</SelectItem>
+                  <SelectItem value="en">🇬🇧 Engels</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -190,8 +206,8 @@ export default function Templates() {
                                 <div className="flex items-center gap-2 min-w-0">
                                   <FileText className={`w-4 h-4 shrink-0 ${t.is_active ? 'text-primary' : 'text-muted-foreground'}`} />
                                   <div className="min-w-0">
-                                    <div className="text-xs font-semibold truncate">{t.name}</div>
-                                    <div className="text-xs text-muted-foreground">{t.version} · {formatDate(t.created_date)}</div>
+                                        <div className="text-xs font-semibold truncate">{t.name}</div>
+                                    <div className="text-xs text-muted-foreground">{t.version} · {LANG_LABELS[t.language] || 'NL'} · {formatDate(t.created_date)}</div>
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-1 shrink-0">
@@ -201,7 +217,7 @@ export default function Templates() {
                                     </Button>
                                   )}
                                   {!t.is_active && (
-                                    <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => activateMutation.mutate({ id: t.id, type: t.template_type })}>
+                                    <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => activateMutation.mutate({ id: t.id, type: t.template_type, language: t.language })}>
                                       Activeren
                                     </Button>
                                   )}
