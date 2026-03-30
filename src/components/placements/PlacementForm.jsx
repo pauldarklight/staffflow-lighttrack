@@ -331,6 +331,8 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
                   <SelectItem value="contract_consultant">Contract Consultant</SelectItem>
                   <SelectItem value="contract_subcontractor">Contract Onderaannemer</SelectItem>
                   <SelectItem value="contract_addendum">Addendum</SelectItem>
+                  <SelectItem value="invoice_client">Factuur Klant</SelectItem>
+                  <SelectItem value="invoice_consultant">Factuur Consultant</SelectItem>
                 </SelectContent>
               </Select>
             </div>
