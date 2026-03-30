@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Upload, FileText, Trash2, CheckCircle2, Plus, ExternalLink } from 'lucide-react';
+import { Upload, FileText, Trash2, CheckCircle2, Plus, ExternalLink, Pencil } from 'lucide-react';
 import PageHeader from '@/components/shared/PageHeader';
 import EmptyState from '@/components/shared/EmptyState';
 import { formatDate } from '@/lib/formatters';
@@ -41,6 +41,7 @@ const GROUPS = [
 
 export default function Templates() {
   const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({ name: '', template_type: 'contract_client', language: 'nl', description: '', version: 'v1.0', is_active: true });
   const [file, setFile] = useState(null);
@@ -54,6 +55,11 @@ export default function Templates() {
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Template.create(data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['templates'] }); setShowForm(false); resetForm(); },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Template.update(id, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['templates'] }); setShowForm(false); setEditing(null); resetForm(); },
   });
 
   const deleteMutation = useMutation({
@@ -70,24 +76,34 @@ export default function Templates() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['templates'] }),
   });
 
-  const resetForm = () => { setForm({ name: '', template_type: 'contract_client', language: 'nl', description: '', version: 'v1.0', is_active: true }); setFile(null); };
+  const resetForm = () => { setForm({ name: '', template_type: 'contract_client', language: 'nl', description: '', version: 'v1.0', is_active: true }); setFile(null); setEditing(null); };
+
+  const openEdit = (t) => {
+    setEditing(t);
+    setForm({ name: t.name, template_type: t.template_type, language: t.language || 'nl', description: t.description || '', version: t.version || 'v1.0', is_active: t.is_active });
+    setFile(null);
+    setShowForm(true);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setUploading(true);
-    let fileUrl = null;
-    let fileName = null;
+    let fileUrl = editing?.file_url || null;
+    let fileName = editing?.file_name || null;
     if (file) {
       const res = await base44.integrations.Core.UploadFile({ file });
       fileUrl = res.file_url;
       fileName = file.name;
     }
-    // Deactivate others of same type if this is active
     if (form.is_active) {
-      const sameType = templates.filter(t => t.template_type === form.template_type && t.language === form.language);
+      const sameType = templates.filter(t => t.template_type === form.template_type && t.language === form.language && t.id !== editing?.id);
       await Promise.all(sameType.map(t => base44.entities.Template.update(t.id, { is_active: false })));
     }
-    createMutation.mutate({ ...form, file_url: fileUrl, file_name: fileName });
+    if (editing) {
+      updateMutation.mutate({ id: editing.id, data: { ...form, file_url: fileUrl, file_name: fileName } });
+    } else {
+      createMutation.mutate({ ...form, file_url: fileUrl, file_name: fileName });
+    }
     setUploading(false);
   };
 
@@ -102,7 +118,7 @@ export default function Templates() {
       <Dialog open={showForm} onOpenChange={(o) => { setShowForm(o); if (!o) resetForm(); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Nieuw Sjabloon Uploaden</DialogTitle>
+            <DialogTitle>{editing ? 'Sjabloon Bewerken' : 'Nieuw Sjabloon Uploaden'}</DialogTitle>
             <DialogDescription>Upload een sjabloonbestand (PDF, DOCX, XLSX). Je kunt placeholders gebruiken zoals {'{consultant_name}'}, {'{client_company}'}, {'{start_date}'}, enz.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -216,6 +232,9 @@ export default function Templates() {
                                       <a href={t.file_url} target="_blank" rel="noopener noreferrer"><ExternalLink className="w-3.5 h-3.5" /></a>
                                     </Button>
                                   )}
+                                  <Button variant="ghost" size="icon" title="Bewerken" onClick={() => openEdit(t)}>
+                                    <Pencil className="w-3.5 h-3.5" />
+                                  </Button>
                                   {!t.is_active && (
                                     <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => activateMutation.mutate({ id: t.id, type: t.template_type, language: t.language })}>
                                       Activeren
