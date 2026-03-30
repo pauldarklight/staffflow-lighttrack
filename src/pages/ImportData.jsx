@@ -2,15 +2,17 @@ import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, AlertTriangle, Upload, Loader2, FileSpreadsheet, RefreshCw } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Upload, Loader2, FileSpreadsheet, RefreshCw, Search, X } from 'lucide-react';
 import PageHeader from '@/components/shared/PageHeader';
 import { formatCurrency } from '@/lib/formatters';
 
 export default function ImportData() {
   const [status, setStatus] = useState('idle'); // idle | extracting | preview | creating | done | error
-  const [updateStatus, setUpdateStatus] = useState('idle'); // idle | running | done | error
+  const [updateStatus, setUpdateStatus] = useState('idle');
+  const [search, setSearch] = useState(''); // idle | running | done | error
   const [updateResults, setUpdateResults] = useState({ updated: 0, skipped: 0, details: [] });
   const [extracted, setExtracted] = useState([]);
   const [results, setResults] = useState({ created: [], skipped: [] });
@@ -286,11 +288,27 @@ export default function ImportData() {
         {status === 'preview' && (
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base">Stap 2 — Controleer & Bevestig ({extracted.length} rijen gevonden)</CardTitle>
-                <Button onClick={handleCreate}>
-                  <CheckCircle2 className="w-4 h-4 mr-2" /> Maak Placements aan
-                </Button>
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <CardTitle className="text-base">Stap 2 — Controleer & Bevestig ({extracted.filter(r => !search || r.consultant_name?.toLowerCase().includes(search.toLowerCase()) || r.client_company?.toLowerCase().includes(search.toLowerCase())).length} / {extracted.length} rijen)</CardTitle>
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                    <Input
+                      placeholder="Zoek op naam of klant..."
+                      value={search}
+                      onChange={e => setSearch(e.target.value)}
+                      className="pl-8 h-8 text-xs w-52"
+                    />
+                    {search && (
+                      <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                  <Button onClick={handleCreate}>
+                    <CheckCircle2 className="w-4 h-4 mr-2" /> Maak Placements aan
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -309,7 +327,7 @@ export default function ImportData() {
                     </tr>
                   </thead>
                   <tbody>
-                    {extracted.map((r, i) => (
+                    {extracted.filter(r => !search || r.consultant_name?.toLowerCase().includes(search.toLowerCase()) || r.client_company?.toLowerCase().includes(search.toLowerCase())).map((r, i) => (
                       <tr key={i} className="border-b hover:bg-muted/20">
                         <td className="py-2 px-3 font-medium">{r.consultant_name}</td>
                         <td className="py-2 px-3 text-muted-foreground">{r.client_company}</td>
