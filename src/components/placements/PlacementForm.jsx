@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,7 +9,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Trash2, Save, X } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 
+const TYPE_LABELS = {
+  contract_client: 'Contract Klant',
+  contract_consultant: 'Contract Consultant',
+  contract_subcontractor: 'Contract Onderaannemer',
+  contract_addendum: 'Addendum',
+  invoice_client: 'Factuur Klant',
+  invoice_consultant: 'Factuur Consultant',
+};
+
 export default function PlacementForm({ placement, onSave, onCancel }) {
+  const { data: templates = [] } = useQuery({
+    queryKey: ['templates'],
+    queryFn: () => base44.entities.Template.list('-created_date'),
+  });
+
   const [form, setForm] = useState(placement || {
     placement_type: 'freelancer',
     consultant_first_name: '',
@@ -323,18 +339,26 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
           <CardHeader><CardTitle className="text-base">Contract</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Kies type contract</Label>
-              <Select value={form.contract_type || 'contract_client'} onValueChange={v => updateField('contract_type', v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Label>Kies sjabloon voor automatisch invullen</Label>
+              <Select value={form.template_id || ''} onValueChange={v => updateField('template_id', v)}>
+                <SelectTrigger><SelectValue placeholder="Selecteer een sjabloon..." /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="contract_client">Contract Klant</SelectItem>
-                  <SelectItem value="contract_consultant">Contract Consultant</SelectItem>
-                  <SelectItem value="contract_subcontractor">Contract Onderaannemer</SelectItem>
-                  <SelectItem value="contract_addendum">Addendum</SelectItem>
-                  <SelectItem value="invoice_client">Factuur Klant</SelectItem>
-                  <SelectItem value="invoice_consultant">Factuur Consultant</SelectItem>
+                  {templates.length === 0 && <SelectItem value={null} disabled>Geen sjablonen beschikbaar</SelectItem>}
+                  {templates.map(t => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name} — {TYPE_LABELS[t.template_type] || t.template_type} ({t.language?.toUpperCase() || 'NL'}){t.is_active ? ' ✓' : ''}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
+              {form.template_id && (() => {
+                const tpl = templates.find(t => t.id === form.template_id);
+                return tpl ? (
+                  <p className="text-xs text-muted-foreground">
+                    {TYPE_LABELS[tpl.template_type]} · {tpl.language?.toUpperCase()} · {tpl.version || 'v1.0'}{tpl.is_active ? ' · ✅ Actief' : ''}
+                  </p>
+                ) : null;
+              })()}
             </div>
           </CardContent>
         </Card>
