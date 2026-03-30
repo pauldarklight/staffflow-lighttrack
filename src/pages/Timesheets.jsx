@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -42,12 +42,19 @@ const STATUS_STYLES = {
 export default function Timesheets() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [filterMonth, setFilterMonth] = useState(String(new Date().getMonth() + 1));
-  const [filterYear, setFilterYear] = useState(String(new Date().getFullYear()));
-  const [viewMode, setViewMode] = useState('month'); // 'month' | 'ytd' | 'year'
-  const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState('default');
+  const [filterMonth, setFilterMonth] = useState(() => localStorage.getItem('ts_filterMonth') || String(new Date().getMonth() + 1));
+  const [filterYear, setFilterYear] = useState(() => localStorage.getItem('ts_filterYear') || String(new Date().getFullYear()));
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem('ts_viewMode') || 'month');
+  const [search, setSearch] = useState(() => localStorage.getItem('ts_search') || '');
+  const [sortBy, setSortBy] = useState(() => localStorage.getItem('ts_sortBy') || 'default');
   const queryClient = useQueryClient();
+
+  // Persist filters
+  React.useEffect(() => { localStorage.setItem('ts_filterMonth', filterMonth); }, [filterMonth]);
+  React.useEffect(() => { localStorage.setItem('ts_filterYear', filterYear); }, [filterYear]);
+  React.useEffect(() => { localStorage.setItem('ts_viewMode', viewMode); }, [viewMode]);
+  React.useEffect(() => { localStorage.setItem('ts_search', search); }, [search]);
+  React.useEffect(() => { localStorage.setItem('ts_sortBy', sortBy); }, [sortBy]);
 
   const { data: timesheets = [] } = useQuery({
     queryKey: ['timesheets'],
@@ -116,13 +123,15 @@ export default function Timesheets() {
   // Enrich timesheets with placement data
   const enriched = useMemo(() => timesheets.map(t => {
     const placement = placements.find(p => p.id === t.placement_id);
+    const isImported = placement?.notes?.includes('Geïmporteerd vanuit Actuals Excel');
     return {
       ...t,
       placement,
       clientVat: placement?.client_vat_number || '',
       clientRate: placement?.client_rate || 0,
       consultantRate: placement?.consultant_rate || 0,
-      late: isLate(t),
+      late: isLate(t) && !isImported,
+      isImported,
     };
   }), [timesheets, placements]);
 
@@ -424,12 +433,13 @@ export default function Timesheets() {
                   {filtered.map(t => (
                     <tr
                       key={t.id}
-                      className={`border-b border-border/50 transition-colors ${t.late ? 'bg-red-50/50 hover:bg-red-50/70' : 'hover:bg-muted/20'}`}
+                      className={`border-b border-border/50 transition-colors ${t.late && !t.isImported ? 'bg-red-50/50 hover:bg-red-50/70' : 'hover:bg-muted/20'}`}
                     >
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-foreground">{t.consultant_name || '—'}</span>
                           {t.late && <AlertTriangle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" title="Te laat ingediend (>15 dagen)" />}
+                          {t.isImported && <span className="inline-flex items-center gap-1 text-xs font-medium bg-emerald-100 text-emerald-700 border border-emerald-200 rounded px-1.5 py-0.5">✓ Import</span>}
                         </div>
                       </td>
                       <td className="py-3 px-4 text-muted-foreground">{t.client_company || '—'}</td>
