@@ -126,6 +126,29 @@ export default function Timesheets() {
     };
   }), [timesheets, placements]);
 
+  // Virtual rows: active placements without a timesheet for selected month (only in month view)
+  const missingRows = useMemo(() => {
+    if (viewMode !== 'month') return [];
+    const yr = parseInt(filterYear);
+    const mo = parseInt(filterMonth);
+    return placements
+      .filter(p => p.status === 'active' && p.placement_type !== 'perm')
+      .filter(p => !timesheets.some(t => t.placement_id === p.id && t.month === mo && t.year === yr))
+      .map(p => ({
+        _virtual: true,
+        placement_id: p.id,
+        placement: p,
+        consultant_name: `${p.consultant_first_name} ${p.consultant_last_name}`,
+        client_company: p.client_company_name,
+        clientVat: p.client_vat_number || '',
+        clientRate: p.client_rate || 0,
+        consultantRate: p.consultant_rate || 0,
+        days_worked: Math.round(((p.days_per_week || 5) / 5) * 21 * 10) / 10,
+        month: mo,
+        year: yr,
+      }));
+  }, [placements, timesheets, filterMonth, filterYear, viewMode]);
+
   const filtered = useMemo(() => {
     let rows;
     const yr = parseInt(filterYear);
@@ -166,6 +189,25 @@ export default function Timesheets() {
   const totalCost = filtered.reduce((s, t) => s + (t.consultant_revenue || 0), 0);
   const totalMargin = filtered.reduce((s, t) => s + (t.margin || 0), 0);
   const lateCount = filtered.filter(t => t.late).length;
+
+  const quickCreateTimesheet = (virtual) => {
+    const days = virtual.days_worked;
+    const clientRevenue = days * virtual.clientRate;
+    const consultantRevenue = days * virtual.consultantRate;
+    createMutation.mutate({
+      placement_id: virtual.placement_id,
+      month: virtual.month,
+      year: virtual.year,
+      days_worked: days,
+      hours_worked: 0,
+      status: 'approved',
+      client_revenue: clientRevenue,
+      consultant_revenue: consultantRevenue,
+      margin: clientRevenue - consultantRevenue,
+      consultant_name: virtual.consultant_name,
+      client_company: virtual.client_company,
+    });
+  };
 
   return (
     <div>
@@ -413,6 +455,33 @@ export default function Timesheets() {
                       </td>
                     </tr>
                   ))}
+                  {missingRows.filter(r => !search || r.consultant_name.toLowerCase().includes(search.toLowerCase()) || r.client_company?.toLowerCase().includes(search.toLowerCase())).map(r => {
+                    const estRevenue = r.days_worked * r.clientRate;
+                    const estCost = r.days_worked * r.consultantRate;
+                    return (
+                      <tr key={`virtual-${r.placement_id}`} className="border-b border-dashed border-amber-200 bg-amber-50/30 hover:bg-amber-50/50 transition-colors opacity-80">
+                        <td className="py-3 px-4">
+                          <span className="font-bold text-foreground">{r.consultant_name}</span>
+                        </td>
+                        <td className="py-3 px-4 text-muted-foreground">{r.client_company || '—'}</td>
+                        <td className="py-3 px-4 text-xs text-muted-foreground">{r.clientVat || '—'}</td>
+                        <td className="py-3 px-4 text-right text-amber-600 text-xs">{r.days_worked}~</td>
+                        <td className="py-3 px-4 text-right font-bold text-foreground text-xs">
+                          <div>{formatCurrency(r.clientRate)}</div>
+                          <div className="text-muted-foreground font-normal">cons: {formatCurrency(r.consultantRate)}</div>
+                        </td>
+                        <td className="py-3 px-4 text-right bg-primary/5 text-amber-600">{formatCurrency(estRevenue)}</td>
+                        <td className="py-3 px-4 text-right bg-primary/5 text-amber-600">{formatCurrency(estCost)}</td>
+                        <td className="py-3 px-4 text-right text-amber-600">{formatCurrency(estRevenue - estCost)}</td>
+                        <td className="py-3 px-4">
+                          <Badge variant="outline" className="text-xs bg-amber-100 text-amber-700 border-amber-200">Ontbreekt</Badge>
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => { setForm({ placement_id: r.placement_id, month: r.month, year: r.year, days_worked: r.days_worked, hours_worked: '', status: 'approved' }); setEditing(null); setShowForm(true); }}>Aanmaken</Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {filtered.length > 0 && (
                     <tr className="bg-muted/40 border-t-2 font-semibold">
                       <td colSpan={5} className="py-3 px-4 text-right text-xs text-muted-foreground font-bold">Totaal (gefilterd)</td>
