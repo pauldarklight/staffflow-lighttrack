@@ -277,13 +277,24 @@ export default function Billing() {
     const clientInvoice = invoices.filter(i => matchInv(i, 'client_invoice'))[0];
     const consultantInvoice = invoices.filter(i => matchInv(i, 'consultant_invoice'))[0];
     const isPerm = placement.placement_type === 'perm';
-    const days = ts?.days_worked || 0;
     const clientRate = placement.client_rate || 0;
     const consultantRate = placement.consultant_rate || 0;
+
+    let days, isEstimated;
+    if (ts) {
+      days = ts.days_worked || 0;
+      isEstimated = false;
+    } else {
+      // Estimate based on days_per_week: ~21 working days/month for 5/5
+      const dpw = placement.days_per_week || 5;
+      days = Math.round((dpw / 5) * 21 * 10) / 10;
+      isEstimated = true;
+    }
+
     const clientAmountExcl = isPerm ? (placement.perm_fee_amount || 0) : days * clientRate;
     const consultantAmountExcl = isPerm ? 0 : days * consultantRate;
     const marginExcl = clientAmountExcl - consultantAmountExcl;
-    return { idx, placement, ts, clientInvoice, consultantInvoice, days, clientRate, consultantRate, clientAmountExcl, consultantAmountExcl, marginExcl, isPerm };
+    return { idx, placement, ts, clientInvoice, consultantInvoice, days, isEstimated, clientRate, consultantRate, clientAmountExcl, consultantAmountExcl, marginExcl, isPerm };
   };
 
   const applyFilters = (rows, search, statusFilter, sortBy) => {
@@ -426,9 +437,15 @@ export default function Billing() {
                       </td>
                       <td className="py-3 px-3 font-bold"><ContractDuration placement={row.placement} /></td>
                       <td className="py-3 px-3 text-right">
-                        {row.days > 0 ? <span className="font-normal text-foreground">{row.days}</span> : <span className="text-muted-foreground text-xs">geen TS</span>}
+                        {row.ts
+                          ? <span className="font-normal text-foreground">{row.days}</span>
+                          : <span className="text-amber-600 text-xs" title="Schatting op basis van days_per_week">{row.days}~</span>
+                        }
                       </td>
-                      <td className="py-3 px-3 text-right text-xs font-bold text-foreground">{formatCurrency(row.clientRate)}/dag</td>
+                      <td className="py-3 px-3 text-right text-xs font-bold text-foreground">
+                        <div>{formatCurrency(row.clientRate)}/dag</div>
+                        <div className="text-muted-foreground font-normal">cons: {formatCurrency(row.consultantRate)}/dag</div>
+                      </td>
                       <td className={`py-3 px-3 text-right bg-primary/10 font-bold ${clientOverdue ? 'text-red-600' : 'text-primary'}`}>
                         <div className="flex items-center justify-end gap-1">
                           {clientOverdue && <AlertCircle className="w-3.5 h-3.5 text-red-500" />}
