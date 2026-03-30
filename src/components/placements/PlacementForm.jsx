@@ -33,6 +33,7 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
     notes: '',
     status: 'active',
     vincere_id: '',
+    contract_type: 'contract_client',
     });
 
     const updateField = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
@@ -314,6 +315,25 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
                 </Button>
               </div>
             ))}
+          </CardContent>
+        </Card>
+
+        {/* Contract */}
+        <Card>
+          <CardHeader><CardTitle className="text-base">Contract</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Kies type contract</Label>
+              <Select value={form.contract_type || 'contract_client'} onValueChange={v => updateField('contract_type', v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="contract_client">Contract Klant</SelectItem>
+                  <SelectItem value="contract_consultant">Contract Consultant</SelectItem>
+                  <SelectItem value="contract_subcontractor">Contract Onderaannemer</SelectItem>
+                  <SelectItem value="contract_addendum">Addendum</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </CardContent>
         </Card>
 
