@@ -157,7 +157,14 @@ export default function FlowOverview() {
                   <div className="flex items-center gap-2 min-w-[180px] flex-1">
                     <StepIcon status={f.health} />
                     <div>
-                      <div className="font-bold text-sm">{p.consultant_first_name} {p.consultant_last_name}</div>
+                      <div className="font-bold text-sm flex items-center gap-2">
+                        {p.consultant_first_name} {p.consultant_last_name}
+                        {p.notes?.includes('Geïmporteerd vanuit Actuals Excel') && (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium bg-emerald-100 text-emerald-700 border border-emerald-200 rounded px-1.5 py-0.5">
+                            <CheckCircle2 className="w-3 h-3" /> Geïmporteerd
+                          </span>
+                        )}
+                      </div>
                       <div className="text-xs text-muted-foreground">{p.client_company_name}</div>
                     </div>
                   </div>
