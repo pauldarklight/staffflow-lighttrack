@@ -32,6 +32,10 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
     consultant_company_name: '',
     consultant_company_address: '',
     consultant_vat_number: '',
+    consultant_personal_address: '',
+    consultant_contact_name: '',
+    consultant_contact_email: '',
+    consultant_contact_phone: '',
     start_date: '',
     end_date: '',
     extensions: [],
@@ -150,8 +154,31 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
                   <Label>BTW nummer</Label>
                   <Input value={form.consultant_vat_number} onChange={e => updateField('consultant_vat_number', e.target.value)} placeholder="BE0123.456.789" />
                 </div>
-              </>
-            )}
+                </>
+                )}
+                <div className="space-y-2">
+                <Label>Persoonlijk adres consultant</Label>
+                <Input value={form.consultant_personal_address || ''} onChange={e => updateField('consultant_personal_address', e.target.value)} placeholder="Straat 1, 1000 Brussel" />
+                </div>
+                <div className="pt-2 border-t">
+                <p className="text-xs font-semibold text-muted-foreground mb-3">Contactpersoon (optioneel)</p>
+                <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label>Naam contactpersoon</Label>
+                  <Input value={form.consultant_contact_name || ''} onChange={e => updateField('consultant_contact_name', e.target.value)} placeholder="Jan Janssen" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>E-mail contactpersoon</Label>
+                    <Input type="email" value={form.consultant_contact_email || ''} onChange={e => updateField('consultant_contact_email', e.target.value)} placeholder="jan@bedrijf.be" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Telefoon contactpersoon</Label>
+                    <Input value={form.consultant_contact_phone || ''} onChange={e => updateField('consultant_contact_phone', e.target.value)} placeholder="+32 4xx xx xx xx" />
+                  </div>
+                </div>
+                </div>
+                </div>
           </CardContent>
         </Card>
 

@@ -31,6 +31,22 @@
       "type": "string",
       "description": "BTW nummer consultant"
     },
+    "consultant_personal_address": {
+      "type": "string",
+      "description": "Persoonlijk adres consultant"
+    },
+    "consultant_contact_name": {
+      "type": "string",
+      "description": "Naam contactpersoon consultant"
+    },
+    "consultant_contact_email": {
+      "type": "string",
+      "description": "E-mail contactpersoon consultant"
+    },
+    "consultant_contact_phone": {
+      "type": "string",
+      "description": "Telefoon contactpersoon consultant"
+    },
     "start_date": {
       "type": "string",
       "format": "date",
@@ -56,12 +72,10 @@
             "format": "date"
           },
           "consultant_rate": {
-            "type": "number",
-            "description": "Tarief consultant bij verlenging"
+            "type": "number"
           },
           "client_rate": {
-            "type": "number",
-            "description": "Tarief klant bij verlenging"
+            "type": "number"
           },
           "notes": {
             "type": "string"
@@ -82,12 +96,10 @@
       "description": "Dagtarief klant (EUR)"
     },
     "agoria_index_client": {
-      "type": "number",
-      "description": "Agoria-index klant"
+      "type": "number"
     },
     "agoria_index_consultant": {
-      "type": "number",
-      "description": "Agoria-index consultant"
+      "type": "number"
     },
     "perm_annual_salary": {
       "type": "number"
@@ -143,6 +155,20 @@
     },
     "vincere_id": {
       "type": "string"
+    },
+    "contract_template_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Geselecteerde contractsjablonen"
+    },
+    "invoice_template_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Geselecteerde factuursjablonen"
     }
   },
   "required": [
