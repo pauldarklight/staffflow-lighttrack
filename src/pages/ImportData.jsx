@@ -94,6 +94,8 @@ export default function ImportData() {
     setStatus('done');
   };
 
+  const sleep = (ms) => new Promise(res => setTimeout(res, ms));
+
   const handleUpdate = async () => {
     setUpdateStatus('running');
     setUpdateResults({ updated: 0, skipped: 0, details: [] });
@@ -115,6 +117,7 @@ export default function ImportData() {
         const marge = parseFloat(row.marge_per_dag) || 0;
         const consultantRate = parseFloat(row.consultant_rate) || (dagfee - marge);
 
+        await sleep(300);
         const existing = await base44.entities.Placement.filter({
           consultant_first_name: firstName,
           consultant_last_name: lastName,
