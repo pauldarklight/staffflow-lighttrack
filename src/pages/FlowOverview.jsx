@@ -72,7 +72,9 @@ export default function FlowOverview() {
       : 'missing';
 
     // Overall health
-    const health = contractStatus === 'missing' || (timesheetStatus === 'warn') ? 'warn'
+    const isImported = p.notes?.includes('Geïmporteerd vanuit Actuals Excel');
+    const health = isImported ? 'ok'
+      : contractStatus === 'missing' || (timesheetStatus === 'warn') ? 'warn'
       : contractStatus === 'ok' && invoiceStatus === 'ok' ? 'ok'
       : 'pending';
 
