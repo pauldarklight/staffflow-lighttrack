@@ -21,35 +21,34 @@ export default function ImportData() {
     setStatus('extracting');
     setErrorMsg('');
     try {
-      const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
-        file_url: FILE_URL,
-        json_schema: {
+      const result = await base44.integrations.Core.InvokeLLM({
+        model: 'claude_sonnet_4_6',
+        file_urls: [FILE_URL],
+        response_json_schema: {
           type: 'object',
           properties: {
             rows: {
               type: 'array',
-              description: 'Elke rij = 1 consultant/placement op de Jan 2026 tab. Sla lege rijen en header-rijen over.',
               items: {
                 type: 'object',
                 properties: {
-                  consultant_name: { type: 'string', description: 'Volledige naam van de consultant/runner (bijv. kolom A of B)' },
-                  client_company: { type: 'string', description: 'Bedrijfsnaam van de klant' },
-                  client_rate: { type: 'number', description: 'Dagtarief klant = omzet per dag (kolom C, bijv. 814 voor Bart Malfait)' },
-                  marge_per_dag: { type: 'number', description: 'Marge per dag in EUR (kolom D, bijv. 100)' },
-                  consultant_rate: { type: 'number', description: 'Tarief consultant = client_rate minus marge_per_dag (bijv. 714)' },
-                  days_worked: { type: 'number', description: 'Aantal gepresteerde dagen in januari 2026 (kolom J, bijv. 14.5). Dit is de som van X-markeringen in de dagkolommen.' },
-                  omzet: { type: 'number', description: 'Totale omzet = days_worked * client_rate (kolom K, bijv. 11803)' },
-                  total_marge: { type: 'number', description: 'Totale marge = days_worked * marge_per_dag (kolom L, bijv. 1450)' },
-                  start_date: { type: 'string', description: 'Startdatum van het contract (format YYYY-MM-DD indien aanwezig)' },
-                  end_date: { type: 'string', description: 'Einddatum van het contract (format YYYY-MM-DD indien aanwezig)' },
+                  consultant_name: { type: 'string' },
+                  client_company: { type: 'string' },
+                  client_rate: { type: 'number' },
+                  marge_per_dag: { type: 'number' },
+                  consultant_rate: { type: 'number' },
+                  days_worked: { type: 'number' },
+                  omzet: { type: 'number' },
+                  total_marge: { type: 'number' },
+                  start_date: { type: 'string' },
+                  end_date: { type: 'string' },
                   sales_contributors: {
                     type: 'array',
-                    description: 'Bonusverdeling uit kolommen R t/m V: naam medewerker + percentage',
                     items: {
                       type: 'object',
                       properties: {
-                        name: { type: 'string', description: 'Naam van de medewerker die bonus ontvangt' },
-                        percentage: { type: 'number', description: 'Percentage van de marge (bijv. 50 voor 50%)' }
+                        name: { type: 'string' },
+                        percentage: { type: 'number' }
                       }
                     }
                   }
@@ -57,14 +56,26 @@ export default function ImportData() {
               }
             }
           }
-        }
+        },
+        prompt: `Je krijgt een Excel-bestand met consultancy placements voor januari 2026. Lees de tab "Jan 2026".
+
+Structuur per rij (voorbeeld: Bart Malfait bij House of Talents, rij 6):
+- Kolom A/B: naam consultant (bijv. "Bart Malfait")
+- Kolom (nabij C): bedrijfsnaam klant (bijv. "House of Talents")
+- Kolom C: dagtarief klant = client_rate (bijv. 814)
+- Kolom D: marge per dag = marge_per_dag (bijv. 100)
+- consultant_rate = client_rate - marge_per_dag (bijv. 814 - 100 = 714)
+- Kolommen E t/m I: dagmarkeringen met "X" per gewerkte dag
+- Kolom J: totaal gepresteerde dagen = days_worked (bijv. 14.5)
+- Kolom K: totale omzet = days_worked * client_rate = omzet (bijv. 11803)
+- Kolom L: totale marge = days_worked * marge_per_dag = total_marge (bijv. 1450)
+- Kolommen R t/m V: bonusverdeling = sales_contributors (naam + percentage)
+
+Extraheer ALLE datarijen (sla lege rijen en header-rijen over). Geef voor elke placement de consultant_name, client_company, client_rate, marge_per_dag, consultant_rate, days_worked, omzet, total_marge, start_date, end_date (indien aanwezig), en sales_contributors.`
       });
 
-      if (result.status !== 'success' || !result.output?.rows) {
-        throw new Error(result.details || 'Extractie mislukt');
-      }
-
-      const rows = result.output.rows.filter(r => r.consultant_name && r.client_company);
+      const rows = (result.rows || []).filter(r => r.consultant_name && r.client_company);
+      if (rows.length === 0) throw new Error('Geen geldige rijen gevonden in het bestand.');
       setExtracted(rows);
       setStatus('preview');
     } catch (e) {
