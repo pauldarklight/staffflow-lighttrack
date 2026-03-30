@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, FileText, Clock, CreditCard, BarChart2, Layers, FileStack, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, Clock, CreditCard, BarChart2, Layers, FileStack, FileUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -12,6 +12,7 @@ const navItems = [
   { path: '/Billing', label: 'Facturatie', icon: CreditCard },
   { path: '/Reports', label: 'Rapporten', icon: BarChart2 },
   { path: '/Templates', label: 'Sjablonen', icon: FileStack },
+  { path: '/ImportData', label: 'Import Data', icon: FileUp },
 ];
 
 export default function Sidebar({ collapsed, onToggle }) {

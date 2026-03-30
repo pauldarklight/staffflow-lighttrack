@@ -14,6 +14,7 @@ import Timesheets from '@/pages/Timesheets';
 import Billing from '@/pages/Billing';
 import Reports from '@/pages/Reports';
 import Templates from '@/pages/Templates';
+import ImportData from '@/pages/ImportData';
 import FlowOverview from '@/pages/FlowOverview';
 
 const AuthenticatedApp = () => {
@@ -51,6 +52,7 @@ const AuthenticatedApp = () => {
         <Route path="/Billing" element={<Billing />} />
         <Route path="/Reports" element={<Reports />} />
         <Route path="/Templates" element={<Templates />} />
+        <Route path="/ImportData" element={<ImportData />} />
         <Route path="/FlowOverview" element={<FlowOverview />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
