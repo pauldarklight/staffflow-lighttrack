@@ -28,17 +28,31 @@ export default function ImportData() {
           properties: {
             rows: {
               type: 'array',
+              description: 'Elke rij = 1 consultant/placement op de Jan 2026 tab. Sla lege rijen en header-rijen over.',
               items: {
                 type: 'object',
                 properties: {
-                  start_date: { type: 'string', description: 'Startdatum van de placement (format YYYY-MM-DD)' },
-                  end_date: { type: 'string', description: 'Einddatum van de placement (format YYYY-MM-DD)' },
-                  consultant_name: { type: 'string', description: 'Volledige naam van de consultant of runner' },
+                  consultant_name: { type: 'string', description: 'Volledige naam van de consultant/runner (bijv. kolom A of B)' },
                   client_company: { type: 'string', description: 'Bedrijfsnaam van de klant' },
-                  dagfee: { type: 'number', description: 'Dagtarief klant in EUR' },
-                  marge: { type: 'number', description: 'Marge per dag in EUR' },
-                  days_worked: { type: 'number', description: 'Aantal gewerkte dagen in januari 2026' },
-                  omzet: { type: 'number', description: 'Totale omzet voor deze periode' },
+                  client_rate: { type: 'number', description: 'Dagtarief klant = omzet per dag (kolom C, bijv. 814 voor Bart Malfait)' },
+                  marge_per_dag: { type: 'number', description: 'Marge per dag in EUR (kolom D, bijv. 100)' },
+                  consultant_rate: { type: 'number', description: 'Tarief consultant = client_rate minus marge_per_dag (bijv. 714)' },
+                  days_worked: { type: 'number', description: 'Aantal gepresteerde dagen in januari 2026 (kolom J, bijv. 14.5). Dit is de som van X-markeringen in de dagkolommen.' },
+                  omzet: { type: 'number', description: 'Totale omzet = days_worked * client_rate (kolom K, bijv. 11803)' },
+                  total_marge: { type: 'number', description: 'Totale marge = days_worked * marge_per_dag (kolom L, bijv. 1450)' },
+                  start_date: { type: 'string', description: 'Startdatum van het contract (format YYYY-MM-DD indien aanwezig)' },
+                  end_date: { type: 'string', description: 'Einddatum van het contract (format YYYY-MM-DD indien aanwezig)' },
+                  sales_contributors: {
+                    type: 'array',
+                    description: 'Bonusverdeling uit kolommen R t/m V: naam medewerker + percentage',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        name: { type: 'string', description: 'Naam van de medewerker die bonus ontvangt' },
+                        percentage: { type: 'number', description: 'Percentage van de marge (bijv. 50 voor 50%)' }
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -70,9 +84,9 @@ export default function ImportData() {
       const nameParts = row.consultant_name.trim().split(' ');
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
-      const dagfee = parseFloat(row.dagfee) || 0;
-      const marge = parseFloat(row.marge) || 0;
-      const consultantRate = dagfee - marge;
+      const dagfee = parseFloat(row.client_rate) || 0;
+      const marge = parseFloat(row.marge_per_dag) || 0;
+      const consultantRate = parseFloat(row.consultant_rate) || (dagfee - marge);
 
       // Check duplicates
       const existing = await base44.entities.Placement.filter({
@@ -93,9 +107,7 @@ export default function ImportData() {
         client_company_name: row.client_company.trim(),
         client_rate: dagfee,
         consultant_rate: consultantRate > 0 ? consultantRate : 0,
-        start_date: row.start_date || '2026-01-01',
-        end_date: row.end_date || null,
-        status: (row.end_date && new Date(row.end_date) < new Date()) ? 'ended' : 'active',
+        sales_contributors: (row.sales_contributors || []).filter(s => s.name && s.percentage > 0),
         notes: 'Geïmporteerd vanuit Actuals Excel – Jan 2026',
       });
 
@@ -113,13 +125,17 @@ export default function ImportData() {
 
       // Create timesheet for Jan 2026 if days worked known
       if (row.days_worked > 0) {
+        const daysWorked = parseFloat(row.days_worked);
+        const clientRevenue = parseFloat(row.omzet) || (daysWorked * dagfee);
+        const consultantCost = daysWorked * consultantRate;
+        const margin = parseFloat(row.total_marge) || (daysWorked * marge);
         await base44.entities.Timesheet.create({
           placement_id: placement.id,
           month: 1, year: 2026,
-          days_worked: parseFloat(row.days_worked),
-          client_revenue: parseFloat(row.omzet) || (parseFloat(row.days_worked) * dagfee),
-          consultant_revenue: parseFloat(row.days_worked) * consultantRate,
-          margin: parseFloat(row.omzet) ? (parseFloat(row.omzet) - parseFloat(row.days_worked) * consultantRate) : parseFloat(row.days_worked) * marge,
+          days_worked: daysWorked,
+          client_revenue: clientRevenue,
+          consultant_revenue: consultantCost,
+          margin: margin,
           status: 'approved',
           consultant_name: row.consultant_name.trim(),
           client_company: row.client_company.trim(),
@@ -207,6 +223,7 @@ export default function ImportData() {
                       <th className="text-left py-2 px-3">Klant</th>
                       <th className="text-right py-2 px-3">Dagfee</th>
                       <th className="text-right py-2 px-3">Marge/dag</th>
+                    <th className="text-right py-2 px-3">Cons. tarief</th>
                       <th className="text-right py-2 px-3">Dagen jan</th>
                       <th className="text-left py-2 px-3">Start</th>
                       <th className="text-left py-2 px-3">Einde</th>
@@ -218,7 +235,8 @@ export default function ImportData() {
                         <td className="py-2 px-3 font-medium">{r.consultant_name}</td>
                         <td className="py-2 px-3 text-muted-foreground">{r.client_company}</td>
                         <td className="py-2 px-3 text-right">{r.dagfee ? formatCurrency(r.dagfee) : '—'}</td>
-                        <td className="py-2 px-3 text-right text-emerald-600">{r.marge ? formatCurrency(r.marge) : '—'}</td>
+                        <td className="py-2 px-3 text-right text-emerald-600">{r.marge_per_dag ? formatCurrency(r.marge_per_dag) : '—'}</td>
+                        <td className="py-2 px-3 text-right text-muted-foreground">{r.consultant_rate ? formatCurrency(r.consultant_rate) : '—'}</td>
                         <td className="py-2 px-3 text-right">{r.days_worked || '—'}</td>
                         <td className="py-2 px-3 text-muted-foreground">{r.start_date || '—'}</td>
                         <td className="py-2 px-3 text-muted-foreground">{r.end_date || '—'}</td>
