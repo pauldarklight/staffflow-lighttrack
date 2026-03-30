@@ -1,0 +1,45 @@
+{
+  "name": "Template",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Naam van het sjabloon"
+    },
+    "template_type": {
+      "type": "string",
+      "enum": [
+        "contract_client",
+        "contract_consultant",
+        "invoice_client",
+        "invoice_consultant"
+      ],
+      "description": "Type sjabloon"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL van het ge\u00fcpload sjabloon bestand"
+    },
+    "file_name": {
+      "type": "string",
+      "description": "Originele bestandsnaam"
+    },
+    "description": {
+      "type": "string",
+      "description": "Beschrijving / instructies voor gebruik"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Of dit het actieve sjabloon is voor dit type"
+    },
+    "version": {
+      "type": "string",
+      "description": "Versienummer, bijv. v1.0"
+    }
+  },
+  "required": [
+    "name",
+    "template_type"
+  ]
+}
