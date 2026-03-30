@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Plus, FileText, Search, ArrowUpDown, X, CheckCircle2, Clock, Send, Download, RefreshCw } from 'lucide-react';
+import { Plus, FileText, Search, ArrowUpDown, X, CheckCircle2, Clock, Send, Download, RefreshCw, Wand2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateContractPdf } from '@/lib/contractPdf';
 import PageHeader from '@/components/shared/PageHeader';
@@ -35,6 +35,7 @@ const TYPE_LABELS = { client: 'Klant', consultant: 'Consultant' };
 export default function Contracts() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [generating, setGenerating] = useState({}); // { [contractId]: true }
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -122,6 +123,28 @@ export default function Contracts() {
   };
 
   const getPlacement = (id) => placements.find(p => p.id === id);
+
+  const handleGenerate = async (contract, placement, language = 'nl') => {
+    setGenerating(g => ({ ...g, [contract.id]: true }));
+    try {
+      const res = await base44.functions.invoke('generateContract', {
+        placement_id: placement.id,
+        contract_type: contract.contract_type,
+        language,
+      });
+      const { file_url, file_name } = res.data;
+      // Open download
+      const a = document.createElement('a');
+      a.href = file_url;
+      a.download = file_name;
+      a.target = '_blank';
+      a.click();
+      toast.success(`Contract gegenereerd: ${file_name}`);
+    } catch (err) {
+      toast.error(err?.response?.data?.error || 'Genereren mislukt');
+    }
+    setGenerating(g => ({ ...g, [contract.id]: false }));
+  };
 
   // Group contracts by placement → one row per collaboration
   const collaborations = useMemo(() => {
@@ -394,8 +417,11 @@ export default function Contracts() {
                               <Badge variant="outline" className={`text-xs ${STATUS_STYLES[col.client.status]}`}>{STATUS_LABELS[col.client.status]}</Badge>
                               {(col.client.agoria_index_client || col.placement?.agoria_index_client) && <span className="text-xs text-muted-foreground font-mono">idx: {col.client.agoria_index_client || col.placement?.agoria_index_client}</span>}
                               {col.client.notes && <span title={col.client.notes} className="text-xs bg-blue-100 text-blue-700 border border-blue-300 px-1.5 py-0.5 rounded font-medium cursor-help">📝</span>}
-                              <Button variant="ghost" size="icon" title="Download klantcontract" onClick={() => generateContractPdf(col.client, col.placement)}>
-                                <Download className="w-3.5 h-3.5 text-primary" />
+                              <Button variant="ghost" size="icon" title="Download PDF" onClick={() => generateContractPdf(col.client, col.placement)}>
+                                 <Download className="w-3.5 h-3.5 text-primary" />
+                               </Button>
+                              <Button variant="ghost" size="icon" title="Genereer DOCX vanuit sjabloon" disabled={!!generating[col.client.id]} onClick={() => handleGenerate(col.client, col.placement)}>
+                                {generating[col.client.id] ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5 text-violet-600" />}
                               </Button>
                               <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openEdit(col.client)}>Bewerken</Button>
                             </>
@@ -411,8 +437,11 @@ export default function Contracts() {
                               <Badge variant="outline" className={`text-xs ${STATUS_STYLES[col.consultant.status]}`}>{STATUS_LABELS[col.consultant.status]}</Badge>
                               {(col.consultant.agoria_index_consultant || col.placement?.agoria_index_consultant) && <span className="text-xs text-muted-foreground font-mono">idx: {col.consultant.agoria_index_consultant || col.placement?.agoria_index_consultant}</span>}
                               {col.consultant.notes && <span title={col.consultant.notes} className="text-xs bg-blue-100 text-blue-700 border border-blue-300 px-1.5 py-0.5 rounded font-medium cursor-help">📝</span>}
-                              <Button variant="ghost" size="icon" title="Download consultantcontract" onClick={() => generateContractPdf(col.consultant, col.placement)}>
-                                <Download className="w-3.5 h-3.5 text-primary" />
+                              <Button variant="ghost" size="icon" title="Download PDF" onClick={() => generateContractPdf(col.consultant, col.placement)}>
+                                 <Download className="w-3.5 h-3.5 text-primary" />
+                               </Button>
+                              <Button variant="ghost" size="icon" title="Genereer DOCX vanuit sjabloon" disabled={!!generating[col.consultant.id]} onClick={() => handleGenerate(col.consultant, col.placement)}>
+                                {generating[col.consultant.id] ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5 text-violet-600" />}
                               </Button>
                               <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openEdit(col.consultant)}>Bewerken</Button>
                             </>
