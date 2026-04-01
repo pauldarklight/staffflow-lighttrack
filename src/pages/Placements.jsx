@@ -172,6 +172,7 @@ export default function Placements() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [sortBy, setSortBy] = useState('default');
+  const queryClient = useQueryClient();
 
   const { data: placements = [], isLoading } = useQuery({
     queryKey: ['placements'],

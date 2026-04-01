@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { TrendingUp, TrendingDown, AlertTriangle, Award, Users, Target, Zap, PieChart } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import VergelijkingDrillDown from '@/components/reports/VergelijkingDrillDown';
 import { base44 } from '@/api/base44Client';
@@ -159,6 +160,47 @@ export default function Reports() {
 
   const [expandedMonth, setExpandedMonth] = useState(null);
 
+  // ── Inzichten berekeningen ──
+  const totalOmzet = yearTs.reduce((s, t) => s + (t.client_revenue || 0), 0);
+  const totalMarge = yearTs.reduce((s, t) => s + (t.margin || 0), 0);
+  const margePerc = totalOmzet > 0 ? (totalMarge / totalOmzet) * 100 : 0;
+  const activePlacements = placements.filter(p => p.status === 'active');
+
+  // Revenue concentratie: top 3 klanten
+  const top3Revenue = clientTable.slice(0, 3).reduce((s, [, d]) => s + d.omzet, 0);
+  const concentratiePerc = totalOmzet > 0 ? (top3Revenue / totalOmzet) * 100 : 0;
+
+  // Best performing month
+  const bestMonth = monthlyData.reduce((best, m) => m.marge > (best?.marge || 0) ? m : best, null);
+
+  // MoM groei (vergelijk laatste 2 maanden met data)
+  const monthsWithData = monthlyData.filter(m => m.omzet > 0);
+  const momGrowth = monthsWithData.length >= 2
+    ? ((monthsWithData[monthsWithData.length - 1].omzet - monthsWithData[monthsWithData.length - 2].omzet) / monthsWithData[monthsWithData.length - 2].omzet) * 100
+    : null;
+
+  // Placements die binnenkort verlopen (60 dagen)
+  const now60 = new Date(); now60.setDate(now60.getDate() + 60);
+  const expiringSoon = activePlacements.filter(p => {
+    const eff = p.extensions?.length > 0 ? p.extensions[p.extensions.length - 1].new_end_date : p.end_date;
+    if (!eff) return false;
+    const end = new Date(eff);
+    return end <= now60 && end >= new Date();
+  });
+
+  // Hoogste margin consultant
+  const topConsultant = consultantTable[0] || null;
+  // Beste klant qua marge %
+  const bestMarginClient = clientTable.length > 0 ? clientTable.reduce((best, curr) => {
+    const pct = curr[1].omzet > 0 ? curr[1].marge / curr[1].omzet : 0;
+    const bpct = best[1].omzet > 0 ? best[1].marge / best[1].omzet : 0;
+    return pct > bpct ? curr : best;
+  }) : null;
+
+  // Gemiddelde marge per dag (alle approved timesheets)
+  const totalDays = yearTs.reduce((s, t) => s + (t.days_worked || 0), 0);
+  const avgMargePerDay = totalDays > 0 ? totalMarge / totalDays : 0;
+
   // Vergelijking: verwacht vs werkelijk per maand
   const vergelijkingData = useMemo(() => {
     const yr = parseInt(year);
@@ -200,8 +242,26 @@ export default function Reports() {
         </div>
       </PageHeader>
 
-      <Tabs defaultValue="monthly" className="space-y-6">
+      {/* KPI Strip */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+        {[
+          { label: 'Totale Omzet', value: formatCurrency(totalOmzet), sub: `${yearTs.length} timesheets`, color: 'text-blue-600', bg: 'bg-blue-50 border-blue-200' },
+          { label: 'Totale Marge', value: formatCurrency(totalMarge), sub: `${margePerc.toFixed(1)}% marge`, color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200' },
+          { label: 'Actieve Placements', value: activePlacements.length, sub: `${placements.length} totaal`, color: 'text-violet-600', bg: 'bg-violet-50 border-violet-200' },
+          { label: 'Gem. Marge/Dag', value: formatCurrency(avgMargePerDay), sub: `${totalDays} dagen`, color: 'text-orange-600', bg: 'bg-orange-50 border-orange-200' },
+          { label: 'Verlengt < 60d', value: expiringSoon.length, sub: expiringSoon.length > 0 ? 'actie vereist' : 'alles OK', color: expiringSoon.length > 0 ? 'text-red-600' : 'text-emerald-600', bg: expiringSoon.length > 0 ? 'bg-red-50 border-red-200' : 'bg-emerald-50 border-emerald-200' },
+        ].map(k => (
+          <div key={k.label} className={`rounded-xl border p-4 ${k.bg}`}>
+            <div className="text-xs text-muted-foreground font-medium mb-1">{k.label}</div>
+            <div className={`text-xl font-bold ${k.color}`}>{k.value}</div>
+            <div className="text-xs text-muted-foreground mt-0.5">{k.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      <Tabs defaultValue="inzichten" className="space-y-6">
         <TabsList className="bg-muted flex-wrap">
+          <TabsTrigger value="inzichten">✨ Inzichten</TabsTrigger>
           <TabsTrigger value="monthly">Maandoverzicht</TabsTrigger>
           <TabsTrigger value="clients">Per Klant</TabsTrigger>
           <TabsTrigger value="consultants">Per Consultant</TabsTrigger>
@@ -211,6 +271,173 @@ export default function Reports() {
           <TabsTrigger value="invoiced">Facturatiestatus</TabsTrigger>
           <TabsTrigger value="vergelijking">Verwacht vs Werkelijk</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="inzichten">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+
+            {/* MoM Groei */}
+            <Card className={momGrowth !== null && momGrowth >= 0 ? 'border-emerald-200' : 'border-red-200'}>
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-2">
+                  {momGrowth !== null && momGrowth >= 0 ? <TrendingUp className="w-5 h-5 text-emerald-600" /> : <TrendingDown className="w-5 h-5 text-red-500" />}
+                  <CardTitle className="text-sm">Maand-op-maand groei</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {momGrowth !== null ? (
+                  <>
+                    <div className={`text-3xl font-bold ${momGrowth >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {momGrowth >= 0 ? '+' : ''}{momGrowth.toFixed(1)}%
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Omzetverschil tussen de laatste 2 maanden met data ({monthsWithData[monthsWithData.length-2]?.name} → {monthsWithData[monthsWithData.length-1]?.name})
+                    </p>
+                  </>
+                ) : <p className="text-sm text-muted-foreground">Onvoldoende data voor vergelijking</p>}
+              </CardContent>
+            </Card>
+
+            {/* Revenue concentratie */}
+            <Card className={concentratiePerc > 60 ? 'border-amber-300' : 'border-emerald-200'}>
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-2">
+                  <PieChart className="w-5 h-5 text-violet-600" />
+                  <CardTitle className="text-sm">Klantconcentratie</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className={`text-3xl font-bold ${concentratiePerc > 60 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                  {concentratiePerc.toFixed(0)}%
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Top 3 klanten vertegenwoordigen {concentratiePerc.toFixed(0)}% van de totale omzet.</p>
+                {concentratiePerc > 60 && <div className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">⚠ Hoge concentratie — risico bij verlies van een klant.</div>}
+                <div className="mt-3 space-y-1">
+                  {clientTable.slice(0, 3).map(([name, d]) => (
+                    <div key={name} className="flex justify-between text-xs">
+                      <span className="text-muted-foreground truncate max-w-[150px]">{name}</span>
+                      <span className="font-semibold">{totalOmzet > 0 ? ((d.omzet/totalOmzet)*100).toFixed(0) : 0}%</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Best performing month */}
+            <Card className="border-primary/30">
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-2">
+                  <Award className="w-5 h-5 text-primary" />
+                  <CardTitle className="text-sm">Beste maand</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {bestMonth ? (
+                  <>
+                    <div className="text-3xl font-bold text-primary">{bestMonth.name}</div>
+                    <div className="text-sm font-semibold mt-1">{formatCurrency(bestMonth.marge)} marge</div>
+                    <p className="text-xs text-muted-foreground mt-1">{formatCurrency(bestMonth.omzet)} omzet · marge %: {bestMonth.omzet > 0 ? ((bestMonth.marge/bestMonth.omzet)*100).toFixed(1) : 0}%</p>
+                  </>
+                ) : <p className="text-sm text-muted-foreground">Geen data</p>}
+              </CardContent>
+            </Card>
+
+            {/* Top consultant */}
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-2">
+                  <Users className="w-5 h-5 text-blue-600" />
+                  <CardTitle className="text-sm">Hoogste marge consultant</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {topConsultant ? (
+                  <>
+                    <div className="text-xl font-bold text-foreground truncate">{topConsultant[0]}</div>
+                    <div className="text-lg font-semibold text-emerald-600 mt-1">{formatCurrency(topConsultant[1].marge)}</div>
+                    <p className="text-xs text-muted-foreground mt-1">{formatCurrency(topConsultant[1].omzet)} omzet · {topConsultant[1].omzet > 0 ? ((topConsultant[1].marge/topConsultant[1].omzet)*100).toFixed(1) : 0}% marge</p>
+                  </>
+                ) : <p className="text-sm text-muted-foreground">Geen data</p>}
+              </CardContent>
+            </Card>
+
+            {/* Beste marge % klant */}
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-2">
+                  <Target className="w-5 h-5 text-violet-600" />
+                  <CardTitle className="text-sm">Beste marge% klant</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {bestMarginClient ? (
+                  <>
+                    <div className="text-xl font-bold text-foreground truncate">{bestMarginClient[0]}</div>
+                    <div className="text-lg font-semibold text-violet-600 mt-1">
+                      {bestMarginClient[1].omzet > 0 ? ((bestMarginClient[1].marge/bestMarginClient[1].omzet)*100).toFixed(1) : 0}% marge
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">{formatCurrency(bestMarginClient[1].marge)} op {formatCurrency(bestMarginClient[1].omzet)}</p>
+                  </>
+                ) : <p className="text-sm text-muted-foreground">Geen data</p>}
+              </CardContent>
+            </Card>
+
+            {/* Placements die verlopen */}
+            <Card className={expiringSoon.length > 0 ? 'border-red-300' : 'border-emerald-200'}>
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className={`w-5 h-5 ${expiringSoon.length > 0 ? 'text-red-500' : 'text-emerald-500'}`} />
+                  <CardTitle className="text-sm">Contracten die verlopen</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {expiringSoon.length === 0 ? (
+                  <><div className="text-3xl font-bold text-emerald-600">✓</div><p className="text-xs text-muted-foreground mt-1">Geen actieve placements verlopen binnen 60 dagen.</p></>
+                ) : (
+                  <>
+                    <div className="text-3xl font-bold text-red-600">{expiringSoon.length}</div>
+                    <p className="text-xs text-muted-foreground mt-1">Placements verlopen binnen 60 dagen:</p>
+                    <div className="mt-2 space-y-1">
+                      {expiringSoon.map(p => {
+                        const eff = p.extensions?.length > 0 ? p.extensions[p.extensions.length - 1].new_end_date : p.end_date;
+                        const daysLeft = Math.ceil((new Date(eff) - new Date()) / (1000*60*60*24));
+                        return (
+                          <div key={p.id} className="flex justify-between text-xs">
+                            <span className="font-medium">{p.consultant_first_name} {p.consultant_last_name}</span>
+                            <span className={`font-bold ${daysLeft <= 14 ? 'text-red-600' : 'text-amber-600'}`}>{daysLeft}d</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Marge doelstelling */}
+            <Card className="md:col-span-2 xl:col-span-3">
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-orange-500" />
+                  <CardTitle className="text-sm">Maandtrend: Omzet vs Marge</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={monthlyData} barSize={14}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `€${(v/1000).toFixed(0)}k`} />
+                    <Tooltip formatter={v => formatCurrency(v)} />
+                    <Legend />
+                    <Bar dataKey="omzet" fill="hsl(221, 83%, 53%)" radius={[4,4,0,0]} name="Omzet" />
+                    <Bar dataKey="marge" fill="hsl(142, 72%, 29%)" radius={[4,4,0,0]} name="Marge" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+          </div>
+        </TabsContent>
 
         <TabsContent value="monthly">
           <Card>
