@@ -15,7 +15,12 @@ export default function Reports() {
   const now = new Date();
   const [year, setYear] = useState(String(now.getFullYear()));
   const [ytd, setYtd] = useState(false);
+  const [viewMode, setViewMode] = useState('jaar'); // 'jaar' | 'kwartaal' | 'maand'
+  const [filterQuarter, setFilterQuarter] = useState(String(Math.ceil((now.getMonth() + 1) / 3)));
+  const [filterMonth, setFilterMonth] = useState(String(now.getMonth() + 1));
   const currentMonth = now.getMonth() + 1; // 1-12
+
+  const quarterMonths = { '1': [1,2,3], '2': [4,5,6], '3': [7,8,9], '4': [10,11,12] };
 
   const { data: timesheets = [] } = useQuery({ queryKey: ['timesheets'], queryFn: () => base44.entities.Timesheet.list() });
   const { data: invoices = [] } = useQuery({ queryKey: ['invoices'], queryFn: () => base44.entities.Invoice.list() });
@@ -23,17 +28,26 @@ export default function Reports() {
 
   const yearTs = timesheets.filter(t => {
     if (t.year !== parseInt(year)) return false;
+    if (viewMode === 'maand') return t.month === parseInt(filterMonth);
+    if (viewMode === 'kwartaal') return quarterMonths[filterQuarter]?.includes(t.month);
     return !ytd || t.month <= currentMonth;
   });
   const yearInv = invoices.filter(i => {
     if (i.year !== parseInt(year)) return false;
+    if (viewMode === 'maand') return i.month === parseInt(filterMonth);
+    if (viewMode === 'kwartaal') return quarterMonths[filterQuarter]?.includes(i.month);
     return !ytd || i.month <= currentMonth;
   });
 
   // Monthly overview
-  const monthCount = ytd ? currentMonth : 12;
+  const monthCount = viewMode === 'maand' ? 1
+    : viewMode === 'kwartaal' ? 3
+    : ytd ? currentMonth : 12;
+  const monthOffset = viewMode === 'maand' ? parseInt(filterMonth) - 1
+    : viewMode === 'kwartaal' ? (parseInt(filterQuarter) - 1) * 3
+    : 0;
   const monthlyData = Array.from({ length: monthCount }, (_, i) => {
-    const m = i + 1;
+    const m = monthOffset + i + 1;
     const mTs = yearTs.filter(t => t.month === m);
     return {
       name: getMonthName(m).slice(0, 3),
@@ -222,23 +236,44 @@ export default function Reports() {
   return (
     <div>
       <PageHeader title="Rapportering" subtitle="Overzichten en analyses">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* View mode */}
+          <div className="flex rounded-md border border-border overflow-hidden">
+            {[['jaar','Jaar'],['kwartaal','Kwartaal'],['maand','Maand']].map(([mode,label]) => (
+              <button key={mode} onClick={() => setViewMode(mode)}
+                className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                  viewMode === mode ? 'bg-primary text-primary-foreground' : 'bg-background text-muted-foreground hover:bg-muted'
+                }`}>{label}</button>
+            ))}
+          </div>
           <Select value={year} onValueChange={setYear}>
-            <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
             <SelectContent>
               {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
             </SelectContent>
           </Select>
-          <button
-            onClick={() => setYtd(v => !v)}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-md border transition-colors ${
-              ytd
-                ? 'bg-primary text-primary-foreground border-primary'
-                : 'bg-background text-muted-foreground border-input hover:bg-muted'
-            }`}
-          >
-            YTD
-          </button>
+          {viewMode === 'kwartaal' && (
+            <Select value={filterQuarter} onValueChange={setFilterQuarter}>
+              <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {['1','2','3','4'].map(q => <SelectItem key={q} value={q}>Q{q}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
+          {viewMode === 'maand' && (
+            <Select value={filterMonth} onValueChange={setFilterMonth}>
+              <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {Array.from({length:12},(_,i) => <SelectItem key={i+1} value={String(i+1)}>{getMonthName(i+1)}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
+          {viewMode === 'jaar' && (
+            <button onClick={() => setYtd(v => !v)}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md border transition-colors ${
+                ytd ? 'bg-primary text-primary-foreground border-primary' : 'bg-background text-muted-foreground border-input hover:bg-muted'
+              }`}>YTD</button>
+          )}
         </div>
       </PageHeader>
 
