@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, Pencil, Trash2, ArrowUpDown, X, RefreshCw, MessageSquare, ChevronDown } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, ArrowUpDown, X, RefreshCw, MessageSquare, ChevronDown, Settings2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import PageHeader from '@/components/shared/PageHeader';
@@ -102,7 +102,7 @@ function DurationPrestaties({ p }) {
   );
 }
 
-function ContractValueCell({ p }) {
+function ContractValueCell({ p, daysPerMonth }) {
   if (p.placement_type === 'perm') {
     const fee = p.perm_fee_amount || ((p.perm_annual_salary || 0) * ((p.perm_fee_percentage || 20) / 100));
     return (
@@ -118,7 +118,7 @@ function ContractValueCell({ p }) {
     return <span className="text-muted-foreground text-xs">—</span>;
   }
   const totalMonths = monthDiff(p.start_date, endDate);
-  const estimatedDays = Math.round(totalMonths * 21);
+  const estimatedDays = Math.round(totalMonths * daysPerMonth);
   const contractValue = estimatedDays * (p.client_rate || 0);
   const contractMargin = estimatedDays * ((p.client_rate || 0) - (p.consultant_rate || 0));
   return (
@@ -153,6 +153,9 @@ export default function Placements() {
   const [editing, setEditing] = useState(null);
   const [extendingPlacement, setExtendingPlacement] = useState(null);
   const [expandedNotes, setExpandedNotes] = useState({});
+  const [daysPerMonth, setDaysPerMonth] = useState(21);
+  const [showDaysEditor, setShowDaysEditor] = useState(false);
+  const [daysInput, setDaysInput] = useState('21');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -380,7 +383,37 @@ export default function Placements() {
                     <th className="text-left py-3 px-3 font-normal text-foreground whitespace-nowrap">Einddatum</th>
                     <th className="text-left py-3 px-3 font-bold text-foreground whitespace-nowrap">Looptijd</th>
                     <th className="text-left py-3 px-3 font-bold text-foreground whitespace-nowrap">Prestaties</th>
-                    <th className="text-right py-3 px-3 font-normal text-white bg-primary whitespace-nowrap">Contractwaarde</th>
+                    <th className="text-right py-3 px-3 font-normal text-white bg-primary whitespace-nowrap">
+                      <div className="relative inline-block">
+                        <button
+                          className="flex items-center gap-1 hover:opacity-80 transition-opacity"
+                          onClick={() => { setDaysInput(String(daysPerMonth)); setShowDaysEditor(v => !v); }}
+                        >
+                          Contractwaarde
+                          <Settings2 className="w-3 h-3 opacity-70" />
+                        </button>
+                        {showDaysEditor && (
+                          <div className="absolute right-0 top-full mt-2 z-50 bg-background border border-border rounded-lg shadow-lg p-3 w-56 text-foreground">
+                            <div className="text-xs font-semibold mb-1">Werkdagen per maand</div>
+                            <div className="text-xs text-muted-foreground mb-2">Formule: dagtarief × maanden × dagen/maand</div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="number"
+                                min="1" max="31"
+                                value={daysInput}
+                                onChange={e => setDaysInput(e.target.value)}
+                                className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm"
+                              />
+                              <button
+                                className="shrink-0 bg-primary text-primary-foreground text-xs px-3 py-1.5 rounded-md hover:bg-primary/90"
+                                onClick={() => { const v = parseFloat(daysInput); if (v > 0) setDaysPerMonth(v); setShowDaysEditor(false); }}
+                              >OK</button>
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-2">Huidig: {daysPerMonth} dagen/maand</div>
+                          </div>
+                        )}
+                      </div>
+                    </th>
                     <th className="text-right py-3 px-3 font-bold text-foreground whitespace-nowrap">Gerealiseerde Omzet</th>
                     <th className="text-right py-3 px-3 font-bold text-foreground whitespace-nowrap">Gerealiseerde Marge</th>
                     <th className="text-left py-3 px-3 font-normal text-foreground whitespace-nowrap">Verlengingen</th>
@@ -420,7 +453,7 @@ export default function Placements() {
                         <td className="py-3 px-3"><DurationBar p={p} /></td>
                         <td className="py-3 px-3"><DurationPrestaties p={p} /></td>
                         <td className="py-3 px-3 bg-primary/10">
-                          <ContractValueCell p={p} />
+                          <ContractValueCell p={p} daysPerMonth={daysPerMonth} />
                         </td>
                         <td className="py-3 px-3 text-right">
                           <div className="font-bold text-foreground">{p.totalRevenue > 0 ? formatCurrency(p.totalRevenue) : <span className="text-muted-foreground text-xs">—</span>}</div>
