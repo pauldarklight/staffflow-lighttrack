@@ -124,7 +124,9 @@ function ContractValueCell({ p, daysPerMonth }) {
   const contractMargin = estimatedDays * ((p.client_rate || 0) - (p.consultant_rate || 0));
   return (
     <div className="text-right min-w-[130px]">
-      <div className="text-xs text-muted-foreground">Omzet (est.)</div>
+      <div className="text-xs text-muted-foreground">
+        Omzet (est.) · {(p.days_per_week || 5) < 5 ? <span className="text-amber-600 font-medium">{p.days_per_week}/5d</span> : <span className="text-emerald-600 font-medium">5/5d</span>}
+      </div>
       <div className="font-bold text-foreground">{formatCurrency(contractValue)}</div>
       <div className="text-xs text-muted-foreground mt-1">Marge (est.)</div>
       <div className="font-semibold text-emerald-600">{formatCurrency(contractMargin)}</div>
