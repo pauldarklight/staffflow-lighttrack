@@ -384,6 +384,7 @@ export default function Placements() {
                     <th className="text-left py-3 px-3 font-normal text-foreground whitespace-nowrap">Einddatum</th>
                     <th className="text-left py-3 px-3 font-bold text-foreground whitespace-nowrap">Looptijd</th>
                     <th className="text-left py-3 px-3 font-bold text-foreground whitespace-nowrap">Prestaties</th>
+                    <th className="text-left py-3 px-3 font-bold text-foreground whitespace-nowrap">Regime</th>
                     <th className="text-right py-3 px-3 font-normal text-white bg-primary whitespace-nowrap">
                       <div className="relative inline-block">
                         <button
@@ -444,18 +445,6 @@ export default function Placements() {
                         <td className="py-3 px-3 text-right">
                           <div className="font-bold text-foreground">{p.client_rate ? formatCurrency(p.client_rate) : '—'}</div>
                           {p.consultant_rate > 0 && <div className="text-xs text-muted-foreground">cons: {formatCurrency(p.consultant_rate)}</div>}
-                          <select
-                            className="mt-1 text-xs border border-border rounded px-1 py-0.5 bg-background cursor-pointer"
-                            value={p.days_per_week || 5}
-                            onChange={e => updateMutation.mutate({ id: p.id, data: { days_per_week: parseFloat(e.target.value) } })}
-                          >
-                            <option value="5">5/5 voltijds</option>
-                            <option value="4">4/5</option>
-                            <option value="3">3/5</option>
-                            <option value="2.5">2.5/5 halftijds</option>
-                            <option value="2">2/5</option>
-                            <option value="1">1/5</option>
-                          </select>
                         </td>
                         <td className="py-3 px-3 text-xs text-muted-foreground whitespace-nowrap">
                           {formatDate(p.start_date)}
@@ -465,6 +454,25 @@ export default function Placements() {
                         </td>
                         <td className="py-3 px-3"><DurationBar p={p} /></td>
                         <td className="py-3 px-3"><DurationPrestaties p={p} /></td>
+                        <td className="py-3 px-3">
+                          <div className="space-y-1">
+                            <div className={`text-xs font-semibold ${(p.days_per_week || 5) < 5 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                              {(p.days_per_week || 5) >= 5 ? 'Voltijds' : 'Deeltijds'}
+                            </div>
+                            <select
+                              className="text-xs border border-border rounded px-1 py-0.5 bg-background cursor-pointer"
+                              value={p.days_per_week || 5}
+                              onChange={e => updateMutation.mutate({ id: p.id, data: { days_per_week: parseFloat(e.target.value) } })}
+                            >
+                              <option value="5">5/5 voltijds</option>
+                              <option value="4">4/5</option>
+                              <option value="3">3/5</option>
+                              <option value="2.5">2.5/5 halftijds</option>
+                              <option value="2">2/5</option>
+                              <option value="1">1/5</option>
+                            </select>
+                          </div>
+                        </td>
                         <td className="py-3 px-3 bg-primary/10">
                           <ContractValueCell p={p} daysPerMonth={daysPerMonth} />
                         </td>
