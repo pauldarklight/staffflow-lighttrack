@@ -52,55 +52,51 @@ function monthDiff(from, to) {
   return (t.getFullYear() - f.getFullYear()) * 12 + (t.getMonth() - f.getMonth()) + (t.getDate() - f.getDate()) / 30;
 }
 
-function DurationCell({ p }) {
+function DurationBar({ p }) {
   const endDate = effectiveEndDate(p);
   if (!p.start_date || !endDate) {
-    if (p.placement_type === 'perm') {
-      return (
-        <div className="min-w-[160px] space-y-1">
-          <div className="text-xs font-bold text-foreground">Vaste aanwerving</div>
-          <div className="text-xs text-muted-foreground">Onbepaalde duur</div>
-          <div className="text-xs text-muted-foreground">Vanaf {formatDate(p.start_date)}</div>
-        </div>
-      );
-    }
-    return <span className="text-muted-foreground text-xs">Geen einddatum</span>;
+    if (p.placement_type === 'perm') return <div className="text-xs text-muted-foreground">Onbepaalde duur</div>;
+    return <span className="text-muted-foreground text-xs">—</span>;
   }
-
   const today = new Date();
-  const start = new Date(p.start_date);
-  const end = new Date(endDate);
-
   const totalMonths = monthDiff(p.start_date, endDate);
   const elapsedMonths = Math.max(0, Math.min(totalMonths, monthDiff(p.start_date, today.toISOString())));
-  const remainingMonths = Math.max(0, totalMonths - elapsedMonths);
-
-  // Short contract: show days
+  const totalDays = Math.round((new Date(endDate) - new Date(p.start_date)) / (1000 * 60 * 60 * 24));
   const isShort = totalMonths < 1;
-  const totalDays = Math.round((end - start) / (1000 * 60 * 60 * 24));
-  const elapsedDays = Math.max(0, Math.round((today - start) / (1000 * 60 * 60 * 24)));
-  const remainingDays = Math.max(0, totalDays - elapsedDays);
-
   const pct = totalMonths > 0 ? Math.min(100, (elapsedMonths / totalMonths) * 100) : 0;
+  const remainingMonths = Math.max(0, totalMonths - elapsedMonths);
   const isNearEnd = remainingMonths <= 1 && !isShort;
-
   return (
-    <div className="min-w-[160px] space-y-1">
-      {isShort ? (
-        <div className="text-xs font-bold text-foreground">{totalDays} dagen totaal</div>
-      ) : (
-        <div className="text-xs font-bold text-foreground">{Math.round(totalMonths)} mnd totaal</div>
-      )}
+    <div className="min-w-[120px] space-y-1">
+      <div className="text-xs font-bold text-foreground">
+        {isShort ? `${totalDays} dagen` : `${Math.round(totalMonths)} mnd`}
+      </div>
       <div className="w-full bg-muted rounded-full h-1.5">
         <div className={`h-1.5 rounded-full ${isNearEnd ? 'bg-red-400' : 'bg-primary'}`} style={{ width: `${pct}%` }} />
       </div>
-      <div className="flex gap-2 text-xs">
-        <span className="text-muted-foreground">
-          {isShort ? `${elapsedDays}d gepresteerd` : `${Math.round(elapsedMonths)} mnd gepresteerd`}
-        </span>
-        <span className={`font-medium ${isNearEnd ? 'text-red-600' : 'text-foreground'}`}>
-          {isShort ? `${remainingDays}d resterend` : `${Math.round(remainingMonths)} mnd resterend`}
-        </span>
+    </div>
+  );
+}
+
+function DurationPrestaties({ p }) {
+  const endDate = effectiveEndDate(p);
+  if (!p.start_date || !endDate) return <span className="text-muted-foreground text-xs">—</span>;
+  const today = new Date();
+  const totalMonths = monthDiff(p.start_date, endDate);
+  const elapsedMonths = Math.max(0, Math.min(totalMonths, monthDiff(p.start_date, today.toISOString())));
+  const remainingMonths = Math.max(0, totalMonths - elapsedMonths);
+  const isShort = totalMonths < 1;
+  const totalDays = Math.round((new Date(endDate) - new Date(p.start_date)) / (1000 * 60 * 60 * 24));
+  const elapsedDays = Math.max(0, Math.round((today - new Date(p.start_date)) / (1000 * 60 * 60 * 24)));
+  const remainingDays = Math.max(0, totalDays - elapsedDays);
+  const isNearEnd = remainingMonths <= 1 && !isShort;
+  return (
+    <div className="min-w-[140px] space-y-0.5">
+      <div className="text-xs text-muted-foreground">
+        {isShort ? `${elapsedDays}d gepresteerd` : `${Math.round(elapsedMonths)} mnd gepresteerd`}
+      </div>
+      <div className={`text-xs font-medium ${isNearEnd ? 'text-red-600' : 'text-foreground'}`}>
+        {isShort ? `${remainingDays}d resterend` : `${Math.round(remainingMonths)} mnd resterend`}
       </div>
     </div>
   );
@@ -391,8 +387,10 @@ export default function Placements() {
                     <th className="text-left py-3 px-3 font-normal text-foreground whitespace-nowrap">Firma klant</th>
                     <th className="text-left py-3 px-3 font-bold text-foreground whitespace-nowrap">Type</th>
                     <th className="text-right py-3 px-3 font-bold text-foreground whitespace-nowrap">Tarief/dag</th>
-                    <th className="text-left py-3 px-3 font-bold text-foreground whitespace-nowrap">Looptijd & Prestaties</th>
-                    <th className="text-left py-3 px-3 font-normal text-foreground whitespace-nowrap">Start → Einde</th>
+                    <th className="text-left py-3 px-3 font-normal text-foreground whitespace-nowrap">Startdatum</th>
+                    <th className="text-left py-3 px-3 font-normal text-foreground whitespace-nowrap">Einddatum</th>
+                    <th className="text-left py-3 px-3 font-bold text-foreground whitespace-nowrap">Looptijd</th>
+                    <th className="text-left py-3 px-3 font-bold text-foreground whitespace-nowrap">Prestaties</th>
                     <th className="text-right py-3 px-3 font-normal text-white bg-primary whitespace-nowrap">Contractwaarde</th>
                     <th className="text-right py-3 px-3 font-bold text-foreground whitespace-nowrap">Gerealiseerde Omzet</th>
                     <th className="text-right py-3 px-3 font-bold text-foreground whitespace-nowrap">Gerealiseerde Marge</th>
@@ -424,11 +422,14 @@ export default function Placements() {
                           <div className="font-bold text-foreground">{p.client_rate ? formatCurrency(p.client_rate) : '—'}</div>
                           {p.consultant_rate > 0 && <div className="text-xs text-muted-foreground">cons: {formatCurrency(p.consultant_rate)}</div>}
                         </td>
-                        <td className="py-3 px-3"><DurationCell p={p} /></td>
                         <td className="py-3 px-3 text-xs text-muted-foreground whitespace-nowrap">
-                          <div>{formatDate(p.start_date)}</div>
-                          <div className="font-bold text-foreground">{effectiveEndDate(p) ? formatDate(effectiveEndDate(p)) : '—'}</div>
+                          {formatDate(p.start_date)}
                         </td>
+                        <td className="py-3 px-3 text-xs whitespace-nowrap">
+                          <span className="font-bold text-foreground">{effectiveEndDate(p) ? formatDate(effectiveEndDate(p)) : '—'}</span>
+                        </td>
+                        <td className="py-3 px-3"><DurationBar p={p} /></td>
+                        <td className="py-3 px-3"><DurationPrestaties p={p} /></td>
                         <td className="py-3 px-3 bg-primary/10">
                           <ContractValueCell p={p} totalRevenue={p.totalRevenue} totalMargin={p.totalMargin} />
                         </td>
