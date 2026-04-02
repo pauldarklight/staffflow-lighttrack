@@ -230,7 +230,6 @@ export default function Billing() {
   const [generatingInvoice, setGeneratingInvoice] = useState(null);
 
   // Freelancer filters
-  const [flTab, setFlTab] = useState('open'); // 'open' | 'paid'
   const [flSearch, setFlSearch] = useState('');
   const [flStatus, setFlStatus] = useState('all');
   const [flSort, setFlSort] = useState('default');
@@ -392,13 +391,7 @@ export default function Billing() {
     return { freelancerRows: freelancers, permRows: perms };
   }, [placements, timesheets, invoices, filterMonth, filterYear]);
 
-  const filteredFl = useMemo(() => {
-    const tabFiltered = freelancerRows.filter(r => {
-      if (flTab === 'paid') return r.clientInvoice?.status === 'paid';
-      return r.clientInvoice?.status !== 'paid'; // open = not paid
-    });
-    return applyFilters(tabFiltered, flSearch, flStatus, flSort);
-  }, [freelancerRows, flSearch, flStatus, flSort, flTab]);
+  const filteredFl = useMemo(() => applyFilters(freelancerRows, flSearch, flStatus, flSort), [freelancerRows, flSearch, flStatus, flSort]);
   const filteredPm = useMemo(() => applyFilters(permRows, pmSearch, pmStatus, pmSort), [permRows, pmSearch, pmStatus, pmSort]);
 
   const fmtVal = (excl) => formatCurrency(excl * (showVat ? VAT_RATE : 1));
@@ -450,20 +443,10 @@ export default function Billing() {
       {/* ── FREELANCERS ── */}
       <Card className="mb-8">
         <CardHeader className="pb-2">
-          <div className="flex items-center gap-3 mb-3">
+          <div className="flex items-center gap-3 mb-2">
             <CardTitle className="text-base font-semibold">Freelancers — {periodLabel}</CardTitle>
             <Badge className="bg-primary/10 text-primary border-primary/20">Freelancer</Badge>
             <span className="text-xs text-muted-foreground ml-auto">{showVat ? 'Incl. BTW' : 'Excl. BTW'}</span>
-          </div>
-          <div className="flex gap-1 mb-3">
-            <button
-              onClick={() => { setFlTab('open'); setFlStatus('all'); }}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${flTab === 'open' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`}
-            >Openstaand ({freelancerRows.filter(r => r.clientInvoice?.status !== 'paid').length})</button>
-            <button
-              onClick={() => { setFlTab('paid'); setFlStatus('all'); }}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${flTab === 'paid' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`}
-            >Betaald ({freelancerRows.filter(r => r.clientInvoice?.status === 'paid').length})</button>
           </div>
           <FilterBar
             search={flSearch} setSearch={setFlSearch}
@@ -528,23 +511,6 @@ export default function Billing() {
                         <ReferenceReminder instructions={row.placement?.reference_instructions} />
                         <InvoiceRef invoice={row.clientInvoice} />
                         <StatusCell invoice={row.clientInvoice} hasTimesheet={!!row.ts} onMarkPaid={markPaid} onSendReminder={sendReminder} sendingReminder={sendingReminderId === row.clientInvoice?.id} showTimesheetStatus={false} />
-                        {row.clientInvoice && (
-                          <button
-                            className="text-xs text-primary hover:underline flex items-center gap-1 mt-1"
-                            disabled={generatingInvoice === `client-${row.placement.id}`}
-                            onClick={async () => {
-                              setGeneratingInvoice(`client-${row.placement.id}`);
-                              const res = await base44.functions.invoke('generateConsultantInvoice', { placement_id: row.placement.id, timesheet_id: row.ts?.id || null, month: month || null, year, invoice_for: 'client' });
-                              const { file_url, file_name } = res.data;
-                              const a = document.createElement('a'); a.href = file_url; a.download = file_name; a.target = '_blank'; a.click();
-                              toast.success(`Factuur gegenereerd: ${file_name}`);
-                              setGeneratingInvoice(null);
-                            }}
-                          >
-                            {generatingInvoice === `client-${row.placement.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
-                            Downloaden
-                          </button>
-                        )}
                       </td>
                       <td className={`py-3 px-3 text-right bg-foreground/8 font-bold border-l border-foreground/10 ${consultantOverdue ? 'text-red-600' : 'text-foreground'}`} style={{backgroundColor: 'rgba(0,0,0,0.06)'}}>
                         <div className="flex items-center justify-end gap-1">
