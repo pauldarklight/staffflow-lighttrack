@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import {
   AlertCircle, ExternalLink, CheckCircle2, Clock, FileText,
-  Mail, Loader2, TrendingUp, Euro, Search, ArrowUpDown, X
+  Mail, Loader2, TrendingUp, Euro, Search, ArrowUpDown, X, Plus, Upload, Paperclip
 } from 'lucide-react';
 import PageHeader from '@/components/shared/PageHeader';
 import { formatCurrency, getMonthName, formatDate } from '@/lib/formatters';
@@ -225,6 +225,8 @@ export default function Billing() {
   const [filterYear, setFilterYear] = useState(String(new Date().getFullYear()));
   const [showVat, setShowVat] = useState(true);
   const [sendingReminderId, setSendingReminderId] = useState(null);
+  const [creatingConsultantInvoice, setCreatingConsultantInvoice] = useState(null);
+  const [uploadingInvoiceId, setUploadingInvoiceId] = useState(null);
 
   // Freelancer filters
   const [flSearch, setFlSearch] = useState('');
@@ -246,6 +248,40 @@ export default function Billing() {
     mutationFn: ({ id, data }) => base44.entities.Invoice.update(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['invoices'] }),
   });
+
+  const createConsultantInvoiceMutation = useMutation({
+    mutationFn: (data) => base44.entities.Invoice.create(data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['invoices'] }); setCreatingConsultantInvoice(null); toast.success('Consultantfactuur aangemaakt'); },
+  });
+
+  const handleCreateConsultantInvoice = (row) => {
+    const excl = row.consultantAmountExcl;
+    const vat = excl * 0.21;
+    createConsultantInvoiceMutation.mutate({
+      placement_id: row.placement.id,
+      timesheet_id: row.ts?.id || null,
+      invoice_type: 'consultant_invoice',
+      amount: excl,
+      vat_amount: vat,
+      total_amount: excl + vat,
+      status: 'draft',
+      month: month || null,
+      year: year,
+      consultant_name: `${row.placement.consultant_first_name} ${row.placement.consultant_last_name}`,
+      client_company: row.placement.client_company_name,
+      payment_terms_days: row.placement.payment_terms_consultant || 30,
+      issue_date: new Date().toISOString().split('T')[0],
+    });
+  };
+
+  const handleUploadInvoiceFile = async (invoiceId, file) => {
+    setUploadingInvoiceId(invoiceId);
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    await base44.entities.Invoice.update(invoiceId, { file_url });
+    queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    toast.success('Bestand gekoppeld aan factuur');
+    setUploadingInvoiceId(null);
+  };
 
   const markPaid = (invoice) => {
     updateInvoiceMutation.mutate({ id: invoice.id, data: { ...invoice, status: 'paid', paid_date: new Date().toISOString().split('T')[0] } });
@@ -466,6 +502,31 @@ export default function Billing() {
                       <td className="py-3 px-3 border-r border-foreground/10" style={{backgroundColor: 'rgba(0,0,0,0.06)'}}>
                         <InvoiceRef invoice={row.consultantInvoice} />
                         <StatusCell invoice={row.consultantInvoice} hasTimesheet={!!row.ts} onMarkPaid={markPaid} onSendReminder={sendReminder} sendingReminder={sendingReminderId === row.consultantInvoice?.id} showTimesheetStatus={false} />
+                        {!row.consultantInvoice && (
+                          <button
+                            className="text-xs text-primary hover:underline flex items-center gap-1 mt-1"
+                            disabled={creatingConsultantInvoice === row.placement.id}
+                            onClick={() => { setCreatingConsultantInvoice(row.placement.id); handleCreateConsultantInvoice(row); }}
+                          >
+                            {creatingConsultantInvoice === row.placement.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                            Aanmaken
+                          </button>
+                        )}
+                        {row.consultantInvoice && (
+                          <div className="mt-1">
+                            {row.consultantInvoice.file_url ? (
+                              <a href={row.consultantInvoice.file_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
+                                <Paperclip className="w-3 h-3" /> Bestand bekijken
+                              </a>
+                            ) : (
+                              <label className="cursor-pointer text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+                                {uploadingInvoiceId === row.consultantInvoice.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                                Factuur uploaden
+                                <input type="file" className="hidden" accept=".pdf,.jpg,.png" onChange={e => e.target.files[0] && handleUploadInvoiceFile(row.consultantInvoice.id, e.target.files[0])} />
+                              </label>
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td className={`py-3 px-3 text-right font-normal ${row.marginExcl >= 0 ? 'text-primary' : 'text-red-500'}`}>
                         {fmtVal(row.marginExcl)}
