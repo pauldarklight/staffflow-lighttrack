@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import {
   AlertCircle, ExternalLink, CheckCircle2, Clock, FileText,
-  Mail, Loader2, TrendingUp, Euro, Search, ArrowUpDown, X, Plus, Upload, Paperclip
+  Mail, Loader2, TrendingUp, Euro, Search, ArrowUpDown, X, Plus, Upload, Paperclip, Download
 } from 'lucide-react';
 import PageHeader from '@/components/shared/PageHeader';
 import { formatCurrency, getMonthName, formatDate } from '@/lib/formatters';
@@ -227,6 +227,7 @@ export default function Billing() {
   const [sendingReminderId, setSendingReminderId] = useState(null);
   const [creatingConsultantInvoice, setCreatingConsultantInvoice] = useState(null);
   const [uploadingInvoiceId, setUploadingInvoiceId] = useState(null);
+  const [generatingInvoice, setGeneratingInvoice] = useState(null);
 
   // Freelancer filters
   const [flSearch, setFlSearch] = useState('');
@@ -281,6 +282,24 @@ export default function Billing() {
     queryClient.invalidateQueries({ queryKey: ['invoices'] });
     toast.success('Bestand gekoppeld aan factuur');
     setUploadingInvoiceId(null);
+  };
+
+  const handleGenerateConsultantInvoice = async (row) => {
+    setGeneratingInvoice(row.placement.id);
+    const res = await base44.functions.invoke('generateConsultantInvoice', {
+      placement_id: row.placement.id,
+      timesheet_id: row.ts?.id || null,
+      month: month || null,
+      year,
+    });
+    const { file_url, file_name } = res.data;
+    const a = document.createElement('a');
+    a.href = file_url;
+    a.download = file_name;
+    a.target = '_blank';
+    a.click();
+    toast.success(`Factuur gegenereerd: ${file_name}`);
+    setGeneratingInvoice(null);
   };
 
   const markPaid = (invoice) => {
@@ -513,15 +532,23 @@ export default function Billing() {
                           </button>
                         )}
                         {row.consultantInvoice && (
-                          <div className="mt-1">
+                          <div className="mt-1 space-y-1">
+                            <button
+                              className="text-xs text-primary hover:underline flex items-center gap-1"
+                              disabled={generatingInvoice === row.placement.id}
+                              onClick={() => handleGenerateConsultantInvoice(row)}
+                            >
+                              {generatingInvoice === row.placement.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+                              Factuur downloaden
+                            </button>
                             {row.consultantInvoice.file_url ? (
-                              <a href={row.consultantInvoice.file_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
-                                <Paperclip className="w-3 h-3" /> Bestand bekijken
+                              <a href={row.consultantInvoice.file_url} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+                                <Paperclip className="w-3 h-3" /> Geüpload bestand
                               </a>
                             ) : (
                               <label className="cursor-pointer text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
                                 {uploadingInvoiceId === row.consultantInvoice.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
-                                Factuur uploaden
+                                Origineel uploaden
                                 <input type="file" className="hidden" accept=".pdf,.jpg,.png" onChange={e => e.target.files[0] && handleUploadInvoiceFile(row.consultantInvoice.id, e.target.files[0])} />
                               </label>
                             )}
