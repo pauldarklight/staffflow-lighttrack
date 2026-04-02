@@ -111,7 +111,7 @@
     },
     "liability_limit": {
       "type": "string",
-      "description": "Aansprakelijkheidsbeperking (bijv. max. contractwaarde)"
+      "description": "Aansprakelijkheidsbeperking"
     },
     "payroll_number": {
       "type": "string",
@@ -152,6 +152,10 @@
     },
     "client_billing_email": {
       "type": "string"
+    },
+    "client_timesheet_approver_email": {
+      "type": "string",
+      "description": "E-mailadres van de persoon die timesheets controleert bij de klant"
     },
     "reference_instructions": {
       "type": "string"
