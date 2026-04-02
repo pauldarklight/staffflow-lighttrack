@@ -470,7 +470,8 @@ export default function Billing() {
                   <th className="text-right py-3 px-3 font-normal text-white bg-primary">Van klant</th>
                   <th className="text-left py-3 px-3 font-bold text-white bg-primary">Ref. klant</th>
                   <th className="text-right py-3 px-3 font-normal text-white bg-foreground">Aan consultant</th>
-                  <th className="text-left py-3 px-3 font-bold text-white bg-foreground">Ref. cons.</th>
+                    <th className="text-left py-3 px-3 font-bold text-white bg-foreground">Factuur consultant</th>
+                    <th className="text-left py-3 px-3 font-bold text-foreground">Betaald</th>
                   <th className="text-right py-3 px-3 font-normal text-foreground">Marge</th>
                 </tr>
               </thead>
@@ -519,41 +520,54 @@ export default function Billing() {
                         </div>
                       </td>
                       <td className="py-3 px-3 border-r border-foreground/10" style={{backgroundColor: 'rgba(0,0,0,0.06)'}}>
-                        <InvoiceRef invoice={row.consultantInvoice} />
-                        <StatusCell invoice={row.consultantInvoice} hasTimesheet={!!row.ts} onMarkPaid={markPaid} onSendReminder={sendReminder} sendingReminder={sendingReminderId === row.consultantInvoice?.id} showTimesheetStatus={false} />
-                        {!row.consultantInvoice && (
-                          <button
-                            className="text-xs text-primary hover:underline flex items-center gap-1 mt-1"
-                            disabled={creatingConsultantInvoice === row.placement.id}
-                            onClick={() => { setCreatingConsultantInvoice(row.placement.id); handleCreateConsultantInvoice(row); }}
-                          >
-                            {creatingConsultantInvoice === row.placement.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
-                            Aanmaken
-                          </button>
+                        <button
+                          className="text-xs text-primary hover:underline flex items-center gap-1"
+                          disabled={generatingInvoice === row.placement.id}
+                          onClick={() => handleGenerateConsultantInvoice(row)}
+                        >
+                          {generatingInvoice === row.placement.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+                          Downloaden
+                        </button>
+                        {row.consultantInvoice?.file_url && (
+                          <a href={row.consultantInvoice.file_url} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 mt-1">
+                            <Paperclip className="w-3 h-3" /> Geüpload
+                          </a>
                         )}
-                        {row.consultantInvoice && (
-                          <div className="mt-1 space-y-1">
-                            <button
-                              className="text-xs text-primary hover:underline flex items-center gap-1"
-                              disabled={generatingInvoice === row.placement.id}
-                              onClick={() => handleGenerateConsultantInvoice(row)}
-                            >
-                              {generatingInvoice === row.placement.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
-                              Factuur downloaden
-                            </button>
-                            {row.consultantInvoice.file_url ? (
-                              <a href={row.consultantInvoice.file_url} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
-                                <Paperclip className="w-3 h-3" /> Geüpload bestand
-                              </a>
-                            ) : (
-                              <label className="cursor-pointer text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
-                                {uploadingInvoiceId === row.consultantInvoice.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
-                                Origineel uploaden
-                                <input type="file" className="hidden" accept=".pdf,.jpg,.png" onChange={e => e.target.files[0] && handleUploadInvoiceFile(row.consultantInvoice.id, e.target.files[0])} />
-                              </label>
-                            )}
-                          </div>
-                        )}
+                      </td>
+                      <td className="py-3 px-3">
+                        <button
+                          onClick={() => {
+                            if (row.consultantInvoice) {
+                              markPaid(row.consultantInvoice);
+                            } else {
+                              // Create invoice as paid
+                              createConsultantInvoiceMutation.mutate({
+                                placement_id: row.placement.id,
+                                timesheet_id: row.ts?.id || null,
+                                invoice_type: 'consultant_invoice',
+                                amount: row.consultantAmountExcl,
+                                vat_amount: row.consultantAmountExcl * 0.21,
+                                total_amount: row.consultantAmountExcl * 1.21,
+                                status: 'paid',
+                                paid_date: new Date().toISOString().split('T')[0],
+                                month: month || null,
+                                year,
+                                consultant_name: `${row.placement.consultant_first_name} ${row.placement.consultant_last_name}`,
+                                client_company: row.placement.client_company_name,
+                                payment_terms_days: row.placement.payment_terms_consultant || 30,
+                                issue_date: new Date().toISOString().split('T')[0],
+                              });
+                            }
+                          }}
+                          className={`flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-md border transition-colors ${
+                            row.consultantInvoice?.status === 'paid'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                              : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          <span>{row.consultantInvoice?.status === 'paid' ? '✓' : '○'}</span>
+                          <span>{row.consultantInvoice?.status === 'paid' ? 'Betaald' : 'Onbetaald'}</span>
+                        </button>
                       </td>
                       <td className={`py-3 px-3 text-right font-normal ${row.marginExcl >= 0 ? 'text-primary' : 'text-red-500'}`}>
                         {fmtVal(row.marginExcl)}
