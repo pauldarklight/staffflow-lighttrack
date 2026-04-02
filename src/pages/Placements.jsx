@@ -381,7 +381,9 @@ export default function Placements() {
                     <th className="text-left py-3 px-3 font-bold text-foreground whitespace-nowrap">Consultant</th>
                     <th className="text-left py-3 px-3 font-normal text-foreground whitespace-nowrap">Firma klant</th>
                     <th className="text-left py-3 px-3 font-bold text-foreground whitespace-nowrap">Type</th>
-                    <th className="text-right py-3 px-3 font-bold text-foreground whitespace-nowrap">Tarief/dag</th>
+                    <th className="text-right py-3 px-3 font-bold text-foreground whitespace-nowrap">Pay/dag</th>
+                    <th className="text-right py-3 px-3 font-bold text-foreground whitespace-nowrap">Bill/dag</th>
+                    <th className="text-right py-3 px-3 font-bold text-foreground whitespace-nowrap">Marge/dag</th>
                     <th className="text-left py-3 px-3 font-normal text-foreground whitespace-nowrap">Startdatum</th>
                     <th className="text-left py-3 px-3 font-normal text-foreground whitespace-nowrap">Einddatum</th>
                     <th className="text-left py-3 px-3 font-bold text-foreground whitespace-nowrap">Looptijd</th>
@@ -445,9 +447,16 @@ export default function Placements() {
                           </Badge>
                         </td>
                         <td className="py-3 px-3 text-right">
-                          <div className="font-bold text-foreground">{p.client_rate ? formatCurrency(p.client_rate) : '—'}</div>
-                          {p.consultant_rate > 0 && <div className="text-xs text-muted-foreground">cons: {formatCurrency(p.consultant_rate)}</div>}
-                        </td>
+                           <div className="font-bold text-foreground">{p.consultant_rate ? formatCurrency(p.consultant_rate) : '—'}</div>
+                         </td>
+                         <td className="py-3 px-3 text-right">
+                           <div className="font-bold text-foreground">{p.client_rate ? formatCurrency(p.client_rate) : '—'}</div>
+                         </td>
+                         <td className="py-3 px-3 text-right">
+                           {p.client_rate && p.consultant_rate
+                             ? <div className="font-bold text-emerald-600">{formatCurrency((p.client_rate || 0) - (p.consultant_rate || 0))}</div>
+                             : <span className="text-muted-foreground">—</span>}
+                         </td>
                         <td className="py-3 px-3 text-xs text-muted-foreground whitespace-nowrap">
                           {formatDate(p.start_date)}
                         </td>
