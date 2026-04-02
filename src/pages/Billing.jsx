@@ -467,9 +467,9 @@ export default function Billing() {
                   <th className="text-left py-3 px-3 font-bold text-foreground">Contractduur</th>
                   <th className="text-right py-3 px-3 font-normal text-foreground">Dagen</th>
                   <th className="text-right py-3 px-3 font-bold text-foreground">Tarief</th>
-                  <th className="text-right py-3 px-3 font-normal text-white bg-primary">Van klant</th>
-                  <th className="text-left py-3 px-3 font-bold text-white bg-primary">Ref. klant</th>
-                  <th className="text-right py-3 px-3 font-normal text-white bg-foreground">Aan consultant</th>
+                  <th className="text-right py-3 px-3 font-normal text-white bg-primary">Bill</th>
+                    <th className="text-left py-3 px-3 font-bold text-white bg-primary">Factuur klant</th>
+                  <th className="text-right py-3 px-3 font-normal text-white bg-foreground">Pay</th>
                     <th className="text-left py-3 px-3 font-bold text-white bg-foreground">Factuur consultant</th>
                     <th className="text-left py-3 px-3 font-bold text-foreground">Betaald</th>
                   <th className="text-right py-3 px-3 font-normal text-foreground">Marge</th>
