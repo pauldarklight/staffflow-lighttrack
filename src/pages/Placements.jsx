@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, Pencil, Trash2, ArrowUpDown, X, RefreshCw, MessageSquare, ChevronDown, Settings2 } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, ArrowUpDown, X, RefreshCw, MessageSquare, ChevronDown, Settings2, Edit3, Check } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import PageHeader from '@/components/shared/PageHeader';
@@ -159,6 +159,8 @@ export default function Placements() {
   const [daysPerMonth, setDaysPerMonth] = useState(21);
   const [showDaysEditor, setShowDaysEditor] = useState(false);
   const [daysInput, setDaysInput] = useState('21');
+  const [editMode, setEditMode] = useState(false);
+  const [inlineEdits, setInlineEdits] = useState({});
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -223,6 +225,22 @@ export default function Placements() {
     else createMutation.mutate(data);
   };
 
+  const handleInlineEdit = (id, field, value) => {
+    setInlineEdits(prev => ({ ...prev, [id]: { ...(prev[id] || {}), [field]: value } }));
+  };
+
+  const handleInlineSave = (p) => {
+    const edits = inlineEdits[p.id];
+    if (!edits) return;
+    const data = {};
+    if (edits.consultant_rate !== undefined) data.consultant_rate = parseFloat(edits.consultant_rate) || p.consultant_rate;
+    if (edits.client_rate !== undefined) data.client_rate = parseFloat(edits.client_rate) || p.client_rate;
+    if (edits.start_date !== undefined) data.start_date = edits.start_date;
+    if (edits.end_date !== undefined) data.end_date = edits.end_date;
+    updateMutation.mutate({ id: p.id, data });
+    setInlineEdits(prev => { const n = { ...prev }; delete n[p.id]; return n; });
+  };
+
   const enriched = useMemo(() => placements.map((p, idx) => {
     const endDate = effectiveEndDate(p);
     const totalMonths = p.start_date && endDate ? monthDiff(p.start_date, endDate) : 0;
@@ -281,6 +299,13 @@ export default function Placements() {
   return (
     <div>
       <PageHeader title="Placements" subtitle={`${placements.length} placements`}>
+        <Button
+          variant={editMode ? 'default' : 'outline'}
+          onClick={() => { setEditMode(v => !v); setInlineEdits({}); }}
+          className={editMode ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-500' : ''}
+        >
+          <Edit3 className="w-4 h-4 mr-1" /> {editMode ? 'Bewerken actief' : 'Wijzig gegevens'}
+        </Button>
         <Button onClick={() => { setEditing(null); setShowForm(true); }}>
           <Plus className="w-4 h-4 mr-1" /> Nieuwe Placement
         </Button>
@@ -447,22 +472,30 @@ export default function Placements() {
                           </Badge>
                         </td>
                         <td className="py-3 px-3 text-right">
-                           <div className="font-bold text-foreground">{p.consultant_rate ? formatCurrency(p.consultant_rate) : '—'}</div>
+                           {editMode
+                             ? <input type="number" step="0.01" className="w-20 text-xs border border-amber-300 rounded px-1 py-0.5 text-right bg-amber-50" value={inlineEdits[p.id]?.consultant_rate ?? (p.consultant_rate || '')} onChange={e => handleInlineEdit(p.id, 'consultant_rate', e.target.value)} />
+                             : <div className="font-bold text-foreground">{p.consultant_rate ? formatCurrency(p.consultant_rate) : '—'}</div>}
                          </td>
                          <td className="py-3 px-3 text-right">
-                           <div className="font-bold text-foreground">{p.client_rate ? formatCurrency(p.client_rate) : '—'}</div>
+                           {editMode
+                             ? <input type="number" step="0.01" className="w-20 text-xs border border-amber-300 rounded px-1 py-0.5 text-right bg-amber-50" value={inlineEdits[p.id]?.client_rate ?? (p.client_rate || '')} onChange={e => handleInlineEdit(p.id, 'client_rate', e.target.value)} />
+                             : <div className="font-bold text-foreground">{p.client_rate ? formatCurrency(p.client_rate) : '—'}</div>}
                          </td>
                          <td className="py-3 px-3 text-right">
                            {p.client_rate && p.consultant_rate
                              ? <div className="font-bold text-emerald-600">{formatCurrency((p.client_rate || 0) - (p.consultant_rate || 0))}</div>
                              : <span className="text-muted-foreground">—</span>}
                          </td>
-                        <td className="py-3 px-3 text-xs text-muted-foreground whitespace-nowrap">
-                          {formatDate(p.start_date)}
-                        </td>
                         <td className="py-3 px-3 text-xs whitespace-nowrap">
-                          <span className="font-bold text-foreground">{effectiveEndDate(p) ? formatDate(effectiveEndDate(p)) : '—'}</span>
-                        </td>
+                           {editMode
+                             ? <input type="date" className="text-xs border border-amber-300 rounded px-1 py-0.5 bg-amber-50" value={inlineEdits[p.id]?.start_date ?? (p.start_date || '')} onChange={e => handleInlineEdit(p.id, 'start_date', e.target.value)} />
+                             : <span className="text-muted-foreground">{formatDate(p.start_date)}</span>}
+                         </td>
+                         <td className="py-3 px-3 text-xs whitespace-nowrap">
+                           {editMode
+                             ? <input type="date" className="text-xs border border-amber-300 rounded px-1 py-0.5 bg-amber-50" value={inlineEdits[p.id]?.end_date ?? (p.end_date || '')} onChange={e => handleInlineEdit(p.id, 'end_date', e.target.value)} />
+                             : <span className="font-bold text-foreground">{effectiveEndDate(p) ? formatDate(effectiveEndDate(p)) : '—'}</span>}
+                         </td>
                         <td className="py-3 px-3"><DurationBar p={p} /></td>
                         <td className="py-3 px-3"><DurationPrestaties p={p} /></td>
                         <td className="py-3 px-3">
@@ -502,8 +535,13 @@ export default function Placements() {
                           </Badge>
                         </td>
                         <td className="py-3 px-3">
-                          <div className="flex justify-end gap-1">
-                            <Button variant="ghost" size="icon" title="Verlengen" onClick={() => setExtendingPlacement(p)}>
+                           <div className="flex justify-end gap-1">
+                             {editMode && inlineEdits[p.id] && (
+                               <Button variant="ghost" size="icon" title="Opslaan" onClick={() => handleInlineSave(p)}>
+                                 <Check className="w-4 h-4 text-emerald-600" />
+                               </Button>
+                             )}
+                             <Button variant="ghost" size="icon" title="Verlengen" onClick={() => setExtendingPlacement(p)}>
                               <RefreshCw className="w-4 h-4 text-primary" />
                             </Button>
                             {p.notes && (
