@@ -118,7 +118,8 @@ function ContractValueCell({ p, daysPerMonth }) {
     return <span className="text-muted-foreground text-xs">—</span>;
   }
   const totalMonths = monthDiff(p.start_date, endDate);
-  const estimatedDays = Math.round(totalMonths * daysPerMonth);
+  const fraction = (p.days_per_week || 5) / 5;
+  const estimatedDays = Math.round(totalMonths * daysPerMonth * fraction);
   const contractValue = estimatedDays * (p.client_rate || 0);
   const contractMargin = estimatedDays * ((p.client_rate || 0) - (p.consultant_rate || 0));
   return (
@@ -443,6 +444,18 @@ export default function Placements() {
                         <td className="py-3 px-3 text-right">
                           <div className="font-bold text-foreground">{p.client_rate ? formatCurrency(p.client_rate) : '—'}</div>
                           {p.consultant_rate > 0 && <div className="text-xs text-muted-foreground">cons: {formatCurrency(p.consultant_rate)}</div>}
+                          <select
+                            className="mt-1 text-xs border border-border rounded px-1 py-0.5 bg-background cursor-pointer"
+                            value={p.days_per_week || 5}
+                            onChange={e => updateMutation.mutate({ id: p.id, data: { days_per_week: parseFloat(e.target.value) } })}
+                          >
+                            <option value="5">5/5 voltijds</option>
+                            <option value="4">4/5</option>
+                            <option value="3">3/5</option>
+                            <option value="2.5">2.5/5 halftijds</option>
+                            <option value="2">2/5</option>
+                            <option value="1">1/5</option>
+                          </select>
                         </td>
                         <td className="py-3 px-3 text-xs text-muted-foreground whitespace-nowrap">
                           {formatDate(p.start_date)}
