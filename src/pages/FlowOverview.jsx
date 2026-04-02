@@ -42,6 +42,7 @@ export default function FlowOverview() {
   const now = new Date();
   const [periodYear, setPeriodYear] = useState(String(now.getFullYear()));
   const [contractStatusFilter, setContractStatusFilter] = useState('all');
+  const [contractMonthFilter, setContractMonthFilter] = useState('all');
   const [tsMonthFilter, setTsMonthFilter] = useState('all');
   const [invMonthFilter, setInvMonthFilter] = useState('all');
 
@@ -115,10 +116,19 @@ export default function FlowOverview() {
       consultantContract: f.consultantContract,
       status: f.contractStatus,
     })).filter(row => {
-      if (contractStatusFilter === 'all') return true;
-      return row.status === contractStatusFilter;
+      if (contractStatusFilter !== 'all' && row.status !== contractStatusFilter) return false;
+      if (contractMonthFilter !== 'all') {
+        const yr = parseInt(periodYear);
+        const mo = parseInt(contractMonthFilter);
+        const rowDate = new Date(yr, mo - 1, 1);
+        const startDate = row.p.start_date ? new Date(row.p.start_date) : null;
+        const endDate = row.p.end_date ? new Date(row.p.end_date) : null;
+        if (startDate && rowDate < new Date(startDate.getFullYear(), startDate.getMonth(), 1)) return false;
+        if (endDate && rowDate > new Date(endDate.getFullYear(), endDate.getMonth(), 1)) return false;
+      }
+      return true;
     });
-  }, [flows, contractStatusFilter]);
+  }, [flows, contractStatusFilter, contractMonthFilter, periodYear]);
 
   // Timesheets section
   const tsRows = useMemo(() => {
@@ -382,6 +392,19 @@ export default function FlowOverview() {
         {/* ── TAB 2: Contracten ── */}
         <TabsContent value="contracten">
           <div className="flex items-center gap-3 mb-6 p-3 bg-muted/40 rounded-lg border border-border flex-wrap">
+            <span className="text-xs font-medium text-muted-foreground">Jaar:</span>
+            <Select value={periodYear} onValueChange={setPeriodYear}>
+              <SelectTrigger className="w-24 h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+            </Select>
+            <span className="text-xs font-medium text-muted-foreground">Maand:</span>
+            <Select value={contractMonthFilter} onValueChange={setContractMonthFilter}>
+              <SelectTrigger className="w-36 h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Alle maanden</SelectItem>
+                {Array.from({length:12},(_,i) => <SelectItem key={i+1} value={String(i+1)}>{getMonthName(i+1)}</SelectItem>)}
+              </SelectContent>
+            </Select>
             <span className="text-xs font-medium text-muted-foreground">Status:</span>
             <Select value={contractStatusFilter} onValueChange={setContractStatusFilter}>
               <SelectTrigger className="w-40 h-8 text-xs"><SelectValue /></SelectTrigger>
@@ -393,8 +416,8 @@ export default function FlowOverview() {
                 <SelectItem value="missing">Ontbreekt</SelectItem>
               </SelectContent>
             </Select>
-            {contractStatusFilter !== 'all' && (
-              <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => setContractStatusFilter('all')}><X className="w-3.5 h-3.5 mr-1" /> Reset</Button>
+            {(contractStatusFilter !== 'all' || contractMonthFilter !== 'all') && (
+              <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => { setContractStatusFilter('all'); setContractMonthFilter('all'); }}><X className="w-3.5 h-3.5 mr-1" /> Reset</Button>
             )}
             <span className="text-xs text-muted-foreground ml-auto">{contractRows.length} rijen</span>
           </div>
