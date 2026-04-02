@@ -373,155 +373,108 @@ export default function Contracts() {
         </DialogContent>
       </Dialog>
 
+      {/* Toggle: klant / consultant */}
+      <div className="flex gap-2 mb-4">
+        <Button
+          variant={typeFilter !== 'consultant' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setTypeFilter('client')}
+        >Klantcontracten</Button>
+        <Button
+          variant={typeFilter === 'consultant' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setTypeFilter('consultant')}
+        >Consultantcontracten</Button>
+      </div>
+
       {filtered.length === 0 ? (
         <EmptyState icon={FileText} title="Geen samenwerkingen gevonden" description="Pas je filters aan of maak een nieuwe placement aan.">
           <Button onClick={() => setShowForm(true)}><Plus className="w-4 h-4 mr-1" /> Nieuw Contract</Button>
         </EmptyState>
+      ) : typeFilter === 'consultant' ? (
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/50">
+                    <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Referentie</th>
+                    <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Consultant</th>
+                    <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Klant</th>
+                    <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Periode</th>
+                    <th className="text-right py-3 px-4 font-bold whitespace-nowrap">Pay/dag</th>
+                    <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Agoria-index</th>
+                    <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Betalingstermijn</th>
+                    <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Payroll nr.</th>
+                    <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Status</th>
+                    <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Acties</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {collaborationsWithRef.filter(col => {
+                    if (search) { const q = search.toLowerCase(); return col.consultantName.toLowerCase().includes(q) || col.clientName.toLowerCase().includes(q); }
+                    return true;
+                  }).map(col => (
+                    <tr key={col.placement_id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                      <td className="py-3 px-4"><span className="font-mono text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">{col.reference}</span></td>
+                      <td className="py-3 px-4"><div className="font-bold">{col.consultantName}</div>{col.placement?.consultant_company_name && <div className="text-xs text-muted-foreground">{col.placement.consultant_company_name}</div>}</td>
+                      <td className="py-3 px-4"><div className="font-bold">{col.clientName}</div></td>
+                      <td className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap"><div>{formatDate(col.startDate)}</div><div className="font-medium text-foreground">{col.endDate ? formatDate(col.endDate) : '—'}</div></td>
+                      <td className="py-3 px-4 text-right"><div className="font-bold">{col.consultantRate ? formatCurrency(col.consultantRate) : '—'}</div></td>
+                      <td className="py-3 px-4 text-xs font-mono font-bold">{col.consultant?.agoria_index_consultant || col.placement?.agoria_index_consultant || <span className="text-muted-foreground">—</span>}</td>
+                      <td className="py-3 px-4 text-xs">{col.placement?.payment_terms_consultant ? <span className="font-semibold">{col.placement.payment_terms_consultant}d</span> : <span className="text-muted-foreground">—</span>}</td>
+                      <td className="py-3 px-4 text-xs">{col.placement?.payroll_number ? <span className="font-mono font-bold">{col.placement.payroll_number}</span> : <span className="text-muted-foreground">—</span>}</td>
+                      <td className="py-3 px-4">{col.consultant ? <Badge variant="outline" className={`text-xs ${STATUS_STYLES[col.consultant.status]}`}>{STATUS_LABELS[col.consultant.status]}</Badge> : <span className="text-xs text-red-500 font-medium">Ontbreekt</span>}</td>
+                      <td className="py-3 px-4"><div className="flex items-center gap-1">{col.consultant?.notes && <span title={col.consultant.notes} className="text-xs bg-blue-100 text-blue-700 border border-blue-300 px-1.5 py-0.5 rounded cursor-help">📝</span>}{col.consultant && <Button variant="ghost" size="icon" onClick={() => generateContractPdf(col.consultant, col.placement)}><Download className="w-3.5 h-3.5 text-primary" /></Button>}{col.consultant && <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openEdit(col.consultant)}>Bewerken</Button>}</div></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="space-y-8">
-          {/* ── SECTIE 1: Klant ── */}
-          <div>
-            <h2 className="text-base font-bold text-foreground mb-3 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-primary inline-block" /> Klantcontracten
-            </h2>
-            <Card>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b bg-muted/50">
-                        <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Referentie</th>
-                        <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Consultant</th>
-                        <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Klant</th>
-                        <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Periode</th>
-                        <th className="text-right py-3 px-4 font-bold whitespace-nowrap">Bill/dag</th>
-                        <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Agoria-index</th>
-                        <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Betalingstermijn</th>
-                        <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Aansprakelijkheid</th>
-                        <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Status</th>
-                        <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Acties</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filtered.map(col => (
-                        <tr key={col.placement_id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
-                          <td className="py-3 px-4"><span className="font-mono text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">{col.reference}</span></td>
-                          <td className="py-3 px-4">
-                            <div className="font-bold text-foreground">{col.consultantName}</div>
-                            {col.placement?.consultant_company_name && <div className="text-xs text-muted-foreground">{col.placement.consultant_company_name}</div>}
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="font-bold text-foreground">{col.clientName}</div>
-                            {col.placement?.client_vat_number && <div className="text-xs text-muted-foreground font-mono">{col.placement.client_vat_number}</div>}
-                          </td>
-                          <td className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap">
-                            <div>{formatDate(col.startDate)}</div>
-                            <div className="font-medium text-foreground">{col.endDate ? formatDate(col.endDate) : '—'}</div>
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <div className="font-bold text-foreground">{col.clientRate ? formatCurrency(col.clientRate) : '—'}</div>
-                          </td>
-                          <td className="py-3 px-4 text-xs font-mono font-bold">
-                            {col.client?.agoria_index_client || col.placement?.agoria_index_client || <span className="text-muted-foreground">—</span>}
-                          </td>
-                          <td className="py-3 px-4 text-xs">
-                            {col.placement?.payment_terms_client ? <span className="font-semibold">{col.placement.payment_terms_client}d</span> : <span className="text-muted-foreground">—</span>}
-                          </td>
-                          <td className="py-3 px-4 text-xs">
-                            {col.placement?.liability_limit || <span className="text-muted-foreground">—</span>}
-                          </td>
-                          <td className="py-3 px-4">
-                            {col.client
-                              ? <Badge variant="outline" className={`text-xs ${STATUS_STYLES[col.client.status]}`}>{STATUS_LABELS[col.client.status]}</Badge>
-                              : <span className="text-xs text-red-500 font-medium">Ontbreekt</span>}
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-1">
-                              {col.client?.notes && <span title={col.client.notes} className="text-xs bg-blue-100 text-blue-700 border border-blue-300 px-1.5 py-0.5 rounded font-medium cursor-help">📝</span>}
-                              {col.client && <Button variant="ghost" size="icon" title="Download PDF" onClick={() => generateContractPdf(col.client, col.placement)}><Download className="w-3.5 h-3.5 text-primary" /></Button>}
-                              {col.client && <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openEdit(col.client)}>Bewerken</Button>}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* ── SECTIE 2: Consultant ── */}
-          <div>
-            <h2 className="text-base font-bold text-foreground mb-3 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-foreground/60 inline-block" /> Consultantcontracten
-            </h2>
-            <Card>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b bg-muted/50">
-                        <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Referentie</th>
-                        <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Consultant</th>
-                        <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Klant</th>
-                        <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Periode</th>
-                        <th className="text-right py-3 px-4 font-bold whitespace-nowrap">Pay/dag</th>
-                        <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Agoria-index</th>
-                        <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Betalingstermijn</th>
-                        <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Payroll nr.</th>
-                        <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Status</th>
-                        <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Acties</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filtered.map(col => (
-                        <tr key={col.placement_id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
-                          <td className="py-3 px-4"><span className="font-mono text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">{col.reference}</span></td>
-                          <td className="py-3 px-4">
-                            <div className="font-bold text-foreground">{col.consultantName}</div>
-                            {col.placement?.consultant_company_name && <div className="text-xs text-muted-foreground">{col.placement.consultant_company_name}</div>}
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="font-bold text-foreground">{col.clientName}</div>
-                          </td>
-                          <td className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap">
-                            <div>{formatDate(col.startDate)}</div>
-                            <div className="font-medium text-foreground">{col.endDate ? formatDate(col.endDate) : '—'}</div>
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <div className="font-bold text-foreground">{col.consultantRate ? formatCurrency(col.consultantRate) : '—'}</div>
-                          </td>
-                          <td className="py-3 px-4 text-xs font-mono font-bold">
-                            {col.consultant?.agoria_index_consultant || col.placement?.agoria_index_consultant || <span className="text-muted-foreground">—</span>}
-                          </td>
-                          <td className="py-3 px-4 text-xs">
-                            {col.placement?.payment_terms_consultant ? <span className="font-semibold">{col.placement.payment_terms_consultant}d</span> : <span className="text-muted-foreground">—</span>}
-                          </td>
-                          <td className="py-3 px-4 text-xs">
-                            {col.placement?.payroll_number ? <span className="font-mono font-bold">{col.placement.payroll_number}</span> : <span className="text-muted-foreground">—</span>}
-                          </td>
-                          <td className="py-3 px-4">
-                            {col.consultant
-                              ? <Badge variant="outline" className={`text-xs ${STATUS_STYLES[col.consultant.status]}`}>{STATUS_LABELS[col.consultant.status]}</Badge>
-                              : <span className="text-xs text-red-500 font-medium">Ontbreekt</span>}
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-1">
-                              {col.consultant?.notes && <span title={col.consultant.notes} className="text-xs bg-blue-100 text-blue-700 border border-blue-300 px-1.5 py-0.5 rounded font-medium cursor-help">📝</span>}
-                              {col.consultant && <Button variant="ghost" size="icon" title="Download PDF" onClick={() => generateContractPdf(col.consultant, col.placement)}><Download className="w-3.5 h-3.5 text-primary" /></Button>}
-                              {col.consultant && <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openEdit(col.consultant)}>Bewerken</Button>}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/50">
+                    <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Referentie</th>
+                    <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Consultant</th>
+                    <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Klant</th>
+                    <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Periode</th>
+                    <th className="text-right py-3 px-4 font-bold whitespace-nowrap">Bill/dag</th>
+                    <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Agoria-index</th>
+                    <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Betalingstermijn</th>
+                    <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Aansprakelijkheid</th>
+                    <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Status</th>
+                    <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Acties</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {collaborationsWithRef.filter(col => {
+                    if (search) { const q = search.toLowerCase(); return col.consultantName.toLowerCase().includes(q) || col.clientName.toLowerCase().includes(q); }
+                    return true;
+                  }).map(col => (
+                    <tr key={col.placement_id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                      <td className="py-3 px-4"><span className="font-mono text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">{col.reference}</span></td>
+                      <td className="py-3 px-4"><div className="font-bold">{col.consultantName}</div>{col.placement?.consultant_company_name && <div className="text-xs text-muted-foreground">{col.placement.consultant_company_name}</div>}</td>
+                      <td className="py-3 px-4"><div className="font-bold">{col.clientName}</div>{col.placement?.client_vat_number && <div className="text-xs text-muted-foreground font-mono">{col.placement.client_vat_number}</div>}</td>
+                      <td className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap"><div>{formatDate(col.startDate)}</div><div className="font-medium text-foreground">{col.endDate ? formatDate(col.endDate) : '—'}</div></td>
+                      <td className="py-3 px-4 text-right"><div className="font-bold">{col.clientRate ? formatCurrency(col.clientRate) : '—'}</div></td>
+                      <td className="py-3 px-4 text-xs font-mono font-bold">{col.client?.agoria_index_client || col.placement?.agoria_index_client || <span className="text-muted-foreground">—</span>}</td>
+                      <td className="py-3 px-4 text-xs">{col.placement?.payment_terms_client ? <span className="font-semibold">{col.placement.payment_terms_client}d</span> : <span className="text-muted-foreground">—</span>}</td>
+                      <td className="py-3 px-4 text-xs">{col.placement?.liability_limit || <span className="text-muted-foreground">—</span>}</td>
+                      <td className="py-3 px-4">{col.client ? <Badge variant="outline" className={`text-xs ${STATUS_STYLES[col.client.status]}`}>{STATUS_LABELS[col.client.status]}</Badge> : <span className="text-xs text-red-500 font-medium">Ontbreekt</span>}</td>
+                      <td className="py-3 px-4"><div className="flex items-center gap-1">{col.client?.notes && <span title={col.client.notes} className="text-xs bg-blue-100 text-blue-700 border border-blue-300 px-1.5 py-0.5 rounded cursor-help">📝</span>}{col.client && <Button variant="ghost" size="icon" onClick={() => generateContractPdf(col.client, col.placement)}><Download className="w-3.5 h-3.5 text-primary" /></Button>}{col.client && <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openEdit(col.client)}>Bewerken</Button>}</div></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
