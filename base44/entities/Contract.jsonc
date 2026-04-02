@@ -47,6 +47,22 @@
       "type": "number",
       "description": "Agoria-index consultant"
     },
+    "payment_terms_client": {
+      "type": "integer",
+      "description": "Betalingstermijn klant in dagen"
+    },
+    "payment_terms_consultant": {
+      "type": "integer",
+      "description": "Betalingstermijn consultant in dagen"
+    },
+    "liability_limit": {
+      "type": "string",
+      "description": "Aansprakelijkheidsbeperking (bijv. max. contractwaarde, wettelijk max., ...)"
+    },
+    "payroll_number": {
+      "type": "string",
+      "description": "Payrollnummer van de consultant"
+    },
     "notes": {
       "type": "string",
       "description": "Opmerkingen"

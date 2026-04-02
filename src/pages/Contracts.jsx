@@ -91,13 +91,17 @@ export default function Contracts() {
   const [form, setForm] = useState({
     placement_id: '', contract_type: 'client', status: 'draft',
     sent_date: '', signed_date: '', recipient_name: '', recipient_email: '',
-    agoria_index_client: '', agoria_index_consultant: '', notes: '',
+    agoria_index_client: '', agoria_index_consultant: '',
+    payment_terms_client: '', payment_terms_consultant: '',
+    liability_limit: '', payroll_number: '', notes: '',
   });
 
   const resetForm = () => setForm({
     placement_id: '', contract_type: 'client', status: 'draft',
     sent_date: '', signed_date: '', recipient_name: '', recipient_email: '',
-    agoria_index_client: '', agoria_index_consultant: '', notes: '',
+    agoria_index_client: '', agoria_index_consultant: '',
+    payment_terms_client: '', payment_terms_consultant: '',
+    liability_limit: '', payroll_number: '', notes: '',
   });
 
   const createMutation = useMutation({
@@ -332,6 +336,26 @@ export default function Contracts() {
                 <Input type="number" step="0.01" placeholder="bijv. 112.34" value={form.agoria_index_consultant} onChange={e => setForm(p => ({ ...p, agoria_index_consultant: e.target.value }))} />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Betalingstermijn klant (dagen)</Label>
+                <Input type="number" min="0" placeholder="bijv. 30" value={form.payment_terms_client} onChange={e => setForm(p => ({ ...p, payment_terms_client: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Betalingstermijn consultant (dagen)</Label>
+                <Input type="number" min="0" placeholder="bijv. 30" value={form.payment_terms_consultant} onChange={e => setForm(p => ({ ...p, payment_terms_consultant: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Aansprakelijkheid</Label>
+                <Input placeholder="bijv. max. contractwaarde" value={form.liability_limit} onChange={e => setForm(p => ({ ...p, liability_limit: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Payrollnummer</Label>
+                <Input placeholder="bijv. PR-2024-001" value={form.payroll_number} onChange={e => setForm(p => ({ ...p, payroll_number: e.target.value }))} />
+              </div>
+            </div>
             <div className="space-y-2">
               <Label>Opmerkingen</Label>
               <Textarea
@@ -367,6 +391,9 @@ export default function Contracts() {
                     <th className="text-left py-3 px-4 font-bold text-foreground whitespace-nowrap">Periode</th>
                     <th className="text-right py-3 px-4 font-bold text-foreground whitespace-nowrap">Tarief/dag</th>
                     <th className="text-left py-3 px-4 font-bold text-foreground whitespace-nowrap">Agoria-index</th>
+                    <th className="text-left py-3 px-4 font-bold text-foreground whitespace-nowrap">Betalingstermijn</th>
+                    <th className="text-left py-3 px-4 font-bold text-foreground whitespace-nowrap">Aansprakelijkheid</th>
+                    <th className="text-left py-3 px-4 font-bold text-foreground whitespace-nowrap">Payroll nr.</th>
                     <th className="text-center py-3 px-4 font-bold text-foreground whitespace-nowrap" colSpan={2}>Contracten</th>
                   </tr>
                 </thead>
@@ -393,22 +420,39 @@ export default function Contracts() {
                         {col.margin > 0 && <div className="text-xs text-emerald-600">+{formatCurrency(col.margin)}/dag</div>}
                       </td>
                       <td className="py-3 px-4">
-                        <div className="text-xs space-y-1">
-                          <div className="flex items-center gap-1">
-                            <span className={`w-14 text-muted-foreground`}>Klant:</span>
-                            <span className={`font-mono font-bold ${(col.client?.agoria_index_client || col.placement?.agoria_index_client) ? 'text-foreground' : 'text-muted-foreground'}`}>
-                              {col.client?.agoria_index_client || col.placement?.agoria_index_client || '—'}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span className="w-14 text-muted-foreground">Cons.:</span>
-                            <span className={`font-mono font-bold ${(col.consultant?.agoria_index_consultant || col.placement?.agoria_index_consultant) ? 'text-foreground' : 'text-muted-foreground'}`}>
-                              {col.consultant?.agoria_index_consultant || col.placement?.agoria_index_consultant || '—'}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      {/* Client contract */}
+                         <div className="text-xs space-y-1">
+                           <div className="flex items-center gap-1">
+                             <span className={`w-14 text-muted-foreground`}>Klant:</span>
+                             <span className={`font-mono font-bold ${(col.client?.agoria_index_client || col.placement?.agoria_index_client) ? 'text-foreground' : 'text-muted-foreground'}`}>
+                               {col.client?.agoria_index_client || col.placement?.agoria_index_client || '—'}
+                             </span>
+                           </div>
+                           <div className="flex items-center gap-1">
+                             <span className="w-14 text-muted-foreground">Cons.:</span>
+                             <span className={`font-mono font-bold ${(col.consultant?.agoria_index_consultant || col.placement?.agoria_index_consultant) ? 'text-foreground' : 'text-muted-foreground'}`}>
+                               {col.consultant?.agoria_index_consultant || col.placement?.agoria_index_consultant || '—'}
+                             </span>
+                           </div>
+                         </div>
+                       </td>
+                       <td className="py-3 px-4">
+                         <div className="text-xs space-y-1">
+                           {col.client?.payment_terms_client ? <div><span className="text-muted-foreground">Klant: </span><span className="font-semibold">{col.client.payment_terms_client}d</span></div> : null}
+                           {col.consultant?.payment_terms_consultant ? <div><span className="text-muted-foreground">Cons.: </span><span className="font-semibold">{col.consultant.payment_terms_consultant}d</span></div> : null}
+                           {!col.client?.payment_terms_client && !col.consultant?.payment_terms_consultant && <span className="text-muted-foreground">—</span>}
+                         </div>
+                       </td>
+                       <td className="py-3 px-4 text-xs">
+                         {col.client?.liability_limit || col.consultant?.liability_limit
+                           ? <span className="text-foreground">{col.client?.liability_limit || col.consultant?.liability_limit}</span>
+                           : <span className="text-muted-foreground">—</span>}
+                       </td>
+                       <td className="py-3 px-4 text-xs">
+                         {col.client?.payroll_number || col.consultant?.payroll_number
+                           ? <span className="font-mono font-bold text-foreground">{col.client?.payroll_number || col.consultant?.payroll_number}</span>
+                           : <span className="text-muted-foreground">—</span>}
+                       </td>
+                       {/* Client contract */}
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2 flex-wrap">
                           <Badge variant="outline" className={`text-xs ${TYPE_STYLES.client}`}>Klant</Badge>
