@@ -43,6 +43,10 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
     client_rate: '',
     agoria_index_client: '',
     agoria_index_consultant: '',
+    payment_terms_client: placement?.payment_terms_client || '',
+    payment_terms_consultant: placement?.payment_terms_consultant || '',
+    liability_limit: placement?.liability_limit || '',
+    payroll_number: placement?.payroll_number || '',
     perm_annual_salary: '',
     perm_fee_percentage: 20,
     perm_fee_amount: '',
@@ -257,6 +261,26 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
                   <div className="space-y-2">
                     <Label>Agoria-index consultant</Label>
                     <Input type="number" step="0.01" value={form.agoria_index_consultant || ''} onChange={e => updateField('agoria_index_consultant', e.target.value)} placeholder="bijv. 108.50" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Betalingstermijn klant (dagen)</Label>
+                    <Input type="number" min="0" placeholder="bijv. 30" value={form.payment_terms_client || ''} onChange={e => updateField('payment_terms_client', e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Betalingstermijn consultant (dagen)</Label>
+                    <Input type="number" min="0" placeholder="bijv. 30" value={form.payment_terms_consultant || ''} onChange={e => updateField('payment_terms_consultant', e.target.value)} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Aansprakelijkheid</Label>
+                    <Input placeholder="bijv. max. contractwaarde" value={form.liability_limit || ''} onChange={e => updateField('liability_limit', e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Payrollnummer</Label>
+                    <Input placeholder="bijv. PR-2024-001" value={form.payroll_number || ''} onChange={e => updateField('payroll_number', e.target.value)} />
                   </div>
                 </div>
                 <div className="space-y-2">
