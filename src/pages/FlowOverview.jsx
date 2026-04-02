@@ -212,8 +212,10 @@ export default function FlowOverview() {
 
       <Tabs defaultValue="pipeline">
         <TabsList className="mb-4">
-          <TabsTrigger value="pipeline">🔗 Pipeline per placement</TabsTrigger>
-          <TabsTrigger value="periode">📅 Periode tabel</TabsTrigger>
+          <TabsTrigger value="pipeline">🔗 Pipeline</TabsTrigger>
+          <TabsTrigger value="contracten">📄 Contracten</TabsTrigger>
+          <TabsTrigger value="timesheets">🗓️ Timesheets</TabsTrigger>
+          <TabsTrigger value="facturen">🧳 Facturen</TabsTrigger>
         </TabsList>
 
         {/* ── TAB 1: bestaande kaartjesweergave ── */}
@@ -354,166 +356,158 @@ export default function FlowOverview() {
           </div>
         </TabsContent>
 
-        {/* ── TAB 2: Gescheiden secties ── */}
-        <TabsContent value="periode">
-          {/* Jaar filter (gedeeld) */}
-          <div className="flex items-center gap-2 mb-6">
+        {/* ── TAB 2: Contracten ── */}
+        <TabsContent value="contracten">
+          <div className="flex items-center gap-3 mb-6 p-3 bg-muted/40 rounded-lg border border-border flex-wrap">
+            <span className="text-xs font-medium text-muted-foreground">Status:</span>
+            <Select value={contractStatusFilter} onValueChange={setContractStatusFilter}>
+              <SelectTrigger className="w-40 h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Alle</SelectItem>
+                <SelectItem value="ok">Getekend</SelectItem>
+                <SelectItem value="pending">Concept / Verstuurd</SelectItem>
+                <SelectItem value="warn">Deels</SelectItem>
+                <SelectItem value="missing">Ontbreekt</SelectItem>
+              </SelectContent>
+            </Select>
+            {contractStatusFilter !== 'all' && (
+              <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => setContractStatusFilter('all')}><X className="w-3.5 h-3.5 mr-1" /> Reset</Button>
+            )}
+            <span className="text-xs text-muted-foreground ml-auto">{contractRows.length} rijen</span>
+          </div>
+          <Card>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/50">
+                      <th className="text-left py-2 px-4 font-semibold whitespace-nowrap">Consultant</th>
+                      <th className="text-left py-2 px-4 font-semibold whitespace-nowrap">Klant</th>
+                      <th className="text-left py-2 px-4 font-semibold whitespace-nowrap">Contract Klant</th>
+                      <th className="text-left py-2 px-4 font-semibold whitespace-nowrap">Contract Consultant</th>
+                      <th className="text-left py-2 px-4 font-semibold whitespace-nowrap">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {contractRows.length === 0 && <tr><td colSpan={5} className="py-8 text-center text-muted-foreground text-sm">Geen data</td></tr>}
+                    {contractRows.map((row, idx) => (
+                      <tr key={idx} className="border-b border-border/50 hover:bg-muted/20">
+                        <td className="py-2 px-4 font-medium whitespace-nowrap">{row.p.consultant_first_name} {row.p.consultant_last_name}</td>
+                        <td className="py-2 px-4 whitespace-nowrap">{row.p.client_company_name}</td>
+                        <td className="py-2 px-4">{row.clientContract ? <CellStatus val={row.clientContract} type="contract" /> : <span className="text-xs text-red-500 font-medium">Ontbreekt</span>}</td>
+                        <td className="py-2 px-4">{row.consultantContract ? <CellStatus val={row.consultantContract} type="contract" /> : <span className="text-xs text-red-500 font-medium">Ontbreekt</span>}</td>
+                        <td className="py-2 px-4"><ContractCell cc={row.clientContract} xc={row.consultantContract} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── TAB 3: Timesheets ── */}
+        <TabsContent value="timesheets">
+          <div className="flex items-center gap-3 mb-6 p-3 bg-muted/40 rounded-lg border border-border flex-wrap">
             <span className="text-xs font-medium text-muted-foreground">Jaar:</span>
             <Select value={periodYear} onValueChange={setPeriodYear}>
               <SelectTrigger className="w-24 h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+            </Select>
+            <span className="text-xs font-medium text-muted-foreground">Maand:</span>
+            <Select value={tsMonthFilter} onValueChange={setTsMonthFilter}>
+              <SelectTrigger className="w-36 h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                <SelectItem value="all">Alle maanden</SelectItem>
+                {Array.from({length:12},(_,i) => <SelectItem key={i+1} value={String(i+1)}>{getMonthName(i+1)}</SelectItem>)}
               </SelectContent>
             </Select>
+            {tsMonthFilter !== 'all' && (
+              <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => setTsMonthFilter('all')}><X className="w-3.5 h-3.5 mr-1" /> Reset</Button>
+            )}
+            <span className="text-xs text-muted-foreground ml-auto">{tsRows.length} rijen</span>
           </div>
-
-          <div className="space-y-8">
-
-            {/* ── CONTRACTEN ── */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-base font-bold text-foreground">📄 Contracten</h2>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Status:</span>
-                  <Select value={contractStatusFilter} onValueChange={setContractStatusFilter}>
-                    <SelectTrigger className="w-40 h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Alle</SelectItem>
-                      <SelectItem value="ok">Getekend</SelectItem>
-                      <SelectItem value="pending">Concept / Verstuurd</SelectItem>
-                      <SelectItem value="warn">Deels</SelectItem>
-                      <SelectItem value="missing">Ontbreekt</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <span className="text-xs text-muted-foreground">{contractRows.length} rijen</span>
-                </div>
+          <Card>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/50">
+                      <th className="text-left py-2 px-4 font-semibold whitespace-nowrap">Periode</th>
+                      <th className="text-left py-2 px-4 font-semibold whitespace-nowrap">Consultant</th>
+                      <th className="text-left py-2 px-4 font-semibold whitespace-nowrap">Klant</th>
+                      <th className="text-left py-2 px-4 font-semibold whitespace-nowrap">Timesheet</th>
+                      <th className="text-left py-2 px-4 font-semibold whitespace-nowrap">Dagen</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tsRows.length === 0 && <tr><td colSpan={5} className="py-8 text-center text-muted-foreground text-sm">Geen data</td></tr>}
+                    {tsRows.map((row, idx) => (
+                      <tr key={idx} className={`border-b border-border/50 hover:bg-muted/20 ${!row.ts ? 'bg-amber-50/30' : row.ts.status === 'approved' ? 'bg-emerald-50/20' : ''}`}>
+                        <td className="py-2 px-4 whitespace-nowrap font-semibold">{getMonthName(row.m)} {row.yr}</td>
+                        <td className="py-2 px-4 whitespace-nowrap">{row.p.consultant_first_name} {row.p.consultant_last_name}</td>
+                        <td className="py-2 px-4 whitespace-nowrap">{row.p.client_company_name}</td>
+                        <td className="py-2 px-4"><CellStatus val={row.ts} type="ts" /></td>
+                        <td className="py-2 px-4">{row.ts?.days_worked ?? <span className="text-muted-foreground">—</span>}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-              <Card>
-                <CardContent className="p-0">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b bg-muted/50">
-                          <th className="text-left py-2 px-4 font-semibold whitespace-nowrap">Consultant</th>
-                          <th className="text-left py-2 px-4 font-semibold whitespace-nowrap">Klant</th>
-                          <th className="text-left py-2 px-4 font-semibold whitespace-nowrap">Contract Klant</th>
-                          <th className="text-left py-2 px-4 font-semibold whitespace-nowrap">Contract Consultant</th>
-                          <th className="text-left py-2 px-4 font-semibold whitespace-nowrap">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {contractRows.length === 0 && <tr><td colSpan={5} className="py-8 text-center text-muted-foreground text-sm">Geen data</td></tr>}
-                        {contractRows.map((row, idx) => (
-                          <tr key={idx} className="border-b border-border/50 hover:bg-muted/20">
-                            <td className="py-2 px-4 font-medium whitespace-nowrap">{row.p.consultant_first_name} {row.p.consultant_last_name}</td>
-                            <td className="py-2 px-4 whitespace-nowrap">{row.p.client_company_name}</td>
-                            <td className="py-2 px-4">{row.clientContract ? <CellStatus val={row.clientContract} type="contract" /> : <span className="text-xs text-red-500 font-medium">Ontbreekt</span>}</td>
-                            <td className="py-2 px-4">{row.consultantContract ? <CellStatus val={row.consultantContract} type="contract" /> : <span className="text-xs text-red-500 font-medium">Ontbreekt</span>}</td>
-                            <td className="py-2 px-4"><ContractCell cc={row.clientContract} xc={row.consultantContract} /></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-            {/* ── TIMESHEETS ── */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-base font-bold text-foreground">🗓️ Timesheets</h2>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Maand:</span>
-                  <Select value={tsMonthFilter} onValueChange={setTsMonthFilter}>
-                    <SelectTrigger className="w-36 h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Alle maanden</SelectItem>
-                      {Array.from({length:12},(_,i) => <SelectItem key={i+1} value={String(i+1)}>{getMonthName(i+1)}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <span className="text-xs text-muted-foreground">{tsRows.length} rijen</span>
-                </div>
-              </div>
-              <Card>
-                <CardContent className="p-0">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b bg-muted/50">
-                          <th className="text-left py-2 px-4 font-semibold whitespace-nowrap">Periode</th>
-                          <th className="text-left py-2 px-4 font-semibold whitespace-nowrap">Consultant</th>
-                          <th className="text-left py-2 px-4 font-semibold whitespace-nowrap">Klant</th>
-                          <th className="text-left py-2 px-4 font-semibold whitespace-nowrap">Timesheet</th>
-                          <th className="text-left py-2 px-4 font-semibold whitespace-nowrap">Dagen</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {tsRows.length === 0 && <tr><td colSpan={5} className="py-8 text-center text-muted-foreground text-sm">Geen data</td></tr>}
-                        {tsRows.map((row, idx) => (
-                          <tr key={idx} className={`border-b border-border/50 hover:bg-muted/20 ${!row.ts ? 'bg-amber-50/30' : row.ts.status === 'approved' ? 'bg-emerald-50/20' : ''}`}>
-                            <td className="py-2 px-4 whitespace-nowrap font-semibold">{getMonthName(row.m)} {row.yr}</td>
-                            <td className="py-2 px-4 whitespace-nowrap">{row.p.consultant_first_name} {row.p.consultant_last_name}</td>
-                            <td className="py-2 px-4 whitespace-nowrap">{row.p.client_company_name}</td>
-                            <td className="py-2 px-4"><CellStatus val={row.ts} type="ts" /></td>
-                            <td className="py-2 px-4 text-sm">{row.ts?.days_worked ?? <span className="text-muted-foreground">—</span>}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* ── FACTUREN ── */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-base font-bold text-foreground">🧳 Facturen</h2>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Maand:</span>
-                  <Select value={invMonthFilter} onValueChange={setInvMonthFilter}>
-                    <SelectTrigger className="w-36 h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Alle maanden</SelectItem>
-                      {Array.from({length:12},(_,i) => <SelectItem key={i+1} value={String(i+1)}>{getMonthName(i+1)}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <span className="text-xs text-muted-foreground">{invRows.length} rijen</span>
-                </div>
-              </div>
-              <Card>
-                <CardContent className="p-0">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b bg-muted/50">
-                          <th className="text-left py-2 px-4 font-semibold whitespace-nowrap">Periode</th>
-                          <th className="text-left py-2 px-4 font-semibold whitespace-nowrap">Consultant</th>
-                          <th className="text-left py-2 px-4 font-semibold whitespace-nowrap">Klant</th>
-                          <th className="text-left py-2 px-4 font-semibold whitespace-nowrap">Factuur Klant</th>
-                          <th className="text-left py-2 px-4 font-semibold whitespace-nowrap">Factuur Consultant</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {invRows.length === 0 && <tr><td colSpan={5} className="py-8 text-center text-muted-foreground text-sm">Geen data</td></tr>}
-                        {invRows.map((row, idx) => (
-                          <tr key={idx} className={`border-b border-border/50 hover:bg-muted/20 ${!row.clientInv ? 'bg-amber-50/30' : row.clientInv.status === 'paid' ? 'bg-emerald-50/20' : ''}`}>
-                            <td className="py-2 px-4 whitespace-nowrap font-semibold">{getMonthName(row.m)} {row.yr}</td>
-                            <td className="py-2 px-4 whitespace-nowrap">{row.p.consultant_first_name} {row.p.consultant_last_name}</td>
-                            <td className="py-2 px-4 whitespace-nowrap">{row.p.client_company_name}</td>
-                            <td className="py-2 px-4"><CellStatus val={row.clientInv} type="cinv" /></td>
-                            <td className="py-2 px-4"><CellStatus val={row.consInv} type="xinv" /></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
+        {/* ── TAB 4: Facturen ── */}
+        <TabsContent value="facturen">
+          <div className="flex items-center gap-3 mb-6 p-3 bg-muted/40 rounded-lg border border-border flex-wrap">
+            <span className="text-xs font-medium text-muted-foreground">Jaar:</span>
+            <Select value={periodYear} onValueChange={setPeriodYear}>
+              <SelectTrigger className="w-24 h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+            </Select>
+            <span className="text-xs font-medium text-muted-foreground">Maand:</span>
+            <Select value={invMonthFilter} onValueChange={setInvMonthFilter}>
+              <SelectTrigger className="w-36 h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Alle maanden</SelectItem>
+                {Array.from({length:12},(_,i) => <SelectItem key={i+1} value={String(i+1)}>{getMonthName(i+1)}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            {invMonthFilter !== 'all' && (
+              <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => setInvMonthFilter('all')}><X className="w-3.5 h-3.5 mr-1" /> Reset</Button>
+            )}
+            <span className="text-xs text-muted-foreground ml-auto">{invRows.length} rijen</span>
           </div>
+          <Card>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/50">
+                      <th className="text-left py-2 px-4 font-semibold whitespace-nowrap">Periode</th>
+                      <th className="text-left py-2 px-4 font-semibold whitespace-nowrap">Consultant</th>
+                      <th className="text-left py-2 px-4 font-semibold whitespace-nowrap">Klant</th>
+                      <th className="text-left py-2 px-4 font-semibold whitespace-nowrap">Factuur Klant</th>
+                      <th className="text-left py-2 px-4 font-semibold whitespace-nowrap">Factuur Consultant</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {invRows.length === 0 && <tr><td colSpan={5} className="py-8 text-center text-muted-foreground text-sm">Geen data</td></tr>}
+                    {invRows.map((row, idx) => (
+                      <tr key={idx} className={`border-b border-border/50 hover:bg-muted/20 ${!row.clientInv ? 'bg-amber-50/30' : row.clientInv.status === 'paid' ? 'bg-emerald-50/20' : ''}`}>
+                        <td className="py-2 px-4 whitespace-nowrap font-semibold">{getMonthName(row.m)} {row.yr}</td>
+                        <td className="py-2 px-4 whitespace-nowrap">{row.p.consultant_first_name} {row.p.consultant_last_name}</td>
+                        <td className="py-2 px-4 whitespace-nowrap">{row.p.client_company_name}</td>
+                        <td className="py-2 px-4"><CellStatus val={row.clientInv} type="cinv" /></td>
+                        <td className="py-2 px-4"><CellStatus val={row.consInv} type="xinv" /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
