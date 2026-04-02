@@ -9,7 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Plus, FileText, Search, ArrowUpDown, X, CheckCircle2, Clock, Send, Download, RefreshCw, Loader2 } from 'lucide-react';
+import { Plus, FileText, Search, X, Download, RefreshCw, Loader2, ChevronDown } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { generateContractPdf } from '@/lib/contractPdf';
 import PageHeader from '@/components/shared/PageHeader';
@@ -88,6 +89,11 @@ export default function Contracts() {
     queryFn: () => base44.entities.Placement.list(),
   });
 
+  const { data: templates = [] } = useQuery({
+    queryKey: ['templates'],
+    queryFn: () => base44.entities.Template.list(),
+  });
+
   const [form, setForm] = useState({
     placement_id: '', contract_type: 'client', status: 'draft',
     sent_date: '', signed_date: '', recipient_name: '', recipient_email: '',
@@ -128,16 +134,17 @@ export default function Contracts() {
 
   const getPlacement = (id) => placements.find(p => p.id === id);
 
-  const handleGenerate = async (contract, placement, language = 'nl') => {
-    setGenerating(g => ({ ...g, [contract.id]: true }));
+  const handleGenerate = async (contract, placement, template) => {
+    const key = `${contract.id}-${template.id}`;
+    setGenerating(g => ({ ...g, [key]: true }));
     try {
       const res = await base44.functions.invoke('generateContract', {
         placement_id: placement.id,
         contract_type: contract.contract_type,
-        language,
+        language: template.language || 'nl',
+        template_id: template.id,
       });
       const { file_url, file_name } = res.data;
-      // Open download
       const a = document.createElement('a');
       a.href = file_url;
       a.download = file_name;
@@ -147,7 +154,46 @@ export default function Contracts() {
     } catch (err) {
       toast.error(err?.response?.data?.error || 'Genereren mislukt');
     }
-    setGenerating(g => ({ ...g, [contract.id]: false }));
+    setGenerating(g => ({ ...g, [key]: false }));
+  };
+
+  const getTemplatesForType = (contractType) => {
+    const relevantTypes = contractType === 'client'
+      ? ['contract_client', 'contract_addendum']
+      : ['contract_consultant', 'contract_subcontractor', 'contract_addendum'];
+    return templates.filter(t => relevantTypes.includes(t.template_type) && t.is_active !== false);
+  };
+
+  const DownloadDropdown = ({ contract, placement }) => {
+    const tpls = getTemplatesForType(contract.contract_type);
+    const isLoading = Object.keys(generating).some(k => k.startsWith(contract.id) && generating[k]);
+    if (tpls.length === 0) {
+      return (
+        <Button variant="ghost" size="icon" title="Geen sjablonen beschikbaar" disabled>
+          <Download className="w-3.5 h-3.5 text-muted-foreground" />
+        </Button>
+      );
+    }
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className="h-7 px-2 gap-1" disabled={isLoading}>
+            {isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5 text-primary" />}
+            <ChevronDown className="w-3 h-3 text-muted-foreground" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuLabel className="text-xs">Kies sjabloon</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {tpls.map(t => (
+            <DropdownMenuItem key={t.id} onClick={() => handleGenerate(contract, placement, t)} className="text-xs">
+              <Download className="w-3.5 h-3.5 mr-2" />
+              {t.name} <span className="ml-1 text-muted-foreground">· {t.language?.toUpperCase()}</span>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
   };
 
   // Group contracts by placement → one row per collaboration
@@ -425,7 +471,7 @@ export default function Contracts() {
                       <td className="py-3 px-4 text-xs">{col.placement?.payment_terms_consultant ? <span className="font-semibold">{col.placement.payment_terms_consultant}d</span> : <span className="text-muted-foreground">—</span>}</td>
                       <td className="py-3 px-4 text-xs">{col.placement?.payroll_number ? <span className="font-mono font-bold">{col.placement.payroll_number}</span> : <span className="text-muted-foreground">—</span>}</td>
                       <td className="py-3 px-4">{col.consultant ? <Badge variant="outline" className={`text-xs ${STATUS_STYLES[col.consultant.status]}`}>{STATUS_LABELS[col.consultant.status]}</Badge> : <span className="text-xs text-red-500 font-medium">Ontbreekt</span>}</td>
-                      <td className="py-3 px-4"><div className="flex items-center gap-1">{col.consultant?.notes && <span title={col.consultant.notes} className="text-xs bg-blue-100 text-blue-700 border border-blue-300 px-1.5 py-0.5 rounded cursor-help">📝</span>}{col.consultant && <Button variant="ghost" size="icon" onClick={() => generateContractPdf(col.consultant, col.placement)}><Download className="w-3.5 h-3.5 text-primary" /></Button>}{col.consultant && <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openEdit(col.consultant)}>Bewerken</Button>}</div></td>
+                      <td className="py-3 px-4"><div className="flex items-center gap-1">{col.consultant && <DownloadDropdown contract={col.consultant} placement={col.placement} />}{col.consultant && <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openEdit(col.consultant)}>Bewerken</Button>}</div></td>
                     </tr>
                   ))}
                 </tbody>
@@ -467,7 +513,7 @@ export default function Contracts() {
                       <td className="py-3 px-4 text-xs">{col.placement?.payment_terms_client ? <span className="font-semibold">{col.placement.payment_terms_client}d</span> : <span className="text-muted-foreground">—</span>}</td>
                       <td className="py-3 px-4 text-xs">{col.placement?.liability_limit || <span className="text-muted-foreground">—</span>}</td>
                       <td className="py-3 px-4">{col.client ? <Badge variant="outline" className={`text-xs ${STATUS_STYLES[col.client.status]}`}>{STATUS_LABELS[col.client.status]}</Badge> : <span className="text-xs text-red-500 font-medium">Ontbreekt</span>}</td>
-                      <td className="py-3 px-4"><div className="flex items-center gap-1">{col.client?.notes && <span title={col.client.notes} className="text-xs bg-blue-100 text-blue-700 border border-blue-300 px-1.5 py-0.5 rounded cursor-help">📝</span>}{col.client && <Button variant="ghost" size="icon" onClick={() => generateContractPdf(col.client, col.placement)}><Download className="w-3.5 h-3.5 text-primary" /></Button>}{col.client && <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openEdit(col.client)}>Bewerken</Button>}</div></td>
+                      <td className="py-3 px-4"><div className="flex items-center gap-1">{col.client && <DownloadDropdown contract={col.client} placement={col.placement} />}{col.client && <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openEdit(col.client)}>Bewerken</Button>}</div></td>
                     </tr>
                   ))}
                 </tbody>
