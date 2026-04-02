@@ -42,6 +42,8 @@ export default function FlowOverview() {
   const now = new Date();
   const [periodYear, setPeriodYear] = useState(String(now.getFullYear()));
   const [periodMonth, setPeriodMonth] = useState('all');
+  const [tsMonthFilter, setTsMonthFilter] = useState('all');
+  const [invMonthFilter, setInvMonthFilter] = useState('all');
 
   const { data: placements = [] } = useQuery({ queryKey: ['placements'], queryFn: () => base44.entities.Placement.list('-created_date') });
   const { data: contracts = [] } = useQuery({ queryKey: ['contracts'], queryFn: () => base44.entities.Contract.list() });
@@ -118,7 +120,6 @@ export default function FlowOverview() {
         const pContracts = contracts.filter(c => c.placement_id === p.id);
         const clientContract = pContracts.find(c => c.contract_type === 'client');
         const consultantContract = pContracts.find(c => c.contract_type === 'consultant');
-        // only show rows where placement was active that month
         const startDate = p.start_date ? new Date(p.start_date) : null;
         const rowDate = new Date(yr, m - 1, 1);
         if (startDate && rowDate < new Date(startDate.getFullYear(), startDate.getMonth(), 1)) return;
@@ -127,8 +128,13 @@ export default function FlowOverview() {
         rows.push({ p, m, yr, ts, clientInv, consInv, clientContract, consultantContract });
       });
     });
-    return rows;
-  }, [placements, timesheets, invoices, contracts, periodYear, periodMonth]);
+    // Apply separate ts/inv month filters
+    return rows.filter(row => {
+      if (tsMonthFilter !== 'all' && (!row.ts || row.ts.month !== parseInt(tsMonthFilter))) return false;
+      if (invMonthFilter !== 'all' && (!row.clientInv || row.clientInv.month !== parseInt(invMonthFilter))) return false;
+      return true;
+    });
+  }, [placements, timesheets, invoices, contracts, periodYear, periodMonth, tsMonthFilter, invMonthFilter]);
 
   const years = [];
   for (let y = 2024; y <= 2027; y++) years.push(y);
@@ -329,13 +335,14 @@ export default function FlowOverview() {
         <TabsContent value="periode">
           {/* Periode filters */}
           <div className="flex flex-wrap items-center gap-2 mb-6 p-3 bg-muted/40 rounded-lg border border-border">
-            <span className="text-xs font-medium text-muted-foreground">Periode:</span>
+            <span className="text-xs font-medium text-muted-foreground">Jaar:</span>
             <Select value={periodYear} onValueChange={setPeriodYear}>
               <SelectTrigger className="w-24 h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
               </SelectContent>
             </Select>
+            <span className="text-xs font-medium text-muted-foreground ml-2">Maand:</span>
             <Select value={periodMonth} onValueChange={setPeriodMonth}>
               <SelectTrigger className="w-36 h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -345,9 +352,30 @@ export default function FlowOverview() {
                 ))}
               </SelectContent>
             </Select>
-            {periodMonth !== 'all' && (
-              <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => setPeriodMonth('all')}>
-                <X className="w-3.5 h-3.5 mr-1" /> Reset maand
+            <div className="w-px h-6 bg-border mx-1" />
+            <span className="text-xs font-medium text-muted-foreground">Timesheet maand:</span>
+            <Select value={tsMonthFilter} onValueChange={setTsMonthFilter}>
+              <SelectTrigger className="w-36 h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Alle</SelectItem>
+                {Array.from({length:12},(_,i) => (
+                  <SelectItem key={i+1} value={String(i+1)}>{getMonthName(i+1)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="text-xs font-medium text-muted-foreground">Factuur maand:</span>
+            <Select value={invMonthFilter} onValueChange={setInvMonthFilter}>
+              <SelectTrigger className="w-36 h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Alle</SelectItem>
+                {Array.from({length:12},(_,i) => (
+                  <SelectItem key={i+1} value={String(i+1)}>{getMonthName(i+1)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {(periodMonth !== 'all' || tsMonthFilter !== 'all' || invMonthFilter !== 'all') && (
+              <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => { setPeriodMonth('all'); setTsMonthFilter('all'); setInvMonthFilter('all'); }}>
+                <X className="w-3.5 h-3.5 mr-1" /> Reset
               </Button>
             )}
             <span className="text-xs text-muted-foreground ml-auto">{periodRows.length} rijen</span>
