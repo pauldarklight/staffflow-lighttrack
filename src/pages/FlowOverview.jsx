@@ -218,10 +218,10 @@ export default function FlowOverview() {
           <TabsTrigger value="facturen">🧳 Facturen</TabsTrigger>
         </TabsList>
 
-        {/* ── TAB 1: bestaande kaartjesweergave ── */}
+        {/* ── TAB 1: Pipeline ── */}
         <TabsContent value="pipeline">
           {/* Filters */}
-          <div className="flex flex-wrap items-center gap-2 mb-6 p-3 bg-muted/40 rounded-lg border border-border">
+          <div className="flex flex-wrap items-center gap-2 mb-4 p-3 bg-muted/40 rounded-lg border border-border">
             <div className="relative flex-1 min-w-[180px]">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <Input placeholder="Zoek op consultant of klant..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
@@ -242,117 +242,140 @@ export default function FlowOverview() {
             )}
           </div>
 
-          {/* Flow rows */}
-          <div className="space-y-3">
+          {/* Rows */}
+          <div className="space-y-2">
             {filtered.map(f => {
               const p = f.placement;
               const isOpen = expanded[p.id];
+              const isImported = p.notes?.includes('Geïmporteerd vanuit Actuals Excel');
+
+              // Contract badge
+              const contractBadgeColor = f.contractStatus === 'ok' ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : f.contractStatus === 'missing' ? 'bg-red-50 text-red-600 border-red-200'
+                : f.contractStatus === 'warn' ? 'bg-amber-50 text-amber-700 border-amber-200'
+                : 'bg-blue-50 text-blue-600 border-blue-200';
+              const contractLabel = f.contractStatus === 'ok' ? 'Getekend'
+                : f.contractStatus === 'missing' ? 'Ontbreekt'
+                : f.contractStatus === 'warn' ? 'Deels'
+                : 'Concept/Verstuurd';
+              const ContractIcon = f.contractStatus === 'ok' ? CheckCircle2 : f.contractStatus === 'missing' ? AlertTriangle : Clock;
+
+              const tsBadgeColor = f.timesheetStatus === 'ok' ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : f.timesheetStatus === 'missing' ? 'bg-red-50 text-red-600 border-red-200'
+                : f.timesheetStatus === 'warn' ? 'bg-amber-50 text-amber-700 border-amber-200'
+                : 'bg-blue-50 text-blue-600 border-blue-200';
+              const TsIcon = f.timesheetStatus === 'ok' ? CheckCircle2 : f.timesheetStatus === 'missing' ? AlertTriangle : Clock;
+
+              const invBadgeColor = f.invoiceStatus === 'ok' ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : f.invoiceStatus === 'missing' ? 'bg-red-50 text-red-600 border-red-200'
+                : f.invoiceStatus === 'warn' ? 'bg-amber-50 text-amber-700 border-amber-200'
+                : 'bg-blue-50 text-blue-600 border-blue-200';
+              const InvIcon = f.invoiceStatus === 'ok' ? CheckCircle2 : f.invoiceStatus === 'missing' ? AlertTriangle : Clock;
+
+              // Period rows for expanded view
+              const placementTimesheets = f.pTimesheets.sort((a,b) => a.year !== b.year ? a.year - b.year : a.month - b.month);
+              const allMonths = [...new Set([
+                ...f.pTimesheets.map(t => `${t.year}-${t.month}`),
+                ...f.pInvoices.map(i => `${i.year}-${i.month}`),
+              ])].sort().map(key => {
+                const [yr, mo] = key.split('-').map(Number);
+                return { yr, mo };
+              });
+
               return (
-                <Card key={p.id} className={`overflow-hidden transition-all ${f.health === 'warn' ? 'border-amber-200' : ''}`}>
-                  <button className="w-full text-left" onClick={() => setExpanded(e => ({ ...e, [p.id]: !e[p.id] }))}>
-                    <div className="flex flex-wrap items-center gap-3 p-4">
-                      <div className="flex items-center gap-2 min-w-[180px] flex-1">
-                        <StepIcon status={f.health} />
-                        <div>
-                          <div className="font-bold text-sm flex items-center gap-2">
-                            {p.consultant_first_name} {p.consultant_last_name}
-                            {p.notes?.includes('Geïmporteerd vanuit Actuals Excel') && (
-                              <span className="inline-flex items-center gap-1 text-xs font-medium bg-emerald-100 text-emerald-700 border border-emerald-200 rounded px-1.5 py-0.5">
-                                <CheckCircle2 className="w-3 h-3" /> Geïmporteerd
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-xs text-muted-foreground">{p.client_company_name}</div>
-                        </div>
+                <Card key={p.id} className={`overflow-hidden transition-all border ${
+                  f.health === 'warn' ? 'border-amber-200' : f.health === 'ok' ? 'border-border' : 'border-border'
+                }`}>
+                  {/* Main row */}
+                  <div className="flex flex-wrap items-center gap-3 px-4 py-3">
+                    {/* Status dot */}
+                    <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                      f.health === 'ok' ? 'bg-emerald-500' : f.health === 'warn' ? 'bg-amber-400' : 'bg-blue-400'
+                    }`} />
+
+                    {/* Samenwerking */}
+                    <div className="min-w-[180px] flex-1">
+                      <div className="font-semibold text-sm flex items-center gap-2 flex-wrap">
+                        {p.consultant_first_name} {p.consultant_last_name}
+                        {isImported && (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium bg-emerald-100 text-emerald-700 border border-emerald-200 rounded px-1.5 py-0.5">
+                            <CheckCircle2 className="w-3 h-3" /> Geïmporteerd
+                          </span>
+                        )}
                       </div>
-                      <div className="flex flex-wrap gap-2 flex-1">
-                        <StepBadge label="Contracten" status={f.contractStatus}
-                          detail={f.contractStatus === 'ok' ? 'Getekend' : f.contractStatus === 'pending' ? 'Concept/Verstuurd' : f.contractStatus === 'missing' ? 'Ontbreekt' : 'Deels'}
-                        />
-                        <StepBadge label="Timesheets" status={f.timesheetStatus}
-                          detail={`${f.pTimesheets.length} totaal · ${f.approvedTS.length} goedgekeurd`}
-                        />
-                        <StepBadge label="Facturen" status={f.invoiceStatus}
-                          detail={`${f.clientInvoices.length} facturen`}
-                        />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="text-xs text-muted-foreground whitespace-nowrap">{formatDate(p.start_date)} → {p.end_date ? formatDate(p.end_date) : '∞'}</div>
-                        {isOpen ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-                      </div>
+                      <div className="text-xs text-muted-foreground">{p.client_company_name}</div>
                     </div>
-                  </button>
+
+                    {/* Status badges */}
+                    <div className="flex flex-wrap gap-1.5 flex-1">
+                      <span className={`inline-flex items-center gap-1 text-xs font-medium border rounded-full px-2 py-0.5 ${contractBadgeColor}`}>
+                        <ContractIcon className="w-3 h-3" /> Contracten · {contractLabel}
+                      </span>
+                      <span className={`inline-flex items-center gap-1 text-xs font-medium border rounded-full px-2 py-0.5 ${tsBadgeColor}`}>
+                        <TsIcon className="w-3 h-3" /> Timesheets · {f.pTimesheets.length} totaal · {f.approvedTS.length} goedgekeurd
+                      </span>
+                      <span className={`inline-flex items-center gap-1 text-xs font-medium border rounded-full px-2 py-0.5 ${invBadgeColor}`}>
+                        <InvIcon className="w-3 h-3" /> Facturen · {f.clientInvoices.length} facturen
+                      </span>
+                    </div>
+
+                    {/* Date range + expand */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        {formatDate(p.start_date)} → {p.end_date ? formatDate(p.end_date) : '∞'}
+                      </span>
+                      <button
+                        onClick={() => setExpanded(e => ({ ...e, [p.id]: !e[p.id] }))}
+                        className="w-6 h-6 rounded border border-border flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
+                      >
+                        {isOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Expanded: per-period breakdown */}
                   {isOpen && (
-                    <div className="border-t border-border bg-muted/20 p-4 grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div>
-                        <div className="text-xs font-semibold text-muted-foreground uppercase mb-2">Contracten</div>
-                        <div className="space-y-2">
-                          {[{ label: 'Klant', contract: f.clientContract }, { label: 'Consultant', contract: f.consultantContract }].map(({ label, contract }) => (
-                            <div key={label} className="flex items-center justify-between text-xs">
-                              <span className="text-muted-foreground">{label}:</span>
-                              {contract ? (
-                                <div className="flex items-center gap-2">
-                                  <Badge variant="outline" className="text-xs">{contract.status}</Badge>
-                                  {contract.agoria_index_client || contract.agoria_index_consultant ? (
-                                    <span className="font-mono text-muted-foreground">idx: {contract.agoria_index_client || contract.agoria_index_consultant}</span>
-                                  ) : null}
-                                </div>
-                              ) : (
-                                <span className="text-red-500 font-medium">Ontbreekt</span>
-                              )}
-                            </div>
-                          ))}
-                          <Link to="/Contracts"><Button variant="outline" size="sm" className="w-full h-7 text-xs mt-1">Beheer Contracten →</Button></Link>
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-xs font-semibold text-muted-foreground uppercase mb-2">Recente Timesheets</div>
-                        {f.pTimesheets.length === 0 ? (
-                          <p className="text-xs text-muted-foreground">Geen timesheets</p>
-                        ) : (
-                          <div className="space-y-1">
-                            {f.pTimesheets.slice(0, 4).map(t => (
-                              <div key={t.id} className="flex items-center justify-between text-xs">
-                                <span>{getMonthName(t.month)} {t.year}</span>
-                                <div className="flex items-center gap-1">
-                                  <span className="text-muted-foreground">{t.days_worked}d</span>
-                                  <Badge variant="outline" className="text-xs py-0">{t.status}</Badge>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        <Link to="/Timesheets"><Button variant="outline" size="sm" className="w-full h-7 text-xs mt-2">Beheer Timesheets →</Button></Link>
-                      </div>
-                      <div>
-                        <div className="text-xs font-semibold text-muted-foreground uppercase mb-2">Facturen</div>
-                        {f.pInvoices.length === 0 ? (
-                          <div>
-                            <p className="text-xs text-muted-foreground mb-1">Geen facturen</p>
-                            {f.approvedTS.length > 0 && (
-                              <p className="text-xs text-amber-600 font-medium">⚠️ {f.approvedTS.length} goedgekeurde timesheet(s) zonder factuur</p>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="space-y-1">
-                            {f.pInvoices.slice(0, 4).map(inv => (
-                              <div key={inv.id} className="flex items-center justify-between text-xs">
-                                <span>{inv.invoice_type === 'client_invoice' ? 'Klant' : 'Cons.'} {getMonthName(inv.month)} {inv.year}</span>
-                                <div className="flex items-center gap-1">
-                                  <span className="font-medium">{formatCurrency(inv.amount)}</span>
-                                  <Badge variant="outline" className="text-xs py-0">{inv.status}</Badge>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        <Link to="/Billing"><Button variant="outline" size="sm" className="w-full h-7 text-xs mt-2">Beheer Facturen →</Button></Link>
-                      </div>
+                    <div className="border-t border-border bg-muted/10">
+                      {allMonths.length === 0 ? (
+                        <div className="px-6 py-4 text-xs text-muted-foreground">Geen periodedata beschikbaar.</div>
+                      ) : (
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="border-b bg-muted/30">
+                              <th className="text-left py-2 px-6 font-semibold text-muted-foreground">Periode</th>
+                              <th className="text-left py-2 px-3 font-semibold text-muted-foreground">Timesheet</th>
+                              <th className="text-left py-2 px-3 font-semibold text-muted-foreground">Factuur Klant</th>
+                              <th className="text-left py-2 px-3 font-semibold text-muted-foreground">Factuur Consultant</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {allMonths.map(({ yr, mo }) => {
+                              const ts = f.pTimesheets.find(t => t.year === yr && t.month === mo);
+                              const cInv = f.pInvoices.find(i => i.year === yr && i.month === mo && i.invoice_type === 'client_invoice');
+                              const xInv = f.pInvoices.find(i => i.year === yr && i.month === mo && i.invoice_type === 'consultant_invoice');
+                              const allOk = ts?.status === 'approved' && cInv && xInv;
+                              return (
+                                <tr key={`${yr}-${mo}`} className={`border-b border-border/40 ${
+                                  allOk ? 'bg-emerald-50/30' : !ts ? 'bg-amber-50/20' : ''
+                                }`}>
+                                  <td className="py-2 px-6 font-semibold text-foreground whitespace-nowrap">{getMonthName(mo)} {yr}</td>
+                                  <td className="py-2 px-3"><CellStatus val={ts} type="ts" /></td>
+                                  <td className="py-2 px-3"><CellStatus val={cInv} type="cinv" /></td>
+                                  <td className="py-2 px-3"><CellStatus val={xInv} type="xinv" /></td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      )}
                     </div>
                   )}
                 </Card>
               );
             })}
+            {filtered.length === 0 && (
+              <div className="text-center py-12 text-muted-foreground text-sm">Geen placements gevonden</div>
+            )}
           </div>
         </TabsContent>
 
