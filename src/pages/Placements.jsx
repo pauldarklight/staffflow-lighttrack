@@ -102,42 +102,28 @@ function DurationPrestaties({ p }) {
   );
 }
 
-function ContractValueCell({ p, totalRevenue, totalMargin }) {
-  // PERM: show fee directly
+function ContractValueCell({ p }) {
   if (p.placement_type === 'perm') {
     const fee = p.perm_fee_amount || ((p.perm_annual_salary || 0) * ((p.perm_fee_percentage || 20) / 100));
     return (
-      <div className="text-right min-w-[130px]">
+      <div className="text-right min-w-[120px]">
         <div className="text-xs text-muted-foreground">Eenmalige fee</div>
         <div className="font-bold text-foreground">{fee > 0 ? formatCurrency(fee) : '—'}</div>
         {p.perm_fee_percentage && <div className="text-xs text-muted-foreground">{p.perm_fee_percentage}% van jaarloon</div>}
       </div>
     );
   }
-
   const endDate = effectiveEndDate(p);
   if (!p.start_date || !endDate || !p.client_rate) {
-    return (
-      <div className="text-right">
-        {totalRevenue > 0 ? <div className="font-bold text-primary">{formatCurrency(totalRevenue)}</div> : <span className="text-muted-foreground text-xs">—</span>}
-        {totalMargin > 0 && <div className="text-xs text-muted-foreground">marge: {formatCurrency(totalMargin)}</div>}
-      </div>
-    );
+    return <span className="text-muted-foreground text-xs">—</span>;
   }
-
-  // Estimate contract value: ~21 working days/month
   const totalMonths = monthDiff(p.start_date, endDate);
   const estimatedDays = Math.round(totalMonths * 21);
   const contractValue = estimatedDays * (p.client_rate || 0);
-  const contractMargin = estimatedDays * ((p.client_rate || 0) - (p.consultant_rate || 0));
-
   return (
-    <div className="text-right min-w-[130px]">
+    <div className="text-right min-w-[120px]">
       <div className="text-xs text-muted-foreground">Totaalwaarde (est.)</div>
       <div className="font-bold text-foreground">{formatCurrency(contractValue)}</div>
-      <div className="text-xs text-muted-foreground mt-1">Gerealiseerd</div>
-      <div className="font-bold text-primary">{totalRevenue > 0 ? formatCurrency(totalRevenue) : '—'}</div>
-      {totalMargin > 0 && <div className="text-xs text-muted-foreground">marge: {formatCurrency(totalMargin)}</div>}
     </div>
   );
 }
@@ -431,7 +417,7 @@ export default function Placements() {
                         <td className="py-3 px-3"><DurationBar p={p} /></td>
                         <td className="py-3 px-3"><DurationPrestaties p={p} /></td>
                         <td className="py-3 px-3 bg-primary/10">
-                          <ContractValueCell p={p} totalRevenue={p.totalRevenue} totalMargin={p.totalMargin} />
+                          <ContractValueCell p={p} />
                         </td>
                         <td className="py-3 px-3 text-right">
                           <div className="font-bold text-foreground">{p.totalRevenue > 0 ? formatCurrency(p.totalRevenue) : <span className="text-muted-foreground text-xs">—</span>}</div>
