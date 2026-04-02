@@ -512,6 +512,21 @@ export default function Billing() {
                         <ReferenceReminder instructions={row.placement?.reference_instructions} />
                         <InvoiceRef invoice={row.clientInvoice} />
                         <StatusCell invoice={row.clientInvoice} hasTimesheet={!!row.ts} onMarkPaid={markPaid} onSendReminder={sendReminder} sendingReminder={sendingReminderId === row.clientInvoice?.id} showTimesheetStatus={false} />
+                        {row.clientInvoice && (
+                          <div className="mt-1">
+                            {row.clientInvoice.file_url ? (
+                              <a href={row.clientInvoice.file_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
+                                <Paperclip className="w-3 h-3" /> Factuur bekijken
+                              </a>
+                            ) : (
+                              <label className="cursor-pointer text-xs text-muted-foreground hover:text-primary flex items-center gap-1">
+                                {uploadingInvoiceId === row.clientInvoice.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                                Factuur uploaden
+                                <input type="file" className="hidden" accept=".pdf,.jpg,.png" onChange={e => e.target.files[0] && handleUploadInvoiceFile(row.clientInvoice.id, e.target.files[0])} />
+                              </label>
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td className={`py-3 px-3 text-right bg-foreground/8 font-bold border-l border-foreground/10 ${consultantOverdue ? 'text-red-600' : 'text-foreground'}`} style={{backgroundColor: 'rgba(0,0,0,0.06)'}}>
                         <div className="flex items-center justify-end gap-1">
