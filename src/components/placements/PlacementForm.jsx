@@ -206,11 +206,13 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
               <Label>Facturatiemail / Peppol</Label>
               <Input value={form.client_billing_email} onChange={e => updateField('client_billing_email', e.target.value)} />
             </div>
+            {!isPerm && (
             <div className="space-y-2">
               <Label>E-mail timesheet-verantwoordelijke klant</Label>
               <Input type="email" placeholder="bijv. approve@klant.be" value={form.client_timesheet_approver_email || ''} onChange={e => updateField('client_timesheet_approver_email', e.target.value)} />
               <p className="text-xs text-muted-foreground">Persoon bij de klant die timesheets controleert en goedkeurt.</p>
             </div>
+            )}
             <div className="space-y-2">
               <Label className="flex items-center gap-1">
                 <span>📋</span> Referentie-instructies factuur/bestelbon
