@@ -157,15 +157,17 @@ export default function Contracts() {
     setGenerating(g => ({ ...g, [key]: false }));
   };
 
-  const getTemplatesForType = (contractType) => {
+  const getTemplatesForPlacement = (contractType, placement) => {
+    const selectedIds = placement?.contract_template_ids || [];
+    if (selectedIds.length === 0) return [];
     const relevantTypes = contractType === 'client'
       ? ['contract_client', 'contract_addendum']
       : ['contract_consultant', 'contract_subcontractor', 'contract_addendum'];
-    return templates.filter(t => relevantTypes.includes(t.template_type) && t.is_active !== false);
+    return templates.filter(t => selectedIds.includes(t.id) && relevantTypes.includes(t.template_type));
   };
 
   const DownloadDropdown = ({ contract, placement }) => {
-    const tpls = getTemplatesForType(contract.contract_type);
+    const tpls = getTemplatesForPlacement(contract.contract_type, placement);
     const isLoading = Object.keys(generating).some(k => k.startsWith(contract.id) && generating[k]);
     if (tpls.length === 0) {
       return (
