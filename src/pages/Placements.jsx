@@ -120,10 +120,13 @@ function ContractValueCell({ p }) {
   const totalMonths = monthDiff(p.start_date, endDate);
   const estimatedDays = Math.round(totalMonths * 21);
   const contractValue = estimatedDays * (p.client_rate || 0);
+  const contractMargin = estimatedDays * ((p.client_rate || 0) - (p.consultant_rate || 0));
   return (
-    <div className="text-right min-w-[120px]">
-      <div className="text-xs text-muted-foreground">Totaalwaarde (est.)</div>
+    <div className="text-right min-w-[130px]">
+      <div className="text-xs text-muted-foreground">Omzet (est.)</div>
       <div className="font-bold text-foreground">{formatCurrency(contractValue)}</div>
+      <div className="text-xs text-muted-foreground mt-1">Marge (est.)</div>
+      <div className="font-semibold text-emerald-600">{formatCurrency(contractMargin)}</div>
     </div>
   );
 }
