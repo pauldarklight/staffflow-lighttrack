@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Plus, Clock, Search, ArrowUpDown, X, AlertTriangle, ExternalLink } from 'lucide-react';
+import { Plus, Clock, Search, ArrowUpDown, X, AlertTriangle } from 'lucide-react';
+import ReconcileCell from '@/components/timesheets/ReconcileCell';
 import PageHeader from '@/components/shared/PageHeader';
 import StatCard from '@/components/shared/StatCard';
 import EmptyState from '@/components/shared/EmptyState';
@@ -59,6 +60,11 @@ export default function Timesheets() {
   const { data: timesheets = [] } = useQuery({
     queryKey: ['timesheets'],
     queryFn: () => base44.entities.Timesheet.list('-created_date'),
+  });
+
+  const { data: invoices = [] } = useQuery({
+    queryKey: ['invoices'],
+    queryFn: () => base44.entities.Invoice.list(),
   });
 
   const { data: placements = [] } = useQuery({
@@ -120,10 +126,17 @@ export default function Timesheets() {
   const years = [];
   for (let y = 2024; y <= 2027; y++) years.push(y);
 
-  // Enrich timesheets with placement data
+  // Enrich timesheets with placement data + invoice reconciliation
   const enriched = useMemo(() => timesheets.map(t => {
     const placement = placements.find(p => p.id === t.placement_id);
     const isImported = placement?.notes?.includes('Geïmporteerd vanuit Actuals Excel');
+    const clientInvoice = invoices.find(i => i.placement_id === t.placement_id && i.month === t.month && i.year === t.year && i.invoice_type === 'client_invoice');
+    const consultantInvoice = invoices.find(i => i.placement_id === t.placement_id && i.month === t.month && i.year === t.year && i.invoice_type === 'consultant_invoice');
+    const days = t.days_worked || 0;
+    const expectedClient = days * (placement?.client_rate || 0);
+    const expectedConsultant = days * (placement?.consultant_rate || 0);
+    const clientMatch = clientInvoice ? Math.abs((clientInvoice.amount || 0) - expectedClient) < 0.5 : null;
+    const consultantMatch = consultantInvoice ? Math.abs((consultantInvoice.amount || 0) - expectedConsultant) < 0.5 : null;
     return {
       ...t,
       placement,
@@ -132,8 +145,11 @@ export default function Timesheets() {
       consultantRate: placement?.consultant_rate || 0,
       late: isLate(t) && !isImported,
       isImported,
+      clientInvoice, consultantInvoice,
+      expectedClient, expectedConsultant,
+      clientMatch, consultantMatch,
     };
-  }), [timesheets, placements]);
+  }), [timesheets, placements, invoices]);
 
   // Virtual rows: active placements without a timesheet for selected month (only in month view)
   const missingRows = useMemo(() => {
@@ -426,6 +442,8 @@ export default function Timesheets() {
                     <th className="text-right py-3 px-4 font-bold text-white bg-primary">Kost</th>
                     <th className="text-right py-3 px-4 font-bold text-foreground">Marge</th>
                     <th className="text-left py-3 px-4 font-normal text-foreground">Status</th>
+                    <th className="text-left py-3 px-4 font-bold text-foreground whitespace-nowrap">Controle klant</th>
+                    <th className="text-left py-3 px-4 font-bold text-foreground whitespace-nowrap">Controle consultant</th>
                     <th className="text-right py-3 px-4 font-normal text-foreground">Acties</th>
                   </tr>
                 </thead>
@@ -460,6 +478,22 @@ export default function Timesheets() {
                         </Badge>
                         {t.late && <div className="text-xs text-red-600 mt-1 font-medium">Te laat</div>}
                       </td>
+                      <td className="py-3 px-4">
+                        <ReconcileCell
+                          expected={t.expectedClient}
+                          invoice={t.clientInvoice}
+                          match={t.clientMatch}
+                          label="klant"
+                        />
+                      </td>
+                      <td className="py-3 px-4">
+                        <ReconcileCell
+                          expected={t.expectedConsultant}
+                          invoice={t.consultantInvoice}
+                          match={t.consultantMatch}
+                          label="cons."
+                        />
+                      </td>
                       <td className="py-3 px-4 text-right">
                         <Button variant="ghost" size="sm" onClick={() => openEdit(t)}>Bewerken</Button>
                       </td>
@@ -486,6 +520,8 @@ export default function Timesheets() {
                         <td className="py-3 px-4">
                           <Badge variant="outline" className="text-xs bg-amber-100 text-amber-700 border-amber-200">Ontbreekt</Badge>
                         </td>
+                        <td className="py-3 px-4"><span className="text-xs text-muted-foreground">—</span></td>
+                        <td className="py-3 px-4"><span className="text-xs text-muted-foreground">—</span></td>
                         <td className="py-3 px-4 text-right">
                           <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => { setForm({ placement_id: r.placement_id, month: r.month, year: r.year, days_worked: r.days_worked, hours_worked: '', status: 'approved' }); setEditing(null); setShowForm(true); }}>Aanmaken</Button>
                         </td>
@@ -498,8 +534,8 @@ export default function Timesheets() {
                       <td className="py-3 px-4 text-right bg-primary/10 text-muted-foreground">{formatCurrency(filtered.reduce((s, t) => s + (t.client_revenue || 0), 0))}</td>
                       <td className="py-3 px-4 text-right bg-primary/10 font-bold text-foreground">{formatCurrency(filtered.reduce((s, t) => s + (t.consultant_revenue || 0), 0))}</td>
                       <td className="py-3 px-4 text-right text-primary font-bold">{formatCurrency(filtered.reduce((s, t) => s + (t.margin || 0), 0))}</td>
-                      <td colSpan={2} />
-                    </tr>
+                      <td colSpan={4} />
+                                     </tr>
                   )}
                 </tbody>
               </table>
