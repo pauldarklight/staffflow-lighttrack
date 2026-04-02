@@ -1,0 +1,71 @@
+{
+  "name": "Timesheet",
+  "type": "object",
+  "properties": {
+    "placement_id": {
+      "type": "string",
+      "description": "Referentie naar placement"
+    },
+    "month": {
+      "type": "integer",
+      "description": "Maand (1-12)"
+    },
+    "year": {
+      "type": "integer",
+      "description": "Jaar"
+    },
+    "days_worked": {
+      "type": "number",
+      "description": "Aantal gewerkte dagen"
+    },
+    "hours_worked": {
+      "type": "number",
+      "description": "Aantal gewerkte uren"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "requested",
+        "submitted",
+        "approved",
+        "rejected"
+      ],
+      "default": "requested",
+      "description": "Status timesheet"
+    },
+    "confirmed_to_client": {
+      "type": "boolean",
+      "default": false,
+      "description": "Timesheet ontvangen van consultant en bevestigd bij klant"
+    },
+    "consultant_revenue": {
+      "type": "number",
+      "description": "Kost consultant (dagen x tarief consultant)"
+    },
+    "client_revenue": {
+      "type": "number",
+      "description": "Omzet (dagen x tarief klant)"
+    },
+    "margin": {
+      "type": "number",
+      "description": "Marge (client_revenue - consultant_revenue)"
+    },
+    "consultant_name": {
+      "type": "string",
+      "description": "Naam consultant (denormalized)"
+    },
+    "client_company": {
+      "type": "string",
+      "description": "Bedrijfsnaam klant (denormalized)"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL van timesheet document"
+    }
+  },
+  "required": [
+    "placement_id",
+    "month",
+    "year"
+  ]
+}

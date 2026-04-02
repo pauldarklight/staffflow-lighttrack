@@ -442,6 +442,7 @@ export default function Timesheets() {
                     <th className="text-right py-3 px-4 font-bold text-white bg-primary">Kost</th>
                     <th className="text-right py-3 px-4 font-bold text-foreground">Marge</th>
                     <th className="text-left py-3 px-4 font-normal text-foreground">Status</th>
+                    <th className="text-left py-3 px-4 font-bold text-foreground whitespace-nowrap">Doorgestuurd klant</th>
                     <th className="text-left py-3 px-4 font-bold text-foreground whitespace-nowrap">Controle klant</th>
                     <th className="text-left py-3 px-4 font-bold text-foreground whitespace-nowrap">Controle consultant</th>
                     <th className="text-right py-3 px-4 font-normal text-foreground">Acties</th>
@@ -477,6 +478,19 @@ export default function Timesheets() {
                           {STATUS_LABELS[t.status] || t.status}
                         </Badge>
                         {t.late && <div className="text-xs text-red-600 mt-1 font-medium">Te laat</div>}
+                      </td>
+                      <td className="py-3 px-4">
+                        <button
+                          onClick={() => updateMutation.mutate({ id: t.id, data: { confirmed_to_client: !t.confirmed_to_client } })}
+                          className={`flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-md border transition-colors ${
+                            t.confirmed_to_client
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                              : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          <span>{t.confirmed_to_client ? '✓' : '○'}</span>
+                          <span>{t.confirmed_to_client ? 'Bevestigd' : 'Niet bevestigd'}</span>
+                        </button>
                       </td>
                       <td className="py-3 px-4">
                         <ReconcileCell
@@ -520,6 +534,7 @@ export default function Timesheets() {
                         <td className="py-3 px-4">
                           <Badge variant="outline" className="text-xs bg-amber-100 text-amber-700 border-amber-200">Ontbreekt</Badge>
                         </td>
+                        <td className="py-3 px-4"><span className="text-xs text-muted-foreground">—</span></td>
                         <td className="py-3 px-4"><span className="text-xs text-muted-foreground">—</span></td>
                         <td className="py-3 px-4"><span className="text-xs text-muted-foreground">—</span></td>
                         <td className="py-3 px-4 text-right">
