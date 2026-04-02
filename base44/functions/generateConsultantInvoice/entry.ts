@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { placement_id, timesheet_id, month, year, language = 'nl' } = await req.json();
+    const { placement_id, timesheet_id, month, year, language = 'nl', invoice_for = 'consultant' } = await req.json();
 
     // Fetch placement
     const placements = await base44.asServiceRole.entities.Placement.filter({ id: placement_id });
@@ -48,8 +48,9 @@ Deno.serve(async (req) => {
     const invoiceMonth = timesheet?.month || month;
     const invoiceYear = timesheet?.year || year;
 
-    // Find active invoice template for consultant
-    const allTemplates = await base44.asServiceRole.entities.Template.filter({ template_type: 'invoice_consultant', is_active: true });
+    // Find active invoice template
+    const templateType = invoice_for === 'client' ? 'invoice_client' : 'invoice_consultant';
+    const allTemplates = await base44.asServiceRole.entities.Template.filter({ template_type: templateType, is_active: true });
     const template = allTemplates.find(t => t.language === language) || allTemplates[0];
     if (!template || !template.file_url) {
       return Response.json({ error: 'Geen actief sjabloon gevonden voor type "invoice_consultant"' }, { status: 404 });
