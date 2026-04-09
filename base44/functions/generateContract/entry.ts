@@ -96,13 +96,10 @@ Deno.serve(async (req) => {
     const output = doc.getZip().generate({ type: 'uint8array' });
 
     // Upload generated file and return URL
-    const blob = new Blob([output], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-    const formData = new FormData();
     const safeConsultant = consultantName.replace(/\s+/g, '_');
     const fileName = `${safeConsultant}_${contract_type}_${language}.docx`;
-    formData.append('file', blob, fileName);
-
-    const { file_url } = await base44.asServiceRole.integrations.Core.UploadFile({ file: blob });
+    const file = new File([output], fileName, { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    const { file_url } = await base44.asServiceRole.integrations.Core.UploadFile({ file });
 
     return Response.json({ file_url, file_name: fileName });
   } catch (error) {
