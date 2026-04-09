@@ -154,6 +154,7 @@ function ExtensionCell({ p }) {
 export default function Placements() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [duplicateWarning, setDuplicateWarning] = useState(null); // { existing, newData }
   const [extendingPlacement, setExtendingPlacement] = useState(null);
   const [expandedNotes, setExpandedNotes] = useState({});
   const [daysPerMonth, setDaysPerMonth] = useState(21);
@@ -221,8 +222,24 @@ export default function Placements() {
   });
 
   const handleSave = (data) => {
-    if (editing) updateMutation.mutate({ id: editing.id, data });
-    else createMutation.mutate(data);
+    if (editing) {
+      updateMutation.mutate({ id: editing.id, data });
+      return;
+    }
+    // Duplicate check: same consultant name + client company
+    const firstName = (data.consultant_first_name || '').trim().toLowerCase();
+    const lastName = (data.consultant_last_name || '').trim().toLowerCase();
+    const clientName = (data.client_company_name || '').trim().toLowerCase();
+    const existing = placements.find(p =>
+      (p.consultant_first_name || '').trim().toLowerCase() === firstName &&
+      (p.consultant_last_name || '').trim().toLowerCase() === lastName &&
+      (p.client_company_name || '').trim().toLowerCase() === clientName
+    );
+    if (existing) {
+      setDuplicateWarning({ existing, newData: data });
+    } else {
+      createMutation.mutate(data);
+    }
   };
 
   const handleInlineEdit = (id, field, value) => {
@@ -382,6 +399,35 @@ export default function Placements() {
           />
         </DialogContent>
       </Dialog>
+
+      {/* Duplicate warning dialog */}
+      <AlertDialog open={!!duplicateWarning} onOpenChange={open => { if (!open) setDuplicateWarning(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Placement bestaat al</AlertDialogTitle>
+            <AlertDialogDescription>
+              Er bestaat al een placement voor <strong>{duplicateWarning?.existing?.consultant_first_name} {duplicateWarning?.existing?.existing?.consultant_last_name || duplicateWarning?.existing?.consultant_last_name}</strong> bij <strong>{duplicateWarning?.existing?.client_company_name}</strong> (status: {duplicateWarning?.existing?.status}).<br /><br />
+              Wil je de bestaande placement updaten of toch een nieuw duplicaat aanmaken?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel onClick={() => setDuplicateWarning(null)}>Annuleren</AlertDialogCancel>
+            <Button variant="outline" onClick={() => {
+              if (duplicateWarning) {
+                updateMutation.mutate({ id: duplicateWarning.existing.id, data: duplicateWarning.newData });
+                setDuplicateWarning(null);
+                setShowForm(false);
+              }
+            }}>Bestaande updaten</Button>
+            <AlertDialogAction onClick={() => {
+              if (duplicateWarning) {
+                createMutation.mutate(duplicateWarning.newData);
+                setDuplicateWarning(null);
+              }
+            }}>Toch duplicaat aanmaken</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <ExtendContractDialog
         open={!!extendingPlacement}
