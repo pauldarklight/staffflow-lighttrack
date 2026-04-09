@@ -30,6 +30,7 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
     consultant_first_name: '',
     consultant_last_name: '',
     job_title: '',
+    job_description: '',
     consultant_company_name: '',
     consultant_company_address: '',
     consultant_vat_number: '',
@@ -179,6 +180,18 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
                   </>
                 );
               })()}
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                Functieomschrijving
+                <span className="text-xs font-normal bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">📄 wordt gekopieerd naar contract</span>
+              </Label>
+              <textarea
+                className="flex min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                placeholder="Beschrijf de rol in woorden, bijv: De consultant zal instaan voor de implementatie van data pipelines en rapportage-oplossingen..."
+                value={form.job_description || ''}
+                onChange={e => updateField('job_description', e.target.value)}
+              />
             </div>
             {!isPerm && (
               <>

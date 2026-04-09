@@ -277,7 +277,7 @@ export default function Templates() {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-1 text-xs font-mono text-muted-foreground">
             {[
               '{consultant_name}', '{consultant_first_name}', '{consultant_last_name}',
-              '{job_title}',
+              '{job_title}', '{job_description}',
               '{consultant_company}', '{consultant_vat}', '{consultant_address}', '{consultant_personal_address}',
               '{client_company}', '{client_vat}', '{client_address}', '{client_billing_email}',
               '{start_date}', '{end_date}', '{days_per_week}',

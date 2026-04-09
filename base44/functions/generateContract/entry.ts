@@ -50,6 +50,7 @@ Deno.serve(async (req) => {
     const consultantName = `${placement.consultant_first_name || ''} ${placement.consultant_last_name || ''}`.trim();
     const data = {
       job_title: placement.job_title || '',
+      job_description: placement.job_description || '',
       consultant_company: placement.consultant_company_name || '',
       consultant_vat: placement.consultant_vat_number || '',
       consultant_address: placement.consultant_company_address || '',

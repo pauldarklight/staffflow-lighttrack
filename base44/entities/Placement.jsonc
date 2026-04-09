@@ -23,6 +23,10 @@
       "type": "string",
       "description": "Functietitel consultant (bijv. Data Analist, Data Engineer)"
     },
+    "job_description": {
+      "type": "string",
+      "description": "Functieomschrijving in woorden \u2013 wordt gekopieerd naar het contract"
+    },
     "consultant_company_name": {
       "type": "string",
       "description": "Bedrijfsnaam consultant (freelancers)"
