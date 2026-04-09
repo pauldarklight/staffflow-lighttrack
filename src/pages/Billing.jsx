@@ -555,13 +555,14 @@ export default function Billing() {
                           <label className="cursor-pointer text-xs text-muted-foreground hover:text-primary flex items-center gap-1">
                             {uploadingInvoiceId === row.consultantInvoice?.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
                             Uploaden
-                            <input type="file" className="hidden" accept=".pdf,.jpg,.png" onChange={e => {
-                              if (!e.target.files[0]) return;
+                            <input type="file" className="hidden" accept=".pdf,.jpg,.png" onChange={async e => {
+                               if (!e.target.files[0]) return;
+                              const file = e.target.files[0];
                               if (row.consultantInvoice) {
-                                handleUploadInvoiceFile(row.consultantInvoice.id, e.target.files[0]);
+                                handleUploadInvoiceFile(row.consultantInvoice.id, file);
                               } else {
-                                // Create invoice first, then upload
-                                createConsultantInvoiceMutation.mutate({
+                                // Create invoice first, then upload file
+                                const created = await createConsultantInvoiceMutation.mutateAsync({
                                   placement_id: row.placement.id,
                                   timesheet_id: row.ts?.id || null,
                                   invoice_type: 'consultant_invoice',
@@ -569,13 +570,14 @@ export default function Billing() {
                                   vat_amount: row.consultantAmountExcl * 0.21,
                                   total_amount: row.consultantAmountExcl * 1.21,
                                   status: 'draft',
-                                  month: month || null,
+                                  month: showAll ? null : month,
                                   year,
                                   consultant_name: `${row.placement.consultant_first_name} ${row.placement.consultant_last_name}`,
                                   client_company: row.placement.client_company_name,
                                   payment_terms_days: row.placement.payment_terms_consultant || 30,
                                   issue_date: new Date().toISOString().split('T')[0],
                                 });
+                                handleUploadInvoiceFile(created.id, file);
                               }
                             }} />
                           </label>
