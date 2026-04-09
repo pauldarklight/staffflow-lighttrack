@@ -179,7 +179,7 @@ export default function Contracts() {
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="h-7 px-2 gap-1" disabled={isLoading}>
+          <Button variant="outline" size="sm" className="h-7 px-2 gap-1 border-primary/30 text-primary hover:bg-primary/10" disabled={isLoading}>
             {isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5 text-primary" />}
             <ChevronDown className="w-3 h-3 text-muted-foreground" />
           </Button>
