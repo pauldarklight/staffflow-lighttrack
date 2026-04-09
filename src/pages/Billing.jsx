@@ -228,30 +228,6 @@ export default function Billing() {
   const [creatingConsultantInvoice, setCreatingConsultantInvoice] = useState(null);
   const [uploadingInvoiceId, setUploadingInvoiceId] = useState(null);
   const [generatingInvoice, setGeneratingInvoice] = useState(null);
-  const [generatingClientInvoice, setGeneratingClientInvoice] = useState(null);
-
-  const years = [2024, 2025, 2026, 2027];
-  const showAll = filterMonth === 'all';
-  const month = parseInt(filterMonth);
-  const year = parseInt(filterYear);
-
-  const handleGenerateClientInvoice = async (row) => {
-    setGeneratingClientInvoice(row.placement.id);
-    const res = await base44.functions.invoke('generateClientInvoice', {
-      placement_id: row.placement.id,
-      timesheet_id: row.ts?.id || null,
-      month: showAll ? null : month,
-      year,
-    });
-    const { file_url, file_name } = res.data;
-    const a = document.createElement('a');
-    a.href = file_url;
-    a.download = file_name;
-    a.target = '_blank';
-    a.click();
-    toast.success(`Factuur gegenereerd: ${file_name}`);
-    setGeneratingClientInvoice(null);
-  };
 
   // Freelancer filters
   const [flSearch, setFlSearch] = useState('');
@@ -343,6 +319,11 @@ export default function Billing() {
     toast.success(`Herinnering verstuurd naar ${email}`);
     setSendingReminderId(null);
   };
+
+  const years = [2024, 2025, 2026, 2027];
+  const showAll = filterMonth === 'all';
+  const month = parseInt(filterMonth);
+  const year = parseInt(filterYear);
 
   const buildRow = (placement, idx) => {
     const matchTs = (t) => t.placement_id === placement.id && t.year === year && (showAll || t.month === month);
@@ -486,9 +467,9 @@ export default function Billing() {
                   <th className="text-left py-3 px-3 font-bold text-foreground">Contractduur</th>
                   <th className="text-right py-3 px-3 font-normal text-foreground">Dagen</th>
                   <th className="text-right py-3 px-3 font-bold text-foreground">Tarief</th>
-                  <th className="text-center py-3 px-3 font-normal text-white bg-primary">Bill</th>
+                  <th className="text-right py-3 px-3 font-normal text-white bg-primary">Bill</th>
                     <th className="text-left py-3 px-3 font-bold text-white bg-primary">Factuur klant</th>
-                  <th className="text-center py-3 px-3 font-normal text-white bg-foreground">Pay</th>
+                  <th className="text-right py-3 px-3 font-normal text-white bg-foreground">Pay</th>
                     <th className="text-left py-3 px-3 font-bold text-white bg-foreground">Factuur consultant</th>
                     <th className="text-left py-3 px-3 font-bold text-foreground">Betaald</th>
                   <th className="text-right py-3 px-3 font-normal text-foreground">Marge</th>
@@ -521,8 +502,8 @@ export default function Billing() {
                         <div>{formatCurrency(row.clientRate)}/dag</div>
                         <div className="text-muted-foreground font-normal">cons: {formatCurrency(row.consultantRate)}/dag</div>
                       </td>
-                      <td className={`py-3 px-3 text-center bg-primary/10 font-bold ${clientOverdue ? 'text-red-600' : 'text-primary'}`}>
-                        <div className="flex items-center justify-center gap-1">
+                      <td className={`py-3 px-3 text-right bg-primary/10 font-bold ${clientOverdue ? 'text-red-600' : 'text-primary'}`}>
+                        <div className="flex items-center justify-end gap-1">
                           {clientOverdue && <AlertCircle className="w-3.5 h-3.5 text-red-500" />}
                           {fmtVal(row.clientAmountExcl)}
                         </div>
@@ -531,56 +512,41 @@ export default function Billing() {
                         <ReferenceReminder instructions={row.placement?.reference_instructions} />
                         <InvoiceRef invoice={row.clientInvoice} />
                         <StatusCell invoice={row.clientInvoice} hasTimesheet={!!row.ts} onMarkPaid={markPaid} onSendReminder={sendReminder} sendingReminder={sendingReminderId === row.clientInvoice?.id} showTimesheetStatus={false} />
-                        <button
-                          className="text-xs text-primary hover:underline flex items-center gap-1 mt-1"
-                          disabled={generatingClientInvoice === row.placement.id}
-                          onClick={() => handleGenerateClientInvoice(row)}
-                        >
-                          {generatingClientInvoice === row.placement.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
-                          Downloaden
-                        </button>
+                        {row.clientInvoice && (
+                          <div className="mt-1">
+                            {row.clientInvoice.file_url ? (
+                              <a href={row.clientInvoice.file_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
+                                <Paperclip className="w-3 h-3" /> Factuur bekijken
+                              </a>
+                            ) : (
+                              <label className="cursor-pointer text-xs text-muted-foreground hover:text-primary flex items-center gap-1">
+                                {uploadingInvoiceId === row.clientInvoice.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                                Factuur uploaden
+                                <input type="file" className="hidden" accept=".pdf,.jpg,.png" onChange={e => e.target.files[0] && handleUploadInvoiceFile(row.clientInvoice.id, e.target.files[0])} />
+                              </label>
+                            )}
+                          </div>
+                        )}
                       </td>
-                      <td className={`py-3 px-3 text-center bg-foreground/8 font-bold border-l border-foreground/10 ${consultantOverdue ? 'text-red-600' : 'text-foreground'}`} style={{backgroundColor: 'rgba(0,0,0,0.06)'}}>
-                        <div className="flex items-center justify-center gap-1">
+                      <td className={`py-3 px-3 text-right bg-foreground/8 font-bold border-l border-foreground/10 ${consultantOverdue ? 'text-red-600' : 'text-foreground'}`} style={{backgroundColor: 'rgba(0,0,0,0.06)'}}>
+                        <div className="flex items-center justify-end gap-1">
                           {consultantOverdue && <AlertCircle className="w-3.5 h-3.5 text-red-500" />}
                           {fmtVal(row.consultantAmountExcl)}
                         </div>
                       </td>
                       <td className="py-3 px-3 border-r border-foreground/10" style={{backgroundColor: 'rgba(0,0,0,0.06)'}}>
-                        {row.consultantInvoice?.file_url ? (
-                          <a href={row.consultantInvoice.file_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
-                            <Paperclip className="w-3 h-3" /> Bekijken
+                        <button
+                          className="text-xs text-primary hover:underline flex items-center gap-1"
+                          disabled={generatingInvoice === row.placement.id}
+                          onClick={() => handleGenerateConsultantInvoice(row)}
+                        >
+                          {generatingInvoice === row.placement.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+                          Downloaden
+                        </button>
+                        {row.consultantInvoice?.file_url && (
+                          <a href={row.consultantInvoice.file_url} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 mt-1">
+                            <Paperclip className="w-3 h-3" /> Geüpload
                           </a>
-                        ) : (
-                          <label className="cursor-pointer text-xs text-muted-foreground hover:text-primary flex items-center gap-1">
-                            {uploadingInvoiceId === row.consultantInvoice?.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
-                            Uploaden
-                            <input type="file" className="hidden" accept=".pdf,.jpg,.png" onChange={async e => {
-                               if (!e.target.files[0]) return;
-                              const file = e.target.files[0];
-                              if (row.consultantInvoice) {
-                                handleUploadInvoiceFile(row.consultantInvoice.id, file);
-                              } else {
-                                // Create invoice first, then upload file
-                                const created = await createConsultantInvoiceMutation.mutateAsync({
-                                  placement_id: row.placement.id,
-                                  timesheet_id: row.ts?.id || null,
-                                  invoice_type: 'consultant_invoice',
-                                  amount: row.consultantAmountExcl,
-                                  vat_amount: row.consultantAmountExcl * 0.21,
-                                  total_amount: row.consultantAmountExcl * 1.21,
-                                  status: 'draft',
-                                  month: showAll ? null : month,
-                                  year,
-                                  consultant_name: `${row.placement.consultant_first_name} ${row.placement.consultant_last_name}`,
-                                  client_company: row.placement.client_company_name,
-                                  payment_terms_days: row.placement.payment_terms_consultant || 30,
-                                  issue_date: new Date().toISOString().split('T')[0],
-                                });
-                                handleUploadInvoiceFile(created.id, file);
-                              }
-                            }} />
-                          </label>
                         )}
                       </td>
                       <td className="py-3 px-3">
