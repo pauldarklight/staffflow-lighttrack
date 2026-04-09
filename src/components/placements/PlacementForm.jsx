@@ -29,6 +29,7 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
     placement_type: 'freelancer',
     consultant_first_name: '',
     consultant_last_name: '',
+    job_title: '',
     consultant_company_name: '',
     consultant_company_address: '',
     consultant_vat_number: '',
@@ -143,6 +144,33 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
                 <Label>Achternaam *</Label>
                 <Input value={form.consultant_last_name} onChange={e => updateField('consultant_last_name', e.target.value)} required />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Functietitel</Label>
+              <div className="flex gap-2">
+                <Select
+                  value={['Data Analist', 'Data Engineer', 'Functioneel Analist', 'Business Analist', 'Project Manager', 'Ontwikkelaar', 'Architect'].includes(form.job_title) ? form.job_title : (form.job_title ? '__custom__' : '')}
+                  onValueChange={v => { if (v !== '__custom__') updateField('job_title', v); }}
+                >
+                  <SelectTrigger className="flex-1"><SelectValue placeholder="Selecteer functie..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Data Analist">Data Analist</SelectItem>
+                    <SelectItem value="Data Engineer">Data Engineer</SelectItem>
+                    <SelectItem value="Functioneel Analist">Functioneel Analist</SelectItem>
+                    <SelectItem value="Business Analist">Business Analist</SelectItem>
+                    <SelectItem value="Project Manager">Project Manager</SelectItem>
+                    <SelectItem value="Ontwikkelaar">Ontwikkelaar</SelectItem>
+                    <SelectItem value="Architect">Architect</SelectItem>
+                    <SelectItem value="__custom__">Andere (zelf invoeren)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Input
+                placeholder="Of typ zelf een functietitel..."
+                value={form.job_title || ''}
+                onChange={e => updateField('job_title', e.target.value)}
+                className="mt-2"
+              />
             </div>
             {!isPerm && (
               <>

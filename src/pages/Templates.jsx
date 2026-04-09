@@ -280,7 +280,7 @@ export default function Templates() {
               '{consultant_company}', '{consultant_vat}', '{consultant_address}',
               '{client_company}', '{client_vat}', '{client_address}',
               '{client_billing_email}', '{start_date}', '{end_date}',
-              '{client_rate}', '{consultant_rate}', '{billing_rate}',
+              '{job_title}', '{client_rate}', '{consultant_rate}', '{billing_rate}',
               '{consultant_personal_address}', '{days_per_week}',
               '{agoria_index_client}', '{agoria_index_consultant}', '{reference}',
               '{month}', '{year}', '{days_worked}',

@@ -49,9 +49,7 @@ Deno.serve(async (req) => {
     // Build placeholder data
     const consultantName = `${placement.consultant_first_name || ''} ${placement.consultant_last_name || ''}`.trim();
     const data = {
-      consultant_name: consultantName,
-      consultant_first_name: placement.consultant_first_name || '',
-      consultant_last_name: placement.consultant_last_name || '',
+      job_title: placement.job_title || '',
       consultant_company: placement.consultant_company_name || '',
       consultant_vat: placement.consultant_vat_number || '',
       consultant_address: placement.consultant_company_address || '',

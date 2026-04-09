@@ -19,6 +19,10 @@
       "type": "string",
       "description": "Achternaam consultant"
     },
+    "job_title": {
+      "type": "string",
+      "description": "Functietitel consultant (bijv. Data Analist, Data Engineer)"
+    },
     "consultant_company_name": {
       "type": "string",
       "description": "Bedrijfsnaam consultant (freelancers)"
