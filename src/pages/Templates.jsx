@@ -45,6 +45,7 @@ export default function Templates() {
   const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({ name: '', template_type: 'contract_client', language: 'nl', description: '', version: 'v1.0', is_active: true });
   const [file, setFile] = useState(null);
+  const [fileRemoved, setFileRemoved] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: templates = [] } = useQuery({
@@ -76,20 +77,21 @@ export default function Templates() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['templates'] }),
   });
 
-  const resetForm = () => { setForm({ name: '', template_type: 'contract_client', language: 'nl', description: '', version: 'v1.0', is_active: true }); setFile(null); setEditing(null); };
+  const resetForm = () => { setForm({ name: '', template_type: 'contract_client', language: 'nl', description: '', version: 'v1.0', is_active: true }); setFile(null); setFileRemoved(false); setEditing(null); };
 
   const openEdit = (t) => {
     setEditing(t);
     setForm({ name: t.name, template_type: t.template_type, language: t.language || 'nl', description: t.description || '', version: t.version || 'v1.0', is_active: t.is_active });
     setFile(null);
+    setFileRemoved(false);
     setShowForm(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setUploading(true);
-    let fileUrl = editing?.file_url || null;
-    let fileName = editing?.file_name || null;
+    let fileUrl = fileRemoved ? null : (editing?.file_url || null);
+    let fileName = fileRemoved ? null : (editing?.file_name || null);
     if (file) {
       const res = await base44.integrations.Core.UploadFile({ file });
       fileUrl = res.file_url;
@@ -162,10 +164,16 @@ export default function Templates() {
             </div>
             <div className="space-y-2">
               <Label>Bestand uploaden</Label>
+              {editing && editing.file_url && !fileRemoved && !file && (
+                <div className="flex items-center justify-between p-2 rounded-lg border border-border bg-muted/30 text-xs">
+                  <span className="text-muted-foreground truncate">{editing.file_name || 'Huidig bestand'}</span>
+                  <button type="button" className="ml-2 text-destructive hover:underline shrink-0" onClick={() => setFileRemoved(true)}>Verwijderen</button>
+                </div>
+              )}
               <div className="flex items-center gap-3">
                 <label className="flex-1 cursor-pointer border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary transition-colors">
                   <Upload className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">{file ? file.name : 'Klik om bestand te selecteren (PDF, DOCX, XLSX)'}</span>
+                  <span className="text-xs text-muted-foreground">{file ? file.name : (editing && editing.file_url && !fileRemoved ? 'Nieuw bestand selecteren (vervangt huidig)' : 'Klik om bestand te selecteren (PDF, DOCX, XLSX)')}</span>
                   <input type="file" className="hidden" accept=".pdf,.docx,.xlsx,.doc,.xls" onChange={e => setFile(e.target.files[0])} />
                 </label>
               </div>
