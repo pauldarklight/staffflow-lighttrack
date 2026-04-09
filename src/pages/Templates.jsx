@@ -274,7 +274,7 @@ export default function Templates() {
       <Card className="mt-8 bg-muted/30">
         <CardHeader><CardTitle className="text-sm">📋 Beschikbare Placeholders</CardTitle></CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-1 text-xs font-mono text-muted-foreground">
+          <div className="grid gap-x-6 gap-y-1 text-xs font-mono text-muted-foreground" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gridAutoFlow: 'column', gridTemplateRows: 'repeat(11, auto)' }}>
             {[
               '{agoria_index_client}',
               '{agoria_index_consultant}',
