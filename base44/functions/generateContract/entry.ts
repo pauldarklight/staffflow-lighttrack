@@ -70,6 +70,7 @@ Deno.serve(async (req) => {
       billing_rate_raw: placement.client_rate || '',
       consultant_name: consultantName,
       consultant_representative: placement.consultant_contact_name || '',
+      consultant_company_representative: placement.consultant_company_representative || '',
       consultant_personal_address: placement.consultant_personal_address || '',
       days_per_week: placement.days_per_week || 5,
       agoria_index_client: placement.agoria_index_client || '',

@@ -286,6 +286,7 @@ export default function Templates() {
               '{client_vat}',
               '{consultant_address}',
               '{consultant_company}',
+              '{consultant_company_representative}',
               '{consultant_representative}',
               '{consultant_first_name}',
               '{consultant_last_name}',

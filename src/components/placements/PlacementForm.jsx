@@ -34,6 +34,8 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
     consultant_company_name: '',
     consultant_company_address: '',
     consultant_vat_number: '',
+    consultant_company_representative: '',
+
     consultant_personal_address: '',
     consultant_contact_name: '',
     consultant_contact_email: '',
@@ -208,6 +210,10 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
                 <div className="space-y-2">
                   <Label>BTW nummer</Label>
                   <Input value={form.consultant_vat_number} onChange={e => updateField('consultant_vat_number', e.target.value)} placeholder="BE0123.456.789" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Vertegenwoordiger firma consultant</Label>
+                  <Input value={form.consultant_company_representative || ''} onChange={e => updateField('consultant_company_representative', e.target.value)} placeholder="bijv. Jan Janssen (zaakvoerder)" />
                 </div>
                 </>
                 )}
