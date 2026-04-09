@@ -277,14 +277,14 @@ export default function Templates() {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-1 text-xs font-mono text-muted-foreground">
             {[
               '{consultant_name}', '{consultant_first_name}', '{consultant_last_name}',
-              '{consultant_company}', '{consultant_vat}', '{consultant_address}',
-              '{client_company}', '{client_vat}', '{client_address}',
-              '{client_billing_email}', '{start_date}', '{end_date}',
-              '{job_title}', '{client_rate} (billing klant)', '{consultant_rate} (betaling consultant)', '{billing_rate}',
-              '{consultant_personal_address}', '{days_per_week}',
-              '{agoria_index_client}', '{agoria_index_consultant}', '{reference}',
-              '{month}', '{year}', '{days_worked}',
-              '{amount_excl_vat}', '{vat_amount}', '{total_amount}',
+              '{job_title}',
+              '{consultant_company}', '{consultant_vat}', '{consultant_address}', '{consultant_personal_address}',
+              '{client_company}', '{client_vat}', '{client_address}', '{client_billing_email}',
+              '{start_date}', '{end_date}', '{days_per_week}',
+              '{client_rate} — billing klant', '{consultant_rate} — betaling consultant',
+              '{agoria_index_client}', '{agoria_index_consultant}',
+              '{reference}', '{month}', '{year}',
+              '{days_worked}', '{amount_excl_vat}', '{vat_amount}', '{total_amount}',
             ].map(p => <div key={p}>{p}</div>)}
           </div>
         </CardContent>
