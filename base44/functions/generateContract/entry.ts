@@ -61,6 +61,8 @@ Deno.serve(async (req) => {
       end_date: fmtDate(placement.end_date),
       client_rate: fmtCurrency(placement.client_rate),
       consultant_rate: fmtCurrency(placement.consultant_rate),
+      billing_client_rate: fmtCurrency(placement.client_rate),
+      paying_consultant_rate: fmtCurrency(placement.consultant_rate),
       client_rate_raw: placement.client_rate || '',
       consultant_rate_raw: placement.consultant_rate || '',
       billing_rate: fmtCurrency(placement.client_rate),

@@ -281,7 +281,7 @@ export default function Templates() {
               '{consultant_company}', '{consultant_vat}', '{consultant_address}', '{consultant_personal_address}',
               '{client_company}', '{client_vat}', '{client_address}', '{client_billing_email}',
               '{start_date}', '{end_date}', '{days_per_week}',
-              '{client_rate} — billing klant', '{consultant_rate} — betaling consultant',
+              '{billing_client_rate}', '{paying_consultant_rate}',
               '{agoria_index_client}', '{agoria_index_consultant}',
               '{reference}', '{month}', '{year}',
               '{days_worked}', '{amount_excl_vat}', '{vat_amount}', '{total_amount}',
