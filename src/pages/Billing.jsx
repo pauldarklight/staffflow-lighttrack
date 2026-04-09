@@ -230,12 +230,17 @@ export default function Billing() {
   const [generatingInvoice, setGeneratingInvoice] = useState(null);
   const [generatingClientInvoice, setGeneratingClientInvoice] = useState(null);
 
+  const years = [2024, 2025, 2026, 2027];
+  const showAll = filterMonth === 'all';
+  const month = parseInt(filterMonth);
+  const year = parseInt(filterYear);
+
   const handleGenerateClientInvoice = async (row) => {
     setGeneratingClientInvoice(row.placement.id);
     const res = await base44.functions.invoke('generateClientInvoice', {
       placement_id: row.placement.id,
       timesheet_id: row.ts?.id || null,
-      month: month || null,
+      month: showAll ? null : month,
       year,
     });
     const { file_url, file_name } = res.data;
@@ -338,11 +343,6 @@ export default function Billing() {
     toast.success(`Herinnering verstuurd naar ${email}`);
     setSendingReminderId(null);
   };
-
-  const years = [2024, 2025, 2026, 2027];
-  const showAll = filterMonth === 'all';
-  const month = parseInt(filterMonth);
-  const year = parseInt(filterYear);
 
   const buildRow = (placement, idx) => {
     const matchTs = (t) => t.placement_id === placement.id && t.year === year && (showAll || t.month === month);
