@@ -276,6 +276,8 @@ export default function Templates() {
         <CardContent>
           <div className="grid gap-x-6 gap-y-1 text-xs font-mono text-muted-foreground" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gridAutoFlow: 'column', gridTemplateRows: 'repeat(11, auto)' }}>
             {[
+              '{afwervingsboete}',
+              '{afwijkingsnota}',
               '{agoria_index_client}',
               '{agoria_index_consultant}',
               '{amount_excl_vat}',
@@ -297,6 +299,7 @@ export default function Templates() {
               '{contract_place}',
               '{current_date}',
               '{days_per_week}',
+              '{garantieperiode}',
               '{days_worked}',
               '{end_date}',
               '{job_description}',

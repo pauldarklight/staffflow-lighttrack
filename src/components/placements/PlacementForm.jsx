@@ -423,13 +423,22 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Opsteldatum contract</Label>
-                  <Input type="date" value={form.contract_date || ''} onChange={e => updateField('contract_date', e.target.value)} />
+                  <Label>Afwervingsboete</Label>
+                  <Input placeholder="bijv. 3 maanden salaris" value={form.afwervingsboete || ''} onChange={e => updateField('afwervingsboete', e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Opstelplaats contract</Label>
-                  <Input placeholder="bijv. Brussel" value={form.contract_place || ''} onChange={e => updateField('contract_place', e.target.value)} />
+                  <Label>Garantieperiode</Label>
+                  <Input placeholder="bijv. 3 maanden" value={form.garantieperiode || ''} onChange={e => updateField('garantieperiode', e.target.value)} />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Afwijkingsnota / bijzondere bepalingen</Label>
+                <textarea
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  placeholder="Bijzondere bepalingen of afwijkingen van de standaardcontractvoorwaarden..."
+                  value={form.afwijkingsnota || ''}
+                  onChange={e => updateField('afwijkingsnota', e.target.value)}
+                />
               </div>
             </CardContent>
           </Card>

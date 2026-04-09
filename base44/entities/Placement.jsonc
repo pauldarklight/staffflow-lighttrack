@@ -142,6 +142,18 @@
       "type": "string",
       "description": "Aansprakelijkheidsbeperking"
     },
+    "afwervingsboete": {
+      "type": "string",
+      "description": "Afwervingsboete (bijv. 3 maanden salaris)"
+    },
+    "garantieperiode": {
+      "type": "string",
+      "description": "Garantieperiode (bijv. 3 maanden)"
+    },
+    "afwijkingsnota": {
+      "type": "string",
+      "description": "Afwijkingsnota / bijzondere bepalingen"
+    },
     "payroll_number": {
       "type": "string",
       "description": "Payrollnummer van de consultant"
