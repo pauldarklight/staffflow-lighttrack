@@ -72,6 +72,8 @@ Deno.serve(async (req) => {
       days_per_week: placement.days_per_week || 5,
       agoria_index_client: placement.agoria_index_client || '',
       agoria_index_consultant: placement.agoria_index_consultant || '',
+      notice_period_client: placement.notice_period_client || '',
+      notice_period_consultant: placement.notice_period_consultant || '',
       reference_instructions: placement.reference_instructions || '',
       notes: placement.notes || '',
       year: new Date().getFullYear(),

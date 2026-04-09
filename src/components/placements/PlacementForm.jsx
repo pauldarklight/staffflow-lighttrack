@@ -47,6 +47,8 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
     agoria_index_consultant: '',
     payment_terms_client: placement?.payment_terms_client || '',
     payment_terms_consultant: placement?.payment_terms_consultant || '',
+    notice_period_client: placement?.notice_period_client || '',
+    notice_period_consultant: placement?.notice_period_consultant || '',
     liability_limit: placement?.liability_limit || '',
     payroll_number: placement?.payroll_number || '',
     perm_annual_salary: '',
@@ -331,6 +333,16 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
+                    <Label>Opzegtermijn klant</Label>
+                    <Input placeholder="bijv. 30 dagen" value={form.notice_period_client || ''} onChange={e => updateField('notice_period_client', e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Opzegtermijn consultant</Label>
+                    <Input placeholder="bijv. 30 dagen" value={form.notice_period_consultant || ''} onChange={e => updateField('notice_period_consultant', e.target.value)} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-2">
                     <Label>Aansprakelijkheid</Label>
                     <Input placeholder="bijv. max. contractwaarde" value={form.liability_limit || ''} onChange={e => updateField('liability_limit', e.target.value)} />
                   </div>

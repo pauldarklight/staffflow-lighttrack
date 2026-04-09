@@ -286,6 +286,7 @@ export default function Templates() {
               '{end_date}',
               '{job_description}', '{job_title}',
               '{month}',
+              '{notice_period_client}', '{notice_period_consultant}',
               '{paying_consultant_rate}',
               '{reference}',
               '{start_date}',
