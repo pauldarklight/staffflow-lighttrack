@@ -311,46 +311,6 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
                     <Input type="number" step="0.01" value={form.client_rate} onChange={e => updateField('client_rate', e.target.value)} />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Agoria-index klant</Label>
-                    <Input type="number" step="0.01" value={form.agoria_index_client || ''} onChange={e => updateField('agoria_index_client', e.target.value)} placeholder="bijv. 110.25" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Agoria-index consultant</Label>
-                    <Input type="number" step="0.01" value={form.agoria_index_consultant || ''} onChange={e => updateField('agoria_index_consultant', e.target.value)} placeholder="bijv. 108.50" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Betalingstermijn klant (dagen)</Label>
-                    <Input type="number" min="0" placeholder="bijv. 30" value={form.payment_terms_client || ''} onChange={e => updateField('payment_terms_client', e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Betalingstermijn consultant (dagen)</Label>
-                    <Input type="number" min="0" placeholder="bijv. 30" value={form.payment_terms_consultant || ''} onChange={e => updateField('payment_terms_consultant', e.target.value)} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Opzegtermijn klant</Label>
-                    <Input placeholder="bijv. 30 dagen" value={form.notice_period_client || ''} onChange={e => updateField('notice_period_client', e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Opzegtermijn consultant</Label>
-                    <Input placeholder="bijv. 30 dagen" value={form.notice_period_consultant || ''} onChange={e => updateField('notice_period_consultant', e.target.value)} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                   <div className="space-y-2">
-                    <Label>Aansprakelijkheid</Label>
-                    <Input placeholder="bijv. max. contractwaarde" value={form.liability_limit || ''} onChange={e => updateField('liability_limit', e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Payrollnummer</Label>
-                    <Input placeholder="bijv. PR-2024-001" value={form.payroll_number || ''} onChange={e => updateField('payroll_number', e.target.value)} />
-                  </div>
-                </div>
                 <div className="space-y-2">
                   <Label>Dagen per week *</Label>
                   <Select value={String(form.days_per_week || 5)} onValueChange={v => updateField('days_per_week', parseFloat(v))}>
@@ -409,6 +369,55 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
             </div>
           </CardContent>
         </Card>
+
+        {/* Contractinformatie */}
+        {!isPerm && (
+          <Card>
+            <CardHeader><CardTitle className="text-base">Contractinformatie</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Agoria-index klant</Label>
+                  <Input type="number" step="0.01" value={form.agoria_index_client || ''} onChange={e => updateField('agoria_index_client', e.target.value)} placeholder="bijv. 110.25" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Agoria-index consultant</Label>
+                  <Input type="number" step="0.01" value={form.agoria_index_consultant || ''} onChange={e => updateField('agoria_index_consultant', e.target.value)} placeholder="bijv. 108.50" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Betalingstermijn klant (dagen)</Label>
+                  <Input type="number" min="0" placeholder="bijv. 30" value={form.payment_terms_client || ''} onChange={e => updateField('payment_terms_client', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Betalingstermijn consultant (dagen)</Label>
+                  <Input type="number" min="0" placeholder="bijv. 30" value={form.payment_terms_consultant || ''} onChange={e => updateField('payment_terms_consultant', e.target.value)} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Opzegtermijn klant</Label>
+                  <Input placeholder="bijv. 30 dagen" value={form.notice_period_client || ''} onChange={e => updateField('notice_period_client', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Opzegtermijn consultant</Label>
+                  <Input placeholder="bijv. 30 dagen" value={form.notice_period_consultant || ''} onChange={e => updateField('notice_period_consultant', e.target.value)} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Aansprakelijkheid</Label>
+                  <Input placeholder="bijv. max. contractwaarde" value={form.liability_limit || ''} onChange={e => updateField('liability_limit', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Payrollnummer</Label>
+                  <Input placeholder="bijv. PR-2024-001" value={form.payroll_number || ''} onChange={e => updateField('payroll_number', e.target.value)} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Verlengingen */}
         <Card>
