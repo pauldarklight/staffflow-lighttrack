@@ -74,6 +74,8 @@ Deno.serve(async (req) => {
       agoria_index_consultant: placement.agoria_index_consultant || '',
       notice_period_client: placement.notice_period_client || '',
       notice_period_consultant: placement.notice_period_consultant || '',
+      contract_date: fmtDate(placement.contract_date),
+      contract_place: placement.contract_place || '',
       reference_instructions: placement.reference_instructions || '',
       notes: placement.notes || '',
       year: new Date().getFullYear(),

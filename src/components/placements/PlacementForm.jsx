@@ -415,6 +415,16 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
                   <Input placeholder="bijv. PR-2024-001" value={form.payroll_number || ''} onChange={e => updateField('payroll_number', e.target.value)} />
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Opsteldatum contract</Label>
+                  <Input type="date" value={form.contract_date || ''} onChange={e => updateField('contract_date', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Opstelplaats contract</Label>
+                  <Input placeholder="bijv. Brussel" value={form.contract_place || ''} onChange={e => updateField('contract_place', e.target.value)} />
+                </div>
+              </div>
             </CardContent>
           </Card>
         )}

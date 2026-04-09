@@ -279,6 +279,7 @@ export default function Templates() {
               '{agoria_index_client}', '{agoria_index_consultant}',
               '{amount_excl_vat}',
               '{billing_client_rate}',
+              '{contract_date}', '{contract_place}',
               '{client_address}', '{client_billing_email}', '{client_company}', '{client_vat}',
               '{consultant_address}', '{consultant_company}', '{consultant_first_name}', '{consultant_last_name}', '{consultant_name}', '{consultant_personal_address}', '{consultant_vat}',
               '{current_date}',

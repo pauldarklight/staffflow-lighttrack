@@ -65,6 +65,15 @@
       "format": "date",
       "description": "Einddatum placement (origineel)"
     },
+    "contract_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Opsteldatum van het contract"
+    },
+    "contract_place": {
+      "type": "string",
+      "description": "Opstelplaats van het contract (bijv. Brussel)"
+    },
     "extensions": {
       "type": "array",
       "description": "Verlengingen van het contract",
