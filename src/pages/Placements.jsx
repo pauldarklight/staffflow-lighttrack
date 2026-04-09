@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, Pencil, Trash2, ArrowUpDown, X, RefreshCw, MessageSquare, ChevronDown, Settings2, Edit3, Check } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, ArrowUpDown, X, RefreshCw, MessageSquare, ChevronDown, Settings2, Edit3, Check, Download, Loader2 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import PageHeader from '@/components/shared/PageHeader';
@@ -177,6 +178,36 @@ export default function Placements() {
     queryKey: ['timesheets'],
     queryFn: () => base44.entities.Timesheet.list(),
   });
+
+  const { data: templates = [] } = useQuery({
+    queryKey: ['templates'],
+    queryFn: () => base44.entities.Template.list(),
+  });
+
+  const [generatingContract, setGeneratingContract] = useState({});
+
+  const handleGenerateContract = async (placement, template) => {
+    const key = `${placement.id}-${template.id}`;
+    setGeneratingContract(g => ({ ...g, [key]: true }));
+    const res = await base44.functions.invoke('generateContract', {
+      placement_id: placement.id,
+      contract_type: template.template_type.startsWith('contract_client') ? 'client' : 'consultant',
+      language: template.language || 'nl',
+      template_id: template.id,
+    });
+    const { file_url, file_name } = res.data;
+    const a = document.createElement('a');
+    a.href = file_url;
+    a.download = file_name;
+    a.target = '_blank';
+    a.click();
+    setGeneratingContract(g => ({ ...g, [key]: false }));
+  };
+
+  const getContractTemplatesForPlacement = (p) => {
+    const ids = p.contract_template_ids || [];
+    return templates.filter(t => ids.includes(t.id));
+  };
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
@@ -595,6 +626,30 @@ export default function Placements() {
                                 <MessageSquare className="w-4 h-4 text-amber-500" />
                               </Button>
                             )}
+                            {(() => {
+                              const tpls = getContractTemplatesForPlacement(p);
+                              if (tpls.length === 0) return null;
+                              const isLoading = tpls.some(t => generatingContract[`${p.id}-${t.id}`]);
+                              return (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" title="Contracten downloaden" disabled={isLoading}>
+                                      {isLoading ? <Loader2 className="w-4 h-4 animate-spin text-primary" /> : <Download className="w-4 h-4 text-primary" />}
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel className="text-xs">Contracten genereren</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {tpls.map(t => (
+                                      <DropdownMenuItem key={t.id} onClick={() => handleGenerateContract(p, t)} className="text-xs gap-2">
+                                        <Download className="w-3.5 h-3.5" />
+                                        {t.name} <span className="text-muted-foreground">· {t.language?.toUpperCase()}</span>
+                                      </DropdownMenuItem>
+                                    ))}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              );
+                            })()}
                             <Button variant="ghost" size="icon" onClick={() => { setEditing(p); setShowForm(true); }}>
                               <Pencil className="w-4 h-4" />
                             </Button>
@@ -613,7 +668,7 @@ export default function Placements() {
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
-                          </div>
+                            </div>
                         </td>
                       </tr>
                       {expandedNotes[p.id] && p.notes && (
