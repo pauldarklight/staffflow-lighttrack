@@ -147,34 +147,38 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
             </div>
             <div className="space-y-2">
               <Label>Functietitel</Label>
-              <div className="flex gap-2">
-                <Select
-                  value={['Data Analist', 'Data Engineer', 'Data Scientist', 'Data Architect', 'BI Analist', 'Analytics Engineer', 'Functioneel Analist', 'Business Analist', 'Project Manager', 'Ontwikkelaar', 'Architect'].includes(form.job_title) ? form.job_title : (form.job_title ? '__custom__' : '')}
-                  onValueChange={v => { if (v !== '__custom__') updateField('job_title', v); }}
-                >
-                  <SelectTrigger className="flex-1"><SelectValue placeholder="Selecteer functie..." /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Data Analist">Data Analist</SelectItem>
-                    <SelectItem value="Data Engineer">Data Engineer</SelectItem>
-                    <SelectItem value="Data Scientist">Data Scientist</SelectItem>
-                    <SelectItem value="Data Architect">Data Architect</SelectItem>
-                    <SelectItem value="BI Analist">BI Analist</SelectItem>
-                    <SelectItem value="Analytics Engineer">Analytics Engineer</SelectItem>
-                    <SelectItem value="Functioneel Analist">Functioneel Analist</SelectItem>
-                    <SelectItem value="Business Analist">Business Analist</SelectItem>
-                    <SelectItem value="Project Manager">Project Manager</SelectItem>
-                    <SelectItem value="Ontwikkelaar">Ontwikkelaar</SelectItem>
-                    <SelectItem value="Architect">Architect</SelectItem>
-                    <SelectItem value="__custom__">Andere (zelf invoeren)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Input
-                placeholder="Of typ zelf een functietitel..."
-                value={form.job_title || ''}
-                onChange={e => updateField('job_title', e.target.value)}
-                className="mt-2"
-              />
+              {(() => {
+                const presets = ['Data Analist', 'Data Engineer', 'Data Scientist', 'Data Architect', 'BI Analist', 'Analytics Engineer'];
+                const isCustom = form.job_title && !presets.includes(form.job_title);
+                return (
+                  <>
+                    <Select
+                      value={isCustom ? '__custom__' : (form.job_title || '')}
+                      onValueChange={v => { if (v !== '__custom__') updateField('job_title', v); else updateField('job_title', ''); }}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Selecteer functie..." /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Data Analist">Data Analist</SelectItem>
+                        <SelectItem value="Data Engineer">Data Engineer</SelectItem>
+                        <SelectItem value="Data Scientist">Data Scientist</SelectItem>
+                        <SelectItem value="Data Architect">Data Architect</SelectItem>
+                        <SelectItem value="BI Analist">BI Analist</SelectItem>
+                        <SelectItem value="Analytics Engineer">Analytics Engineer</SelectItem>
+                        <SelectItem value="__custom__">Andere (zelf invoeren)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {isCustom && (
+                      <Input
+                        placeholder="Typ een functietitel..."
+                        value={form.job_title}
+                        onChange={e => updateField('job_title', e.target.value)}
+                        className="mt-2"
+                        autoFocus
+                      />
+                    )}
+                  </>
+                );
+              })()}
             </div>
             {!isPerm && (
               <>
