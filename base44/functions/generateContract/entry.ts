@@ -68,6 +68,8 @@ Deno.serve(async (req) => {
       consultant_rate_raw: placement.consultant_rate || '',
       billing_rate: fmtCurrency(placement.client_rate),
       billing_rate_raw: placement.client_rate || '',
+      consultant_name: consultantName,
+      consultant_contact_name: placement.consultant_contact_name || '',
       consultant_personal_address: placement.consultant_personal_address || '',
       days_per_week: placement.days_per_week || 5,
       agoria_index_client: placement.agoria_index_client || '',
