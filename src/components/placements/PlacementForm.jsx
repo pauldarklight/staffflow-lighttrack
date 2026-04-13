@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Trash2, Save, X, RefreshCw } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 import AddressFields, { composeAddress } from './AddressFields';
+import VatLookupInput from './VatLookupInput';
 
 const TYPE_LABELS = {
   contract_client: 'Contract Klant',
@@ -270,7 +271,34 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
                 </div>
                 <div className="space-y-2">
                   <Label>BTW nummer</Label>
-                  <Input value={form.consultant_vat_number} onChange={e => updateField('consultant_vat_number', e.target.value)} placeholder="BE0123.456.789" />
+                  <VatLookupInput
+                    value={form.consultant_vat_number}
+                    onChange={v => updateField('consultant_vat_number', v)}
+                    onFill={({ company_name, address_lines }) => {
+                      if (company_name) updateField('consultant_company_name', company_name);
+                      if (address_lines?.length) {
+                        // Try to parse the address lines into structured fields
+                        const combined = address_lines.join(', ');
+                        const parsed = (function(str) {
+                          const parts = str.split(',').map(s => s.trim());
+                          const firstPart = parts[0] || '';
+                          const busMatch = firstPart.match(/\bbus\s+(\S+)/i);
+                          const bus = busMatch ? busMatch[1] : '';
+                          const withoutBus = firstPart.replace(/\bbus\s+\S+/i, '').trim();
+                          const tokens = withoutBus.split(/\s+/);
+                          const lastToken = tokens[tokens.length - 1];
+                          const isNum = /^\d+[A-Za-z]?$/.test(lastToken);
+                          const number = isNum ? lastToken : '';
+                          const street = isNum ? tokens.slice(0, -1).join(' ') : withoutBus;
+                          const secondPart = parts[1] || '';
+                          const pcMatch = secondPart.match(/^(\d{4,5})\s+(.+)$/);
+                          return { street, number, bus, postal_code: pcMatch ? pcMatch[1] : '', city: pcMatch ? pcMatch[2] : secondPart, country: parts[2] || '' };
+                        })(combined);
+                        setCompanyAddr(parsed);
+                        if (companyAddrSameAsPersonal) setPersonalAddr(parsed);
+                      }
+                    }}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Vertegenwoordiger firma consultant</Label>
@@ -321,7 +349,32 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
             </div>
             <div className="space-y-2">
               <Label>BTW nummer</Label>
-              <Input value={form.client_vat_number} onChange={e => updateField('client_vat_number', e.target.value)} placeholder="BE0123.456.789" />
+              <VatLookupInput
+                value={form.client_vat_number}
+                onChange={v => updateField('client_vat_number', v)}
+                onFill={({ company_name, address_lines }) => {
+                  if (company_name) updateField('client_company_name', company_name);
+                  if (address_lines?.length) {
+                    const combined = address_lines.join(', ');
+                    const parsed = (function(str) {
+                      const parts = str.split(',').map(s => s.trim());
+                      const firstPart = parts[0] || '';
+                      const busMatch = firstPart.match(/\bbus\s+(\S+)/i);
+                      const bus = busMatch ? busMatch[1] : '';
+                      const withoutBus = firstPart.replace(/\bbus\s+\S+/i, '').trim();
+                      const tokens = withoutBus.split(/\s+/);
+                      const lastToken = tokens[tokens.length - 1];
+                      const isNum = /^\d+[A-Za-z]?$/.test(lastToken);
+                      const number = isNum ? lastToken : '';
+                      const street = isNum ? tokens.slice(0, -1).join(' ') : withoutBus;
+                      const secondPart = parts[1] || '';
+                      const pcMatch = secondPart.match(/^(\d{4,5})\s+(.+)$/);
+                      return { street, number, bus, postal_code: pcMatch ? pcMatch[1] : '', city: pcMatch ? pcMatch[2] : secondPart, country: parts[2] || '' };
+                    })(combined);
+                    setClientAddr(parsed);
+                  }
+                }}
+              />
             </div>
             <div className="space-y-2">
               <Label>Facturatiemail / Peppol</Label>
