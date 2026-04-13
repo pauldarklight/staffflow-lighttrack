@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Trash2, Save, X } from 'lucide-react';
+import { Plus, Trash2, Save, X, RefreshCw } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
+import AddressFields, { composeAddress } from './AddressFields';
 
 const TYPE_LABELS = {
   contract_client: 'Contract Klant',
@@ -18,6 +19,29 @@ const TYPE_LABELS = {
   invoice_client: 'Factuur Klant',
   invoice_consultant: 'Factuur Consultant',
 };
+
+function parseAddr(str) {
+  if (!str) return { street: '', number: '', bus: '', postal_code: '', city: '', country: '' };
+  const parts = str.split(',').map(s => s.trim());
+  const firstPart = parts[0] || '';
+  const busMatch = firstPart.match(/\bbus\s+(\S+)/i);
+  const bus = busMatch ? busMatch[1] : '';
+  const withoutBus = firstPart.replace(/\bbus\s+\S+/i, '').trim();
+  const tokens = withoutBus.split(/\s+/);
+  const lastToken = tokens[tokens.length - 1];
+  const isNum = /^\d+[A-Za-z]?$/.test(lastToken);
+  const number = isNum ? lastToken : '';
+  const street = isNum ? tokens.slice(0, -1).join(' ') : withoutBus;
+  const secondPart = parts[1] || '';
+  const pcMatch = secondPart.match(/^(\d{4,5})\s+(.+)$/);
+  const postal_code = pcMatch ? pcMatch[1] : '';
+  const city = pcMatch ? pcMatch[2] : secondPart;
+  const country = parts[2] || '';
+  return { street, number, bus, postal_code, city, country };
+}
+
+function parseRepFirst(str) { if (!str) return ''; return str.trim().split(' ')[0] || ''; }
+function parseRepLast(str) { if (!str) return ''; const p = str.trim().split(' '); return p.slice(1).join(' '); }
 
 export default function PlacementForm({ placement, onSave, onCancel }) {
   const { data: templates = [] } = useQuery({
@@ -71,7 +95,22 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
     invoice_template_ids: placement?.invoice_template_ids || [],
     });
 
-    const updateField = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+  const [personalAddr, setPersonalAddr] = useState(() => parseAddr(placement?.consultant_personal_address));
+  const [companyAddr, setCompanyAddr] = useState(() => parseAddr(placement?.consultant_company_address));
+  const [clientAddr, setClientAddr] = useState(() => parseAddr(placement?.client_address));
+  const [companyAddrSameAsPersonal, setCompanyAddrSameAsPersonal] = useState(!placement?.consultant_company_address);
+  const [repFirstName, setRepFirstName] = useState(() => parseRepFirst(placement?.consultant_company_representative));
+  const [repLastName, setRepLastName] = useState(() => parseRepLast(placement?.consultant_company_representative));
+
+  useEffect(() => {
+    if (companyAddrSameAsPersonal) setCompanyAddr(personalAddr);
+  }, [personalAddr, companyAddrSameAsPersonal]);
+
+  const updatePersonalAddr = (field, value) => setPersonalAddr(prev => ({ ...prev, [field]: value }));
+  const updateCompanyAddr = (field, value) => { setCompanyAddrSameAsPersonal(false); setCompanyAddr(prev => ({ ...prev, [field]: value })); };
+  const updateClientAddr = (field, value) => setClientAddr(prev => ({ ...prev, [field]: value }));
+
+  const updateField = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
 
   const addContributor = () => {
     setForm(prev => ({
@@ -97,6 +136,7 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
     e.preventDefault();
     const annualSalary = parseFloat(form.perm_annual_salary) || 0;
     const feePerc = parseFloat(form.perm_fee_percentage) || 20;
+    const repFull = [repFirstName, repLastName].filter(Boolean).join(' ');
     const data = {
       ...form,
       consultant_rate: parseFloat(form.consultant_rate) || 0,
@@ -111,6 +151,10 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
         ...c,
         percentage: parseFloat(c.percentage) || 0
       })),
+      consultant_personal_address: composeAddress(personalAddr),
+      consultant_company_address: composeAddress(companyAddr),
+      client_address: composeAddress(clientAddr),
+      consultant_company_representative: repFull,
     };
     onSave(data);
   };
@@ -207,8 +251,22 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
                   <Input value={form.consultant_company_name} onChange={e => updateField('consultant_company_name', e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Adres bedrijf</Label>
-                  <Input value={form.consultant_company_address} onChange={e => updateField('consultant_company_address', e.target.value)} />
+                  <div className="flex items-center justify-between">
+                    <Label>Adres bedrijf</Label>
+                    <button
+                      type="button"
+                      onClick={() => { setCompanyAddrSameAsPersonal(true); setCompanyAddr(personalAddr); }}
+                      className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border transition-colors ${
+                        companyAddrSameAsPersonal
+                          ? 'bg-primary/10 text-primary border-primary/30'
+                          : 'bg-muted text-muted-foreground border-border hover:border-primary/40'
+                      }`}
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                      {companyAddrSameAsPersonal ? 'Zelfde als persoonlijk' : 'Synchroniseren met persoonlijk'}
+                    </button>
+                  </div>
+                  <AddressFields values={companyAddr} onChange={updateCompanyAddr} />
                 </div>
                 <div className="space-y-2">
                   <Label>BTW nummer</Label>
@@ -216,13 +274,16 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
                 </div>
                 <div className="space-y-2">
                   <Label>Vertegenwoordiger firma consultant</Label>
-                  <Input value={form.consultant_company_representative || ''} onChange={e => updateField('consultant_company_representative', e.target.value)} placeholder="bijv. Jan Janssen (zaakvoerder)" />
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input placeholder="Voornaam" value={repFirstName} onChange={e => setRepFirstName(e.target.value)} />
+                    <Input placeholder="Achternaam" value={repLastName} onChange={e => setRepLastName(e.target.value)} />
+                  </div>
                 </div>
                 </>
                 )}
                 <div className="space-y-2">
                 <Label>Persoonlijk adres consultant</Label>
-                <Input value={form.consultant_personal_address || ''} onChange={e => updateField('consultant_personal_address', e.target.value)} placeholder="Straat 1, 1000 Brussel" />
+                <AddressFields values={personalAddr} onChange={updatePersonalAddr} />
                 </div>
                 <div className="pt-2 border-t">
                 <p className="text-xs font-semibold text-muted-foreground mb-3">Contactpersoon (optioneel)</p>
@@ -256,7 +317,7 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
             </div>
             <div className="space-y-2">
               <Label>Adres</Label>
-              <Input value={form.client_address} onChange={e => updateField('client_address', e.target.value)} />
+              <AddressFields values={clientAddr} onChange={updateClientAddr} />
             </div>
             <div className="space-y-2">
               <Label>BTW nummer</Label>
