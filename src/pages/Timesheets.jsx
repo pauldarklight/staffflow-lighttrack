@@ -49,6 +49,7 @@ export default function Timesheets() {
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('ts_viewMode') || 'month');
   const [search, setSearch] = useState(() => localStorage.getItem('ts_search') || '');
   const [sortBy, setSortBy] = useState(() => localStorage.getItem('ts_sortBy') || 'default');
+  const [onlyActive, setOnlyActive] = useState(() => localStorage.getItem('ts_onlyActive') === 'true');
   const queryClient = useQueryClient();
 
   // Persist filters
@@ -57,6 +58,7 @@ export default function Timesheets() {
   React.useEffect(() => { localStorage.setItem('ts_viewMode', viewMode); }, [viewMode]);
   React.useEffect(() => { localStorage.setItem('ts_search', search); }, [search]);
   React.useEffect(() => { localStorage.setItem('ts_sortBy', sortBy); }, [sortBy]);
+  React.useEffect(() => { localStorage.setItem('ts_onlyActive', onlyActive); }, [onlyActive]);
 
   const { data: timesheets = [] } = useQuery({
     queryKey: ['timesheets'],
@@ -185,6 +187,10 @@ export default function Timesheets() {
       rows = enriched.filter(t => t.year === yr && t.month <= currentMonth);
     } else {
       rows = enriched.filter(t => t.year === yr);
+    }
+
+    if (onlyActive) {
+      rows = rows.filter(t => t.placement?.status === 'active');
     }
 
     if (search) {
@@ -325,8 +331,16 @@ export default function Timesheets() {
             <SelectItem value="days_asc">Minste dagen eerst</SelectItem>
           </SelectContent>
         </Select>
-        {(search || sortBy !== 'default') && (
-          <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => { setSearch(''); setSortBy('default'); }}>
+        <Button
+          variant={onlyActive ? 'default' : 'outline'}
+          size="sm"
+          className="h-8 text-xs"
+          onClick={() => setOnlyActive(v => !v)}
+        >
+          Enkel actieve placements
+        </Button>
+        {(search || sortBy !== 'default' || onlyActive) && (
+          <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => { setSearch(''); setSortBy('default'); setOnlyActive(false); }}>
             <X className="w-3.5 h-3.5 mr-1" /> Reset
           </Button>
         )}
@@ -456,9 +470,9 @@ export default function Timesheets() {
                       className={`border-b border-border/50 transition-colors ${t.late && !t.isImported ? 'bg-red-50/50 hover:bg-red-50/70' : 'hover:bg-muted/20'}`}
                     >
                       <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold text-foreground">{t.consultant_name || '—'}</span>
-                          {t.late && <AlertTriangle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" title="Te laat ingediend (>15 dagen)" />}
+                          {t.late && !t.isImported && <AlertTriangle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" title="Te laat ingediend (>15 dagen)" />}
                           {t.isImported && <ImportedBadge />}
                         </div>
                       </td>
