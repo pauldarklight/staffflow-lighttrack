@@ -16,6 +16,7 @@ import Reports from '@/pages/Reports';
 import Templates from '@/pages/Templates';
 import ImportData from '@/pages/ImportData';
 import FlowOverview from '@/pages/FlowOverview';
+import Settings from '@/pages/Settings';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -54,6 +55,7 @@ const AuthenticatedApp = () => {
         <Route path="/Templates" element={<Templates />} />
         <Route path="/ImportData" element={<ImportData />} />
         <Route path="/FlowOverview" element={<FlowOverview />} />
+        <Route path="/Settings" element={<Settings />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

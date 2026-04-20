@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 export default function FormSection({ title, icon, defaultOpen = true, badge, children }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className={cn('rounded-xl border bg-card shadow-sm overflow-hidden', open && 'border-border')}>
+    <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
@@ -24,7 +24,7 @@ export default function FormSection({ title, icon, defaultOpen = true, badge, ch
         }
       </button>
       {open && (
-        <div className="px-5 pb-5 pt-1 space-y-4 border-t border-border/60">
+        <div className="px-5 pb-5 pt-3 space-y-4 border-t border-border/60">
           {children}
         </div>
       )}

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, FileText, Clock, CreditCard, BarChart2, Layers, FileStack, FileUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, Clock, CreditCard, BarChart2, Layers, FileStack, FileUp, ChevronLeft, ChevronRight, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -56,6 +56,20 @@ export default function Sidebar({ collapsed, onToggle }) {
         })}
       </nav>
 
+      <div className="px-2 pb-2">
+        <Link
+          to="/Settings"
+          className={cn(
+            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+            location.pathname === '/Settings'
+              ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-primary/20"
+              : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+          )}
+        >
+          <Settings className="w-5 h-5 shrink-0" />
+          {!collapsed && <span>Instellingen</span>}
+        </Link>
+      </div>
       <button
         onClick={onToggle}
         className="mx-2 mb-4 p-2 rounded-lg hover:bg-sidebar-accent transition-colors text-sidebar-foreground/60"
