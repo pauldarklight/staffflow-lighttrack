@@ -206,6 +206,14 @@
       "type": "string",
       "description": "E-mailadres timesheet-verantwoordelijke klant"
     },
+    "client_bank_reference": {
+      "type": "string",
+      "description": "Mededeling/referentie voor overschrijving klant"
+    },
+    "consultant_bank_reference": {
+      "type": "string",
+      "description": "Mededeling/referentie voor overschrijving consultant"
+    },
     "reference_instructions": {
       "type": "string"
     },
