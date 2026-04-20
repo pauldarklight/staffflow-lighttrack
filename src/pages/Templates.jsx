@@ -295,7 +295,6 @@ export default function Templates() {
               '{client_billing_email}',
               '{client_company}',
               '{client_country}',
-              '{client_message}',
               '{client_vat}',
               '{consultant_address}',
               '{consultant_bank_account}',
