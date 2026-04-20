@@ -11,7 +11,7 @@ export default function Landing() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#050f09] flex flex-col items-center justify-center relative overflow-hidden select-none">
+    <div className="min-h-screen w-full bg-[#050f09] flex flex-col items-center justify-center relative overflow-hidden select-none">
 
       {/* Background grid — iets warmer/zachter */}
       <div
@@ -42,19 +42,19 @@ export default function Landing() {
       </svg>
 
       {/* Top-left logo: dark light logo in wit */}
-      <div className="absolute top-6 left-8 flex items-center gap-3 z-20">
-        <div className="flex items-center justify-center w-10 h-10 rounded-xl border border-white/20 bg-white/5">
-          <span className="text-white font-black text-xl leading-none tracking-tighter">d.</span>
+      <div className="absolute top-7 left-10 flex items-center gap-4 z-20">
+        <div className="flex items-center justify-center w-14 h-14 rounded-2xl border border-white/20 bg-white/5">
+          <span className="text-white font-black text-3xl leading-none tracking-tighter">d.</span>
         </div>
         <div className="flex flex-col leading-tight">
-          <span className="text-white font-bold text-base tracking-tight">dark light.</span>
-          <span className="text-white/40 text-[10px] uppercase tracking-widest">humanizing data</span>
+          <span className="text-white font-black text-2xl tracking-tight">dark light.</span>
+          <span className="text-white/40 text-[11px] uppercase tracking-widest">humanizing data</span>
         </div>
       </div>
 
       {/* Content */}
       <div
-        className="relative z-10 flex flex-col items-center text-center px-8 sm:px-16 transition-all duration-1000"
+        className="relative z-10 w-full max-w-7xl mx-auto flex flex-col items-center text-center px-10 sm:px-20 lg:px-32 transition-all duration-1000"
         style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(24px)' }}
       >
         {/* Greeting */}
@@ -63,7 +63,7 @@ export default function Landing() {
         </p>
 
         {/* Main title */}
-        <h1 className="text-white font-black leading-none tracking-tighter mb-2" style={{ fontSize: 'clamp(4rem, 12vw, 9rem)' }}>
+        <h1 className="text-white font-black leading-none tracking-tighter mb-2 w-full" style={{ fontSize: 'clamp(4.5rem, 14vw, 11rem)' }}>
           dark light<span className="text-[#22c55e]">.</span>
         </h1>
 
