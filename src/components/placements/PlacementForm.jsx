@@ -414,15 +414,17 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
         {/* Tarieven & Data */}
         <FormSection title="Tarieven & Data" icon="💶" defaultOpen={false}>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className={`grid gap-4 ${isPerm ? 'grid-cols-1' : 'grid-cols-2'}`}>
               <div className="space-y-2">
                 <Label>Startdatum *</Label>
                 <Input type="date" value={form.start_date} onChange={e => updateField('start_date', e.target.value)} required />
               </div>
-              <div className="space-y-2">
-                <Label>Einddatum</Label>
-                <Input type="date" value={form.end_date} onChange={e => updateField('end_date', e.target.value)} />
-              </div>
+              {!isPerm && (
+                <div className="space-y-2">
+                  <Label>Einddatum</Label>
+                  <Input type="date" value={form.end_date} onChange={e => updateField('end_date', e.target.value)} />
+                </div>
+              )}
             </div>
             {!isPerm && (
               <>
