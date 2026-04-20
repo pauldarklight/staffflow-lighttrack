@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Plus, FileText, Search, X, Download, RefreshCw, Loader2, ChevronDown } from 'lucide-react';
+import { Plus, FileText, Search, X, Download, RefreshCw, Loader2, ChevronDown, Info } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { generateContractPdf } from '@/lib/contractPdf';
@@ -273,6 +273,14 @@ export default function Contracts() {
       </PageHeader>
 
 
+
+      {/* Info banner */}
+      <div className="flex items-start gap-3 p-3 mb-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+        <Info className="w-4 h-4 mt-0.5 shrink-0 text-amber-500" />
+        <span>
+          <strong>Let op:</strong> voor geïmporteerde gegevens worden geen contracten automatisch aangemaakt — deze zijn reeds opgesteld buiten het systeem. Enkel nieuwe placements die via LightTrack worden aangemaakt krijgen automatisch contractrecords.
+        </span>
+      </div>
 
       {/* Filter bar */}
       <div className="flex flex-wrap items-center gap-2 mb-6 p-3 bg-muted/40 rounded-lg border border-border">
