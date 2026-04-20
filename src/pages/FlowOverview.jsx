@@ -321,7 +321,7 @@ export default function FlowOverview() {
               if (f.invoiceStatus === 'warn') issues.push('Geen factuur aangemaakt voor goedgekeurde timesheets');
 
               return (
-                <Card key={p.id} className={`overflow-hidden transition-all border ${
+                <Card key={p.id} className={`transition-all border ${
                   f.health === 'warn' ? 'border-amber-200' : f.health === 'ok' ? 'border-emerald-200/60' : 'border-border'
                 }`}>
                   {/* Main row */}
