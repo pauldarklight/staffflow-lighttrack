@@ -475,12 +475,11 @@ export default function Timesheets() {
                   {filtered.map(t => (
                     <tr
                       key={t.id}
-                      className={`border-b border-border/50 transition-colors ${t.late && !t.isImported ? 'bg-red-50/50 hover:bg-red-50/70' : 'hover:bg-muted/20'}`}
+                      className="border-b border-border/50 hover:bg-muted/20 transition-colors"
                     >
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold text-foreground">{t.consultant_name || '—'}</span>
-                          {t.late && !t.isImported && <AlertTriangle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" title="Te laat ingediend (>15 dagen)" />}
                           {t.isImported && <ImportedBadge />}
                         </div>
                       </td>
