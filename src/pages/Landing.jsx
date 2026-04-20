@@ -58,34 +58,27 @@ export default function Landing() {
         style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(24px)' }}
       >
         {/* Greeting */}
-        <p className="text-[#4ade80] text-xl font-medium tracking-wide mb-4">
+        <p className="text-[#4ade80] text-lg font-medium tracking-wide mb-6">
           Hey Paul & Adnane 👋
         </p>
 
-        {/* Main title */}
-        <h1 className="text-white font-black leading-none tracking-tighter mb-2 w-full" style={{ fontSize: 'clamp(4.5rem, 14vw, 11rem)' }}>
-          dark light<span className="text-[#22c55e]">.</span>
+        {/* Main title — LightTrack */}
+        <h1 className="text-white font-black leading-none tracking-tighter mb-4 w-full" style={{ fontSize: 'clamp(4.5rem, 14vw, 11rem)' }}>
+          Light<span className="text-[#22c55e]">Track</span>
         </h1>
 
-        {/* Subtitle */}
-        <p className="text-white/30 uppercase tracking-[0.4em] text-sm font-light mb-2">
-          humanizing data
+        {/* Slogan */}
+        <p className="text-white/55 font-light mb-8" style={{ fontSize: 'clamp(1rem, 2.5vw, 1.5rem)' }}>
+          The simple way to manage your backoffice.
         </p>
 
         {/* Divider */}
-        <div className="w-16 h-px bg-[#22c55e]/40 my-6" />
+        <div className="w-16 h-px bg-[#22c55e]/40 mb-8" />
 
-        {/* LightTrack tag */}
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-white/50 text-xs uppercase tracking-widest">powered by</span>
-          <span className="text-white font-bold text-sm tracking-tight border border-white/15 rounded-full px-3 py-0.5 bg-white/5">
-            LightTrack
-          </span>
-        </div>
-
-        {/* Tag lines */}
-        <p className="text-white/70 text-xl font-semibold mb-1 mt-3">Staffing & Consultancy</p>
-        <p className="text-white/40 text-base italic mb-12">Data & Business Intelligence</p>
+        {/* Powered by dark light */}
+        <p className="text-white/25 text-xs uppercase tracking-widest mb-12">
+          Powered by <span className="text-white/50 font-semibold">dark light.</span> · Staffing & Consultancy · Data & BI
+        </p>
 
         {/* CTA */}
         <button
