@@ -1,14 +1,28 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function Landing() {
   const navigate = useNavigate();
   const [visible, setVisible] = useState(false);
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 100);
     return () => clearTimeout(t);
   }, []);
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (password === 'lighttrack2024') {
+      navigate('/Dashboard');
+    } else {
+      setError('Incorrect wachtwoord. Probeer opnieuw.');
+      setPassword('');
+    }
+  };
 
   return (
     <div className="min-h-screen w-full bg-[#050f09] flex flex-col items-center justify-center relative overflow-hidden select-none">
@@ -58,7 +72,7 @@ export default function Landing() {
         style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(24px)' }}
       >
         {/* Greeting */}
-        <p className="text-[#4ade80] text-lg font-medium tracking-wide mb-6">
+        <p className="text-[#4ade80] font-bold tracking-wide mb-6" style={{ fontSize: 'clamp(1.4rem, 3.5vw, 2.2rem)' }}>
           Hey Paul & Adnane 👋
         </p>
 
@@ -76,20 +90,39 @@ export default function Landing() {
         <div className="w-16 h-px bg-[#22c55e]/40 mb-8" />
 
         {/* Powered by dark light */}
-        <p className="text-white/25 text-xs uppercase tracking-widest mb-12">
-          Powered by <span className="text-white/50 font-semibold">dark light.</span> · Staffing & Consultancy · Data & BI
+        <p className="text-white/25 text-xs uppercase tracking-widest mb-10">
+          Powered by <span className="text-white/50 font-semibold">dark light.</span>
         </p>
 
-        {/* CTA */}
-        <button
-          onClick={() => navigate('/Dashboard')}
-          className="inline-flex items-center gap-3 bg-[#22c55e] hover:bg-[#16a34a] text-black font-bold text-base px-10 py-4 rounded-full transition-all duration-200 shadow-xl shadow-green-900/40 hover:shadow-green-800/50 hover:scale-105"
-        >
-          <span>Inloggen</span>
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
+        {/* Password form */}
+        <form onSubmit={handleLogin} className="w-full max-w-sm flex flex-col items-center gap-3">
+          <div className="relative w-full">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Wachtwoord"
+              value={password}
+              onChange={e => { setPassword(e.target.value); setError(''); }}
+              className="w-full bg-white/5 border border-white/15 text-white placeholder-white/30 rounded-full px-5 py-3.5 text-sm focus:outline-none focus:border-[#22c55e]/60 focus:bg-white/8 transition-all pr-12"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(v => !v)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+          {error && <p className="text-red-400 text-xs">{error}</p>}
+          <button
+            type="submit"
+            className="w-full inline-flex items-center justify-center gap-2 bg-[#22c55e] hover:bg-[#16a34a] text-black font-bold text-base px-10 py-3.5 rounded-full transition-all duration-200 shadow-xl shadow-green-900/40 hover:shadow-green-800/50 hover:scale-105"
+          >
+            <span>Inloggen</span>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </form>
       </div>
 
       {/* Bottom brand strip */}
