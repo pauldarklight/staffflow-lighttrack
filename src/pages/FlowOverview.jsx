@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { CheckCircle2, Clock, AlertTriangle, Circle, Search, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle2, Clock, AlertTriangle, Circle, Search, X, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import PageHeader from '@/components/shared/PageHeader';
 import { formatDate, formatCurrency, getMonthName } from '@/lib/formatters';
 import { Link } from 'react-router-dom';
@@ -38,7 +38,9 @@ function StepBadge({ label, status, detail }) {
 export default function FlowOverview() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [activeOnly, setActiveOnly] = useState(true);
   const [expanded, setExpanded] = useState({});
+  const [infoOpen, setInfoOpen] = useState({});
   const now = new Date();
   const [periodYear, setPeriodYear] = useState(String(now.getFullYear()));
   const [contractStatusFilter, setContractStatusFilter] = useState('all');
@@ -90,6 +92,7 @@ export default function FlowOverview() {
 
   const filtered = useMemo(() => {
     let rows = flows;
+    if (activeOnly) rows = rows.filter(f => f.placement.status === 'active');
     if (search) {
       const q = search.toLowerCase();
       rows = rows.filter(f =>
@@ -99,7 +102,7 @@ export default function FlowOverview() {
     }
     if (statusFilter !== 'all') rows = rows.filter(f => f.health === statusFilter);
     return rows;
-  }, [flows, search, statusFilter]);
+  }, [flows, search, statusFilter, activeOnly]);
 
   const stats = {
     total: flows.length,
@@ -222,13 +225,13 @@ export default function FlowOverview() {
 
       <Tabs defaultValue="pipeline">
         <TabsList className="mb-4">
-          <TabsTrigger value="pipeline">🔗 Pipeline</TabsTrigger>
+          <TabsTrigger value="pipeline">🔗 Algemeen Overzicht</TabsTrigger>
           <TabsTrigger value="contracten">📄 Contracten</TabsTrigger>
           <TabsTrigger value="timesheets">🗓️ Timesheets</TabsTrigger>
           <TabsTrigger value="facturen">🧳 Facturen</TabsTrigger>
         </TabsList>
 
-        {/* ── TAB 1: Pipeline ── */}
+        {/* ── TAB 1: Algemeen Overzicht ── */}
         <TabsContent value="pipeline">
           {/* Filters */}
           <div className="flex flex-wrap items-center gap-2 mb-4 p-3 bg-muted/40 rounded-lg border border-border">
@@ -239,12 +242,20 @@ export default function FlowOverview() {
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-44 h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Alle placements</SelectItem>
+                <SelectItem value="all">Alle statussen</SelectItem>
                 <SelectItem value="ok">✅ Volledig OK</SelectItem>
                 <SelectItem value="warn">⚠️ Actie vereist</SelectItem>
                 <SelectItem value="pending">🕐 In behandeling</SelectItem>
               </SelectContent>
             </Select>
+            <Button
+              variant={activeOnly ? 'default' : 'outline'}
+              size="sm"
+              className="h-8 text-xs"
+              onClick={() => setActiveOnly(v => !v)}
+            >
+              {activeOnly ? '✅ Alleen actief' : '👁 Alle placements'}
+            </Button>
             {(search || statusFilter !== 'all') && (
               <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => { setSearch(''); setStatusFilter('all'); }}>
                 <X className="w-3.5 h-3.5 mr-1" /> Reset
@@ -292,9 +303,26 @@ export default function FlowOverview() {
                 return { yr, mo };
               });
 
+              // Build issues list for info tooltip
+              const issues = [];
+              if (f.contractStatus === 'missing') issues.push('Geen contract aangemaakt');
+              if (f.contractStatus === 'warn') issues.push('Slechts één contract aanwezig (klant of consultant ontbreekt)');
+              if (f.contractStatus === 'pending') {
+                if (f.clientContract && f.clientContract.status === 'sent') issues.push('Contract klant verstuurd, maar nog niet ondertekend');
+                if (f.consultantContract && f.consultantContract.status === 'sent') issues.push('Contract consultant verstuurd, maar nog niet ondertekend');
+                if (f.clientContract && f.clientContract.status === 'draft') issues.push('Contract klant staat nog in concept');
+                if (f.consultantContract && f.consultantContract.status === 'draft') issues.push('Contract consultant staat nog in concept');
+              }
+              if (f.timesheetStatus === 'missing') issues.push('Nog geen timesheets ingediend');
+              if (f.timesheetStatus === 'warn') issues.push('Timesheets doorgestuurd, maar nog niet bevestigd door de klant');
+              if (f.timesheetStatus === 'pending') issues.push('Timesheets wachten op goedkeuring');
+              if (f.invoiceStatus === 'missing' && f.approvedTS.length > 0) issues.push('Goedgekeurde timesheets zonder factuur');
+              if (f.invoiceStatus === 'pending') issues.push('Factuur verstuurd, maar nog niet betaald');
+              if (f.invoiceStatus === 'warn') issues.push('Geen factuur aangemaakt voor goedgekeurde timesheets');
+
               return (
                 <Card key={p.id} className={`overflow-hidden transition-all border ${
-                  f.health === 'warn' ? 'border-amber-200' : f.health === 'ok' ? 'border-border' : 'border-border'
+                  f.health === 'warn' ? 'border-amber-200' : f.health === 'ok' ? 'border-emerald-200/60' : 'border-border'
                 }`}>
                   {/* Main row */}
                   <div className="flex flex-wrap items-center gap-3 px-4 py-3">
@@ -316,24 +344,63 @@ export default function FlowOverview() {
                       <div className="text-xs text-muted-foreground">{p.client_company_name}</div>
                     </div>
 
-                    {/* Status badges */}
-                    <div className="flex flex-wrap gap-1.5 flex-1">
-                      <span className={`inline-flex items-center gap-1 text-xs font-medium border rounded-full px-2 py-0.5 ${contractBadgeColor}`}>
-                        <ContractIcon className="w-3 h-3" /> Contracten · {contractLabel}
-                      </span>
-                      <span className={`inline-flex items-center gap-1 text-xs font-medium border rounded-full px-2 py-0.5 ${tsBadgeColor}`}>
-                        <TsIcon className="w-3 h-3" /> Timesheets · {f.pTimesheets.length} totaal · {f.approvedTS.length} goedgekeurd
-                      </span>
-                      <span className={`inline-flex items-center gap-1 text-xs font-medium border rounded-full px-2 py-0.5 ${invBadgeColor}`}>
-                        <InvIcon className="w-3 h-3" /> Facturen · {f.clientInvoices.length} facturen
-                      </span>
+                    {/* Process status badges */}
+                    <div className="flex flex-wrap gap-2 flex-1">
+                      {/* Contract */}
+                      <div className={`inline-flex items-center gap-1.5 text-xs font-medium border rounded-lg px-2.5 py-1 ${contractBadgeColor}`}>
+                        <ContractIcon className="w-3.5 h-3.5" />
+                        <span>Contract</span>
+                        <span className="opacity-70 font-normal">· {contractLabel}</span>
+                      </div>
+                      {/* Timesheets */}
+                      <div className={`inline-flex items-center gap-1.5 text-xs font-medium border rounded-lg px-2.5 py-1 ${tsBadgeColor}`}>
+                        <TsIcon className="w-3.5 h-3.5" />
+                        <span>Timesheets</span>
+                        <span className="opacity-70 font-normal">· {f.approvedTS.length}/{f.pTimesheets.length}</span>
+                      </div>
+                      {/* Factuur */}
+                      <div className={`inline-flex items-center gap-1.5 text-xs font-medium border rounded-lg px-2.5 py-1 ${invBadgeColor}`}>
+                        <InvIcon className="w-3.5 h-3.5" />
+                        <span>Factuur</span>
+                        <span className="opacity-70 font-normal">· {f.clientInvoices.length} stuks</span>
+                      </div>
                     </div>
 
-                    {/* Date range + expand */}
+                    {/* Date range + info + expand */}
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-xs text-muted-foreground whitespace-nowrap">
                         {formatDate(p.start_date)} → {p.end_date ? formatDate(p.end_date) : '∞'}
                       </span>
+                      {/* Info button */}
+                      {issues.length > 0 && (
+                        <div className="relative">
+                          <button
+                            onClick={() => setInfoOpen(o => ({ ...o, [p.id]: !o[p.id] }))}
+                            className="w-6 h-6 rounded border border-amber-300 bg-amber-50 flex items-center justify-center text-amber-600 hover:bg-amber-100 transition-colors"
+                            title="Bekijk issues"
+                          >
+                            <Info className="w-3.5 h-3.5" />
+                          </button>
+                          {infoOpen[p.id] && (
+                            <div className="absolute right-0 top-8 z-50 bg-background border border-border rounded-lg shadow-lg p-3 w-72 text-xs space-y-1.5">
+                              <div className="font-semibold text-sm mb-2 flex items-center gap-1.5">
+                                <AlertTriangle className="w-4 h-4 text-amber-500" /> Aandachtspunten
+                              </div>
+                              {issues.map((issue, i) => (
+                                <div key={i} className="flex items-start gap-2 text-foreground">
+                                  <span className="text-amber-500 mt-0.5">•</span>
+                                  <span>{issue}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {issues.length === 0 && (
+                        <div className="w-6 h-6 rounded border border-emerald-200 bg-emerald-50 flex items-center justify-center" title="Alles in orde">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                        </div>
+                      )}
                       <button
                         onClick={() => setExpanded(e => ({ ...e, [p.id]: !e[p.id] }))}
                         className="w-6 h-6 rounded border border-border flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
