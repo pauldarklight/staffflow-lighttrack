@@ -55,11 +55,13 @@ export default function Landing() {
         <ellipse cx="720" cy="900" rx="500" ry="260" fill="none" stroke="#4ade80" strokeWidth="0.6" />
       </svg>
 
-      {/* Top-left logo: dark light logo in wit */}
+      {/* Top-left logo: dark light logo */}
       <div className="absolute top-7 left-10 flex items-center gap-4 z-20">
-        <div className="flex items-center justify-center w-14 h-14 rounded-2xl border border-white/20 bg-white/5">
-          <span className="text-white font-black text-3xl leading-none tracking-tighter">d.</span>
-        </div>
+        <img
+          src="https://media.base44.com/images/public/69babb9b316585d1576607e8/42937d79c_image.png"
+          alt="dark light logo"
+          className="w-14 h-14 rounded-2xl object-cover"
+        />
         <div className="flex flex-col leading-tight">
           <span className="text-white font-black text-2xl tracking-tight">dark light.</span>
           <span className="text-white/40 text-[11px] uppercase tracking-widest">humanizing data</span>
