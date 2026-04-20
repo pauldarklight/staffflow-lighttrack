@@ -329,6 +329,8 @@ export default function Templates() {
               '{month_end_total_client_in_btw} = {2}',
               '{3} = BTW einde maand facturering',
               '{4} = BTW einde maand betaling',
+              '{qr_payment_international}',
+              '{timesheet_days_x_rate_excl}',
               '{notice_period_client}',
               '{notice_period_consultant}',
               '{our_company_address}',
