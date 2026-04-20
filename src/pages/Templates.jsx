@@ -326,6 +326,7 @@ export default function Templates() {
               '{job_title}',
               '{month}',
               '{month_end_total_client_1} = excl. BTW',
+              '{month_end_total_client_ex_btw} = {1}',
               '{month_end_total_client_2} = incl. BTW',
               '{notice_period_client}',
               '{notice_period_consultant}',
