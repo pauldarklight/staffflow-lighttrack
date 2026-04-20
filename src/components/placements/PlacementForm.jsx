@@ -239,7 +239,7 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Consultant */}
-        <FormSection title="Consultant" icon="👤" defaultOpen={true}>
+        <FormSection title="Consultant" icon="👤" defaultOpen={false}>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -353,7 +353,7 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
         </FormSection>
 
         {/* Klant */}
-        <FormSection title="Klant" icon="🏦" defaultOpen={true}>
+        <FormSection title="Klant" icon="🏦" defaultOpen={false}>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Bedrijfsnaam *</Label>
@@ -412,7 +412,7 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
         </FormSection>
 
         {/* Tarieven & Data */}
-        <FormSection title="Tarieven & Data" icon="💶" defaultOpen={true}>
+        <FormSection title="Tarieven & Data" icon="💶" defaultOpen={false}>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
