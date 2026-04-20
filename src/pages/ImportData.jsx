@@ -1,31 +1,74 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, AlertTriangle, Upload, Loader2, FileSpreadsheet, RefreshCw, Search, X } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CheckCircle2, AlertTriangle, Upload, Loader2, FileSpreadsheet, RefreshCw, Search, X, FolderOpen } from 'lucide-react';
 import PageHeader from '@/components/shared/PageHeader';
-import { formatCurrency } from '@/lib/formatters';
+import { formatCurrency, getMonthName } from '@/lib/formatters';
 
 export default function ImportData() {
   const [status, setStatus] = useState('idle'); // idle | extracting | preview | creating | done | error
   const [updateStatus, setUpdateStatus] = useState('idle');
-  const [search, setSearch] = useState(''); // idle | running | done | error
+  const [search, setSearch] = useState('');
   const [updateResults, setUpdateResults] = useState({ updated: 0, skipped: 0, details: [] });
   const [extracted, setExtracted] = useState([]);
   const [results, setResults] = useState({ created: [], skipped: [] });
   const [errorMsg, setErrorMsg] = useState('');
+
+  // File upload state
+  const [uploadedFile, setUploadedFile] = useState(null); // { name, url }
+  const [uploadLoading, setUploadLoading] = useState(false);
+  const [availableSheets, setAvailableSheets] = useState([]);
+  const [selectedSheet, setSelectedSheet] = useState('');
+  const [importMonth, setImportMonth] = useState(String(new Date().getMonth() + 1));
+  const [importYear, setImportYear] = useState(String(new Date().getFullYear()));
+  const fileInputRef = useRef(null);
+
   const queryClient = useQueryClient();
+
+  // Upload a file from computer
+  const handleFileUpload = async (file) => {
+    setUploadLoading(true);
+    setAvailableSheets([]);
+    setSelectedSheet('');
+    setExtracted([]);
+    setStatus('idle');
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      // Parse it to get sheet names
+      const response = await base44.functions.invoke('parseUploadedFile', { file_url, month: importMonth });
+      const sheets = response.data?.sheets || [];
+      setUploadedFile({ name: file.name, url: file_url });
+      setAvailableSheets(sheets);
+      setSelectedSheet(response.data?.sheet_name || sheets[0] || '');
+    } catch (e) {
+      setErrorMsg(e.response?.data?.error || e.message || 'Upload mislukt');
+      setStatus('error');
+    }
+    setUploadLoading(false);
+  };
 
   const handleExtract = async () => {
     setStatus('extracting');
     setErrorMsg('');
     try {
-      const response = await base44.functions.invoke('parseActuals', {});
+      let response;
+      if (uploadedFile) {
+        // Use uploaded file
+        response = await base44.functions.invoke('parseUploadedFile', {
+          file_url: uploadedFile.url,
+          month: selectedSheet || importMonth,
+        });
+      } else {
+        // Fallback: use hardcoded server-side file
+        response = await base44.functions.invoke('parseActuals', {});
+      }
       const rows = (response.data?.rows || []).filter(r => r.consultant_name && r.client_company);
-      if (rows.length === 0) throw new Error('Geen geldige rijen gevonden.');
+      if (rows.length === 0) throw new Error('Geen geldige rijen gevonden. Controleer of het juiste tabblad geselecteerd is.');
       setExtracted(rows);
       setStatus('preview');
     } catch (e) {
@@ -57,6 +100,7 @@ export default function ImportData() {
 
       if (existing && existing.length > 0) { skipped.push({ ...row, reason: 'Bestaat al' }); continue; }
 
+      const importLabel = uploadedFile ? uploadedFile.name : 'Actuals Excel';
       const placement = await base44.entities.Placement.create({
         placement_type: 'freelancer',
         consultant_first_name: firstName,
@@ -67,7 +111,7 @@ export default function ImportData() {
         start_date: row.start_date || null,
         end_date: row.end_date || null,
         sales_contributors: (row.sales_contributors || []).filter(s => s.name && s.percentage > 0),
-        notes: 'Geïmporteerd vanuit Actuals Excel – Jan 2026',
+        notes: `Geïmporteerd vanuit Actuals Excel – ${importLabel}`,
       });
 
       await base44.entities.Contract.create({ placement_id: placement.id, contract_type: 'client', status: 'draft', recipient_name: row.client_company.trim(), recipient_email: '', notes: 'Auto aangemaakt via import Jan 2026' });
@@ -238,19 +282,62 @@ export default function ImportData() {
           </Card>
         )}
 
-        {/* Source file info */}
-        <Card className="border-blue-200 bg-blue-50/30">
-          <CardContent className="p-4 flex items-center gap-4">
-            <FileSpreadsheet className="w-10 h-10 text-blue-600 shrink-0" />
-            <div>
-              <div className="font-semibold text-sm">KopievanActuals.xlsx — Tab: Jan 2026</div>
-              <div className="text-xs text-muted-foreground mt-0.5">
-                48 contractors · Gemiddelde dagfee: ~€790 · Totale omzet: ~€577.135
+        {/* Upload from computer */}
+        <Card className="border-primary/30 bg-primary/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <FolderOpen className="w-5 h-5 text-primary" /> Bestand uploaden van computer
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">Upload een Excel (.xlsx) of CSV bestand. De kolommen worden automatisch herkend.</p>
+
+            <div
+              className="border-2 border-dashed border-primary/30 rounded-lg p-6 text-center cursor-pointer hover:bg-primary/5 transition-colors"
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={e => e.preventDefault()}
+              onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFileUpload(f); }}
+            >
+              {uploadLoading ? (
+                <div className="flex flex-col items-center gap-2">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  <span className="text-sm text-muted-foreground">Bestand uploaden en analyseren...</span>
+                </div>
+              ) : uploadedFile ? (
+                <div className="flex flex-col items-center gap-2">
+                  <FileSpreadsheet className="w-8 h-8 text-emerald-600" />
+                  <span className="text-sm font-semibold text-emerald-700">{uploadedFile.name}</span>
+                  <span className="text-xs text-muted-foreground">{availableSheets.length} tab(bladen) gevonden · Klik om te vervangen</span>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                  <Upload className="w-8 h-8" />
+                  <span className="text-sm font-medium">Klik of sleep een bestand hier</span>
+                  <span className="text-xs">.xlsx of .csv</span>
+                </div>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                className="hidden"
+                onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(f); e.target.value = ''; }}
+              />
+            </div>
+
+            {availableSheets.length > 0 && (
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="space-y-1 flex-1 min-w-[160px]">
+                  <label className="text-xs font-medium text-muted-foreground">Tabblad</label>
+                  <Select value={selectedSheet} onValueChange={setSelectedSheet}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {availableSheets.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            </div>
-            <div className="ml-auto">
-              <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200">Klaar om te importeren</Badge>
-            </div>
+            )}
           </CardContent>
         </Card>
 
@@ -260,15 +347,17 @@ export default function ImportData() {
             <CardHeader><CardTitle className="text-base">Stap 1 — Gegevens extraheren</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Klik op "Extraheer Data" om de consultants, tarieven en prestaties uit de Jan 2026 tab te lezen.
+                {uploadedFile
+                  ? `Klik op "Extraheer Data" om de gegevens uit "${uploadedFile.name}" (tab: ${selectedSheet}) in te lezen.`
+                  : 'Klik op "Extraheer Data" om de consultants, tarieven en prestaties uit de Jan 2026 tab te lezen.'}
               </p>
               {status === 'error' && (
                 <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
                   <AlertTriangle className="w-4 h-4 shrink-0" /> {errorMsg}
                 </div>
               )}
-              <Button onClick={handleExtract}>
-                <Upload className="w-4 h-4 mr-2" /> Extraheer Data uit Excel
+              <Button onClick={handleExtract} disabled={!uploadedFile && status !== 'error'}>
+                <Upload className="w-4 h-4 mr-2" /> Extraheer Data
               </Button>
             </CardContent>
           </Card>
