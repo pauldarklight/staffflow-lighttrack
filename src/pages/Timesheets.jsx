@@ -451,9 +451,8 @@ export default function Timesheets() {
                     <th className="text-right py-3 px-4 font-bold text-white bg-primary">Kost</th>
                     <th className="text-right py-3 px-4 font-bold text-foreground">Marge</th>
                     <th className="text-left py-3 px-4 font-normal text-foreground">Status</th>
-                    <th className="text-left py-3 px-4 font-bold text-foreground whitespace-nowrap">Doorgestuurd klant</th>
-                    <th className="text-left py-3 px-4 font-bold text-foreground whitespace-nowrap">Controle klant</th>
-                    <th className="text-left py-3 px-4 font-bold text-foreground whitespace-nowrap">Controle consultant</th>
+                    <th className="text-left py-3 px-4 font-bold text-foreground whitespace-nowrap">Van consultant</th>
+                    <th className="text-left py-3 px-4 font-bold text-foreground whitespace-nowrap">Klant bevestigd</th>
                     <th className="text-right py-3 px-4 font-normal text-foreground">Acties</th>
                   </tr>
                 </thead>
@@ -502,20 +501,17 @@ export default function Timesheets() {
                         </button>
                       </td>
                       <td className="py-3 px-4">
-                        <ReconcileCell
-                          expected={t.expectedClient}
-                          invoice={t.clientInvoice}
-                          match={t.clientMatch}
-                          label="klant"
-                        />
-                      </td>
-                      <td className="py-3 px-4">
-                        <ReconcileCell
-                          expected={t.expectedConsultant}
-                          invoice={t.consultantInvoice}
-                          match={t.consultantMatch}
-                          label="cons."
-                        />
+                        <button
+                          onClick={() => updateMutation.mutate({ id: t.id, data: { confirmed_to_client: !t.confirmed_to_client } })}
+                          className={`flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-md border transition-colors ${
+                            t.confirmed_to_client
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                              : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          <span>{t.confirmed_to_client ? '✓' : '○'}</span>
+                          <span>{t.confirmed_to_client ? 'Bevestigd' : 'Niet bevestigd'}</span>
+                        </button>
                       </td>
                       <td className="py-3 px-4 text-right">
                         <Button variant="ghost" size="sm" onClick={() => openEdit(t)}>Bewerken</Button>
