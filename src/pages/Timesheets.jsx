@@ -50,6 +50,7 @@ export default function Timesheets() {
   const [search, setSearch] = useState(() => localStorage.getItem('ts_search') || '');
   const [sortBy, setSortBy] = useState(() => localStorage.getItem('ts_sortBy') || 'default');
   const [onlyActive, setOnlyActive] = useState(() => localStorage.getItem('ts_onlyActive') === 'true');
+  const [completionFilter, setCompletionFilter] = useState(() => localStorage.getItem('ts_completionFilter') || 'all');
   const queryClient = useQueryClient();
 
   // Persist filters
@@ -59,6 +60,7 @@ export default function Timesheets() {
   React.useEffect(() => { localStorage.setItem('ts_search', search); }, [search]);
   React.useEffect(() => { localStorage.setItem('ts_sortBy', sortBy); }, [sortBy]);
   React.useEffect(() => { localStorage.setItem('ts_onlyActive', onlyActive); }, [onlyActive]);
+  React.useEffect(() => { localStorage.setItem('ts_completionFilter', completionFilter); }, [completionFilter]);
 
   const { data: timesheets = [] } = useQuery({
     queryKey: ['timesheets'],
@@ -193,6 +195,12 @@ export default function Timesheets() {
       rows = rows.filter(t => t.placement?.status === 'active');
     }
 
+    if (completionFilter === 'complete') {
+      rows = rows.filter(t => t.confirmed_to_client);
+    } else if (completionFilter === 'pending') {
+      rows = rows.filter(t => !t.confirmed_to_client);
+    }
+
     if (search) {
       const q = search.toLowerCase();
       rows = rows.filter(t =>
@@ -215,7 +223,7 @@ export default function Timesheets() {
     }
 
     return rows;
-  }, [enriched, filterMonth, filterYear, viewMode, search, sortBy]);
+  }, [enriched, filterMonth, filterYear, viewMode, search, sortBy, onlyActive, completionFilter]);
 
   const totalRevenue = filtered.reduce((s, t) => s + (t.client_revenue || 0), 0);
   const totalCost = filtered.reduce((s, t) => s + (t.consultant_revenue || 0), 0);
@@ -325,6 +333,14 @@ export default function Timesheets() {
             <SelectItem value="days_asc">Minste dagen eerst</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={completionFilter} onValueChange={setCompletionFilter}>
+          <SelectTrigger className="w-40 h-8 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Alle timesheets</SelectItem>
+            <SelectItem value="complete">Alles in orde</SelectItem>
+            <SelectItem value="pending">Actie nodig</SelectItem>
+          </SelectContent>
+        </Select>
         <Button
           variant={onlyActive ? 'default' : 'outline'}
           size="sm"
@@ -333,8 +349,8 @@ export default function Timesheets() {
         >
           Enkel actieve placements
         </Button>
-        {(search || sortBy !== 'default' || onlyActive) && (
-          <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => { setSearch(''); setSortBy('default'); setOnlyActive(false); }}>
+        {(search || sortBy !== 'default' || onlyActive || completionFilter !== 'all') && (
+          <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => { setSearch(''); setSortBy('default'); setOnlyActive(false); setCompletionFilter('all'); }}>
             <X className="w-3.5 h-3.5 mr-1" /> Reset
           </Button>
         )}
@@ -450,9 +466,8 @@ export default function Timesheets() {
                     <th className="text-right py-3 px-4 font-normal text-white bg-primary">Omzet</th>
                     <th className="text-right py-3 px-4 font-bold text-white bg-primary">Kost</th>
                     <th className="text-right py-3 px-4 font-bold text-foreground">Marge</th>
-                    <th className="text-left py-3 px-4 font-normal text-foreground">Status</th>
-                    <th className="text-left py-3 px-4 font-bold text-foreground whitespace-nowrap">Van consultant</th>
-                    <th className="text-left py-3 px-4 font-bold text-foreground whitespace-nowrap">Klant bevestigd</th>
+                    <th className="text-center py-3 px-2 font-bold text-foreground whitespace-nowrap">Van consultant</th>
+                    <th className="text-center py-3 px-2 font-bold text-foreground whitespace-nowrap">Klant bevestigd</th>
                     <th className="text-right py-3 px-4 font-normal text-foreground">Acties</th>
                   </tr>
                 </thead>
@@ -481,36 +496,36 @@ export default function Timesheets() {
                       <td className={`py-3 px-4 text-right font-bold ${(t.margin || 0) >= 0 ? 'text-primary' : 'text-red-500'}`}>
                         {formatCurrency(t.margin)}
                       </td>
-                      <td className="py-3 px-4">
-                        <Badge variant="outline" className={`text-xs ${STATUS_STYLES[t.status] || 'bg-muted text-muted-foreground'}`}>
-                          {STATUS_LABELS[t.status] || t.status}
-                        </Badge>
-                        {t.late && <div className="text-xs text-red-600 mt-1 font-medium">Te laat</div>}
-                      </td>
-                      <td className="py-3 px-4">
+                      <td className="py-3 px-2 text-center">
                         <button
-                          onClick={() => updateMutation.mutate({ id: t.id, data: { confirmed_to_client: !t.confirmed_to_client } })}
-                          className={`flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-md border transition-colors ${
+                          onClick={() => {
+                            const newStatus = t.confirmed_to_client ? 'requested' : 'submitted';
+                            updateMutation.mutate({ id: t.id, data: { confirmed_to_client: !t.confirmed_to_client, status: newStatus } });
+                          }}
+                          className={`flex items-center justify-center w-6 h-6 rounded-md border transition-colors mx-auto ${
                             t.confirmed_to_client
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
-                              : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+                              ? 'bg-emerald-100 border-emerald-300 text-emerald-700'
+                              : 'bg-slate-100 border-slate-300 text-slate-500'
                           }`}
+                          title={t.confirmed_to_client ? 'Ontvangen' : 'Niet ontvangen'}
                         >
-                          <span>{t.confirmed_to_client ? '✓' : '○'}</span>
-                          <span>{t.confirmed_to_client ? 'Bevestigd' : 'Niet bevestigd'}</span>
+                          {t.confirmed_to_client ? '✓' : '—'}
                         </button>
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="py-3 px-2 text-center">
                         <button
-                          onClick={() => updateMutation.mutate({ id: t.id, data: { confirmed_to_client: !t.confirmed_to_client } })}
-                          className={`flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-md border transition-colors ${
-                            t.confirmed_to_client
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
-                              : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+                          onClick={() => {
+                            const newStatus = t.status === 'approved' ? 'submitted' : 'approved';
+                            updateMutation.mutate({ id: t.id, data: { status: newStatus } });
+                          }}
+                          className={`flex items-center justify-center w-6 h-6 rounded-md border transition-colors mx-auto ${
+                            t.status === 'approved'
+                              ? 'bg-emerald-100 border-emerald-300 text-emerald-700'
+                              : 'bg-slate-100 border-slate-300 text-slate-500'
                           }`}
+                          title={t.status === 'approved' ? 'Goedgekeurd' : 'Niet goedgekeurd'}
                         >
-                          <span>{t.confirmed_to_client ? '✓' : '○'}</span>
-                          <span>{t.confirmed_to_client ? 'Bevestigd' : 'Niet bevestigd'}</span>
+                          {t.status === 'approved' ? '✓' : '—'}
                         </button>
                       </td>
                       <td className="py-3 px-4 text-right">
@@ -536,12 +551,8 @@ export default function Timesheets() {
                         <td className="py-3 px-4 text-right bg-primary/5 text-muted-foreground">—</td>
                         <td className="py-3 px-4 text-right bg-primary/5 text-muted-foreground">—</td>
                         <td className="py-3 px-4 text-right text-muted-foreground">—</td>
-                        <td className="py-3 px-4">
-                          <Badge variant="outline" className="text-xs bg-amber-100 text-amber-700 border-amber-200">Ontbreekt</Badge>
-                        </td>
-                        <td className="py-3 px-4"><span className="text-xs text-muted-foreground">—</span></td>
-                        <td className="py-3 px-4"><span className="text-xs text-muted-foreground">—</span></td>
-                        <td className="py-3 px-4"><span className="text-xs text-muted-foreground">—</span></td>
+                        <td className="py-3 px-2 text-center"><span className="text-xs text-muted-foreground">—</span></td>
+                        <td className="py-3 px-2 text-center"><span className="text-xs text-muted-foreground">—</span></td>
                         <td className="py-3 px-4 text-right">
                           <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => { setForm({ placement_id: r.placement_id, month: r.month, year: r.year, days_worked: '', hours_worked: '', status: 'approved' }); setEditing(null); setShowForm(true); }}>Aanmaken</Button>
                         </td>
@@ -554,7 +565,7 @@ export default function Timesheets() {
                       <td className="py-3 px-4 text-right bg-primary/10 text-muted-foreground">{formatCurrency(filtered.reduce((s, t) => s + (t.client_revenue || 0), 0))}</td>
                       <td className="py-3 px-4 text-right bg-primary/10 font-bold text-foreground">{formatCurrency(filtered.reduce((s, t) => s + (t.consultant_revenue || 0), 0))}</td>
                       <td className="py-3 px-4 text-right text-primary font-bold">{formatCurrency(filtered.reduce((s, t) => s + (t.margin || 0), 0))}</td>
-                      <td colSpan={4} />
+                      <td colSpan={3} />
                                      </tr>
                   )}
                 </tbody>
