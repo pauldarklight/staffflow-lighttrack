@@ -16,7 +16,7 @@ export default function Landing() {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    if (password === 'lighttrack2024') {
+    if (password === 'Dark-light123') {
       navigate('/Dashboard');
     } else {
       setError('Incorrect wachtwoord. Probeer opnieuw.');
