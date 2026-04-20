@@ -39,6 +39,10 @@
       "type": "string",
       "description": "BTW nummer consultant"
     },
+    "consultant_bank_account": {
+      "type": "string",
+      "description": "Bankrekening consultant (IBAN)"
+    },
     "consultant_company_representative": {
       "type": "string",
       "description": "Wettelijke vertegenwoordiger van de firma van de consultant"
@@ -187,6 +191,10 @@
     },
     "client_address": {
       "type": "string"
+    },
+    "client_bank_account": {
+      "type": "string",
+      "description": "Bankrekening klant (IBAN)"
     },
     "client_vat_number": {
       "type": "string"
