@@ -58,7 +58,7 @@ export default function Landing() {
       {/* Top-left logo: dark light logo */}
       <div className="absolute top-7 left-10 flex items-center gap-4 z-20">
         <img
-          src="https://media.base44.com/images/public/69babb9b316585d1576607e8/42937d79c_image.png"
+          src="https://media.base44.com/images/public/69babb9b316585d1576607e8/0e1fc2701_image.png"
           alt="dark light logo"
           className="w-14 h-14 rounded-2xl object-cover"
         />
