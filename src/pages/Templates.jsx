@@ -327,6 +327,8 @@ export default function Templates() {
               '{month}',
               '{month_end_total_client_ex_btw} = {1}',
               '{month_end_total_client_in_btw} = {2}',
+              '{total_vat_month_billing}',
+              '{total_vat_month_paying}',
               '{notice_period_client}',
               '{notice_period_consultant}',
               '{our_company_address}',
