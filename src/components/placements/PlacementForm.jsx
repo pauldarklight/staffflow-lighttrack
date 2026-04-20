@@ -239,9 +239,8 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Consultant */}
-        <div className="rounded-xl border bg-card shadow-sm">
-          <div className="px-5 py-4 border-b font-semibold text-sm">👤 Consultant</div>
-          <div className="px-5 py-4 space-y-4">
+        <FormSection title="Consultant" icon="👤" defaultOpen={true}>
+          <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Voornaam *</Label>
@@ -351,12 +350,11 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
               </div>
             </div>
           </div>
-        </div>
+        </FormSection>
 
         {/* Klant */}
-        <div className="rounded-xl border bg-card shadow-sm">
-          <div className="px-5 py-4 border-b font-semibold text-sm">🏦 Klant</div>
-          <div className="px-5 py-4 space-y-4">
+        <FormSection title="Klant" icon="🏦" defaultOpen={true}>
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label>Bedrijfsnaam *</Label>
               <Input value={form.client_company_name} onChange={e => updateField('client_company_name', e.target.value)} required />
@@ -411,12 +409,11 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
               )}
             </div>
           </div>
-        </div>
+        </FormSection>
 
         {/* Tarieven & Data */}
-        <div className="rounded-xl border bg-card shadow-sm">
-          <div className="px-5 py-4 border-b font-semibold text-sm">💶 Tarieven & Data</div>
-          <div className="px-5 py-4 space-y-4">
+        <FormSection title="Tarieven & Data" icon="💶" defaultOpen={true}>
+          <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Startdatum *</Label>
@@ -510,7 +507,7 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
               </div>
             </div>
           </div>
-        </div>
+        </FormSection>
 
         {/* Contractinformatie (enkel freelancer) — collapsible */}
         {!isPerm && (
@@ -613,61 +610,48 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
         )}
 
         {/* Contractsjablonen */}
-        <div className="rounded-xl border bg-card shadow-sm">
-          <div className="px-5 py-4 border-b font-semibold text-sm flex items-center gap-2">
-            📄 Contractsjablonen
-            <InfoTooltip text="Kies hier de sjablonen die automatisch worden ingevuld. Enkel relevante types worden getoond op basis van het placement type." />
-            <span className="ml-1 text-xs font-normal bg-primary/10 text-primary px-2 py-0.5 rounded-full">{isPerm ? 'PERM' : 'Freelancer'}</span>
-          </div>
-          <div className="px-5 py-4 space-y-2">
-            {contractTemplates.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Geen contractsjablonen beschikbaar voor dit type</p>
-            ) : contractTemplates.map(t => (
-              <div key={t.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/40">
-                <Checkbox
-                  id={`ct-${t.id}`}
-                  checked={(form.contract_template_ids || []).includes(t.id)}
-                  onCheckedChange={checked => {
-                    const ids = form.contract_template_ids || [];
-                    updateField('contract_template_ids', checked ? [...ids, t.id] : ids.filter(id => id !== t.id));
-                  }}
-                />
-                <label htmlFor={`ct-${t.id}`} className="text-sm cursor-pointer flex items-center gap-2 flex-1">
-                  <span className="font-medium">{t.name}</span>
-                  <span className="text-xs text-muted-foreground">{TYPE_LABELS[t.template_type]} · {t.language?.toUpperCase()}{t.is_active ? ' · ✓' : ''}</span>
-                </label>
-              </div>
-            ))}
-          </div>
-        </div>
+        <FormSection title="Contractsjablonen" icon="📄" defaultOpen={false} badge={isPerm ? 'PERM' : 'Freelancer'}>
+          {contractTemplates.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Geen contractsjablonen beschikbaar voor dit type</p>
+          ) : contractTemplates.map(t => (
+            <div key={t.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/40">
+              <Checkbox
+                id={`ct-${t.id}`}
+                checked={(form.contract_template_ids || []).includes(t.id)}
+                onCheckedChange={checked => {
+                  const ids = form.contract_template_ids || [];
+                  updateField('contract_template_ids', checked ? [...ids, t.id] : ids.filter(id => id !== t.id));
+                }}
+              />
+              <label htmlFor={`ct-${t.id}`} className="text-sm cursor-pointer flex items-center gap-2 flex-1">
+                <span className="font-medium">{t.name}</span>
+                <span className="text-xs text-muted-foreground">{TYPE_LABELS[t.template_type]} · {t.language?.toUpperCase()}{t.is_active ? ' · ✓' : ''}</span>
+              </label>
+            </div>
+          ))}
+        </FormSection>
 
         {/* Factuursjablonen */}
-        <div className="rounded-xl border bg-card shadow-sm">
-          <div className="px-5 py-4 border-b font-semibold text-sm flex items-center gap-2">
-            🧾 Factuursjablonen
-            <InfoTooltip text="Selecteer welke factuursjablonen automatisch worden aangemaakt op basis van dit placement type." />
-          </div>
-          <div className="px-5 py-4 space-y-2">
-            {invoiceTemplates.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Geen factuursjablonen beschikbaar voor dit type</p>
-            ) : invoiceTemplates.map(t => (
-              <div key={t.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/40">
-                <Checkbox
-                  id={`it-${t.id}`}
-                  checked={(form.invoice_template_ids || []).includes(t.id)}
-                  onCheckedChange={checked => {
-                    const ids = form.invoice_template_ids || [];
-                    updateField('invoice_template_ids', checked ? [...ids, t.id] : ids.filter(id => id !== t.id));
-                  }}
-                />
-                <label htmlFor={`it-${t.id}`} className="text-sm cursor-pointer flex items-center gap-2 flex-1">
-                  <span className="font-medium">{t.name}</span>
-                  <span className="text-xs text-muted-foreground">{TYPE_LABELS[t.template_type]} · {t.language?.toUpperCase()}{t.is_active ? ' · ✓' : ''}</span>
-                </label>
-              </div>
-            ))}
-          </div>
-        </div>
+        <FormSection title="Factuursjablonen" icon="🧾" defaultOpen={false}>
+          {invoiceTemplates.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Geen factuursjablonen beschikbaar voor dit type</p>
+          ) : invoiceTemplates.map(t => (
+            <div key={t.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/40">
+              <Checkbox
+                id={`it-${t.id}`}
+                checked={(form.invoice_template_ids || []).includes(t.id)}
+                onCheckedChange={checked => {
+                  const ids = form.invoice_template_ids || [];
+                  updateField('invoice_template_ids', checked ? [...ids, t.id] : ids.filter(id => id !== t.id));
+                }}
+              />
+              <label htmlFor={`it-${t.id}`} className="text-sm cursor-pointer flex items-center gap-2 flex-1">
+                <span className="font-medium">{t.name}</span>
+                <span className="text-xs text-muted-foreground">{TYPE_LABELS[t.template_type]} · {t.language?.toUpperCase()}{t.is_active ? ' · ✓' : ''}</span>
+              </label>
+            </div>
+          ))}
+        </FormSection>
 
         {/* Sales Contributors — collapsible */}
         <FormSection title="Sales Contributors" icon="💼" defaultOpen={false} badge={(form.sales_contributors || []).length > 0 ? `${form.sales_contributors.length} personen` : undefined}>
@@ -683,19 +667,15 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
       </div>
 
       {/* Opmerkingen */}
-      <div className={`mt-6 rounded-xl border bg-card shadow-sm ${form.notes ? 'border-amber-300 bg-amber-50/30' : ''}`}>
-        <div className={`px-5 py-4 border-b font-semibold text-sm ${form.notes ? 'text-amber-700' : ''}`}>
-          {form.notes ? '💬' : '📝'} Extra Opmerkingen
-          {form.notes && <span className="text-xs font-normal text-amber-600 ml-2">(ingevuld)</span>}
-        </div>
-        <div className="px-5 py-4">
+      <div className="mt-6">
+        <FormSection title="Extra Opmerkingen" icon={form.notes ? '💬' : '📝'} defaultOpen={false} badge={form.notes ? 'ingevuld' : undefined}>
           <textarea
             className="flex min-h-[96px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             placeholder="Bijv: specifieke afspraken, escalatiepunten, aandachtspunten..."
             value={form.notes || ''}
             onChange={e => updateField('notes', e.target.value)}
           />
-        </div>
+        </FormSection>
       </div>
 
       <div className="flex justify-end gap-3 mt-6">
