@@ -289,7 +289,6 @@ export default function Templates() {
               '{agoria_index_client}',
               '{agoria_index_consultant}',
               '{amount_excl_vat}',
-              '{approved_timesheets_excl_vat}',
               '{billing_client_rate}',
               '{client_address}',
               '{client_billing_email}',
