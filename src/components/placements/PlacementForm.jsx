@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -7,9 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Trash2, Save, X, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, Save, X, RefreshCw, Cloud, CloudOff, Loader2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 import AddressFields, { composeAddress } from './AddressFields';
+import VatLookupInput from './VatLookupInput';
+import SalesContributorField from './SalesContributorField';
 import VatLookupInput from './VatLookupInput';
 
 const TYPE_LABELS = {
@@ -44,13 +46,29 @@ function parseAddr(str) {
 function parseRepFirst(str) { if (!str) return ''; return str.trim().split(' ')[0] || ''; }
 function parseRepLast(str) { if (!str) return ''; const p = str.trim().split(' '); return p.slice(1).join(' '); }
 
+const DRAFT_KEY = 'placement_draft';
+
 export default function PlacementForm({ placement, onSave, onCancel }) {
   const { data: templates = [] } = useQuery({
     queryKey: ['templates'],
     queryFn: () => base44.entities.Template.list('-created_date'),
   });
 
-  const [form, setForm] = useState(placement || {
+  const isNew = !placement?.id;
+  const [saveStatus, setSaveStatus] = useState(null); // null | 'saving' | 'saved' | 'error'
+  const saveTimerRef = useRef(null);
+
+  // Load draft for new placements
+  const getInitial = () => {
+    if (!isNew) return placement;
+    try {
+      const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
+      if (draft) return draft;
+    } catch {}
+    return null;
+  };
+
+  const [form, setForm] = useState(getInitial() || {
     placement_type: 'freelancer',
     consultant_first_name: '',
     consultant_last_name: '',
@@ -96,9 +114,26 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
     invoice_template_ids: placement?.invoice_template_ids || [],
     });
 
-  const [personalAddr, setPersonalAddr] = useState(() => parseAddr(placement?.consultant_personal_address));
-  const [companyAddr, setCompanyAddr] = useState(() => parseAddr(placement?.consultant_company_address));
-  const [clientAddr, setClientAddr] = useState(() => parseAddr(placement?.client_address));
+  const getInitialForm = () => {
+    if (!isNew) return form;
+    try {
+      const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
+      return draft || form;
+    } catch { return form; }
+  };
+
+  const [personalAddr, setPersonalAddr] = useState(() => {
+    const src = isNew ? (getInitialForm().consultant_personal_address || placement?.consultant_personal_address) : placement?.consultant_personal_address;
+    return parseAddr(src);
+  });
+  const [companyAddr, setCompanyAddr] = useState(() => {
+    const src = isNew ? (getInitialForm().consultant_company_address || placement?.consultant_company_address) : placement?.consultant_company_address;
+    return parseAddr(src);
+  });
+  const [clientAddr, setClientAddr] = useState(() => {
+    const src = isNew ? (getInitialForm().client_address || placement?.client_address) : placement?.client_address;
+    return parseAddr(src);
+  });
   const [companyAddrSameAsPersonal, setCompanyAddrSameAsPersonal] = useState(!placement?.consultant_company_address);
   const [repFirstName, setRepFirstName] = useState(() => parseRepFirst(placement?.consultant_company_representative));
   const [repLastName, setRepLastName] = useState(() => parseRepLast(placement?.consultant_company_representative));
@@ -106,6 +141,26 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
   useEffect(() => {
     if (companyAddrSameAsPersonal) setCompanyAddr(personalAddr);
   }, [personalAddr, companyAddrSameAsPersonal]);
+
+  // Autosave to localStorage (new placements only)
+  const triggerAutosave = useCallback((currentForm) => {
+    if (!isNew) return;
+    clearTimeout(saveTimerRef.current);
+    setSaveStatus('saving');
+    saveTimerRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(currentForm));
+        setSaveStatus('saved');
+        setTimeout(() => setSaveStatus(null), 2000);
+      } catch {
+        setSaveStatus('error');
+      }
+    }, 800);
+  }, [isNew]);
+
+  useEffect(() => {
+    triggerAutosave(form);
+  }, [form, triggerAutosave]);
 
   const updatePersonalAddr = (field, value) => setPersonalAddr(prev => ({ ...prev, [field]: value }));
   const updateCompanyAddr = (field, value) => { setCompanyAddrSameAsPersonal(false); setCompanyAddr(prev => ({ ...prev, [field]: value })); };
@@ -135,6 +190,11 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const totalPct = (form.sales_contributors || []).reduce((s, c) => s + (parseFloat(c.percentage) || 0), 0);
+    if (totalPct > 100) {
+      alert('Sales contributors totaal mag niet boven 100% uitkomen.');
+      return;
+    }
     const annualSalary = parseFloat(form.perm_annual_salary) || 0;
     const feePerc = parseFloat(form.perm_fee_percentage) || 20;
     const repFull = [repFirstName, repLastName].filter(Boolean).join(' ');
@@ -157,6 +217,7 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
       client_address: composeAddress(clientAddr),
       consultant_company_representative: repFull,
     };
+    if (isNew) localStorage.removeItem(DRAFT_KEY);
     onSave(data);
   };
 
@@ -165,19 +226,29 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
 
   return (
     <form onSubmit={handleSubmit}>
-      {/* Type selector */}
+      {/* Type selector + autosave indicator */}
       <div className="mb-6">
         <Card>
           <CardContent className="pt-4">
-            <div className="space-y-2">
-              <Label>Type placement *</Label>
-              <Select value={form.placement_type || 'freelancer'} onValueChange={v => updateField('placement_type', v)}>
-                <SelectTrigger className="w-64"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="freelancer">Freelancer</SelectItem>
-                  <SelectItem value="perm">PERM (vaste aanwerving)</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="flex items-end justify-between gap-4 flex-wrap">
+              <div className="space-y-2">
+                <Label>Type placement *</Label>
+                <Select value={form.placement_type || 'freelancer'} onValueChange={v => updateField('placement_type', v)}>
+                  <SelectTrigger className="w-64"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="freelancer">Freelancer</SelectItem>
+                    <SelectItem value="perm">PERM (vaste aanwerving)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {isNew && (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground pb-1">
+                  {saveStatus === 'saving' && <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Opslaan...</>}
+                  {saveStatus === 'saved' && <><Cloud className="w-3.5 h-3.5 text-emerald-500" /><span className="text-emerald-600">Concept opgeslagen</span></>}
+                  {saveStatus === 'error' && <><CloudOff className="w-3.5 h-3.5 text-destructive" /><span className="text-destructive">Autosave mislukt</span></>}
+                  {!saveStatus && <><Cloud className="w-3.5 h-3.5" /> Autosave actief</>}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -309,31 +380,33 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
                 </div>
                 </>
                 )}
-                <div className="space-y-2">
-                <Label>Persoonlijk adres consultant</Label>
-                <AddressFields values={personalAddr} onChange={updatePersonalAddr} />
-                </div>
+                {!isPerm && (
+                  <div className="space-y-2">
+                    <Label>Persoonlijk adres consultant</Label>
+                    <AddressFields values={personalAddr} onChange={updatePersonalAddr} />
+                  </div>
+                )}
                 <div className="pt-2 border-t">
-                <p className="text-xs font-semibold text-muted-foreground mb-3">Contactpersoon (optioneel)</p>
-                <div className="space-y-3">
-                <div className="space-y-2">
-                  <Label>Naam contactpersoon</Label>
-                  <Input value={form.consultant_contact_name || ''} onChange={e => updateField('consultant_contact_name', e.target.value)} placeholder="Jan Janssen" />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>E-mail contactpersoon</Label>
-                    <Input type="email" value={form.consultant_contact_email || ''} onChange={e => updateField('consultant_contact_email', e.target.value)} placeholder="jan@bedrijf.be" />
+                  <p className="text-xs font-semibold text-muted-foreground mb-3">Contactpersoon (optioneel)</p>
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label>Naam contactpersoon</Label>
+                      <Input value={form.consultant_contact_name || ''} onChange={e => updateField('consultant_contact_name', e.target.value)} placeholder="Jan Janssen" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>E-mail contactpersoon</Label>
+                        <Input type="email" value={form.consultant_contact_email || ''} onChange={e => updateField('consultant_contact_email', e.target.value)} placeholder="jan@bedrijf.be" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Telefoon contactpersoon</Label>
+                        <Input value={form.consultant_contact_phone || ''} onChange={e => updateField('consultant_contact_phone', e.target.value)} placeholder="+32 4xx xx xx xx" />
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Telefoon contactpersoon</Label>
-                    <Input value={form.consultant_contact_phone || ''} onChange={e => updateField('consultant_contact_phone', e.target.value)} placeholder="+32 4xx xx xx xx" />
-                  </div>
                 </div>
-                </div>
-                </div>
-          </CardContent>
-        </Card>
+                </CardContent>
+                </Card>
 
         {/* Klant */}
         <Card>
@@ -561,8 +634,8 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
           </Card>
         )}
 
-        {/* Verlengingen */}
-        <Card>
+        {/* Verlengingen — alleen voor freelancer */}
+        {!isPerm && <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Verlengingen</CardTitle>
             <Button type="button" variant="outline" size="sm" onClick={() => {
@@ -604,7 +677,7 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
               </div>
             ))}
           </CardContent>
-        </Card>
+        </Card>}
 
         {/* Contract sjablonen */}
         <Card>
@@ -660,25 +733,12 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
 
         {/* Sales Contributors */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Sales Contributors</CardTitle>
-            <Button type="button" variant="outline" size="sm" onClick={addContributor}>
-              <Plus className="w-4 h-4 mr-1" /> Toevoegen
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {(form.sales_contributors || []).map((c, idx) => (
-              <div key={idx} className="flex items-center gap-3">
-                <Input placeholder="Naam" value={c.name} onChange={e => updateContributor(idx, 'name', e.target.value)} className="flex-1" />
-                <Input type="number" placeholder="%" value={c.percentage} onChange={e => updateContributor(idx, 'percentage', e.target.value)} className="w-20" />
-                <Button type="button" variant="ghost" size="icon" onClick={() => removeContributor(idx)}>
-                  <Trash2 className="w-4 h-4 text-destructive" />
-                </Button>
-              </div>
-            ))}
-            {(!form.sales_contributors || form.sales_contributors.length === 0) && (
-              <p className="text-sm text-muted-foreground text-center py-4">Geen sales contributors toegevoegd</p>
-            )}
+          <CardHeader><CardTitle className="text-base">Sales Contributors</CardTitle></CardHeader>
+          <CardContent>
+            <SalesContributorField
+              contributors={form.sales_contributors || []}
+              onChange={(contributors) => updateField('sales_contributors', contributors)}
+            />
           </CardContent>
         </Card>
       </div>
@@ -702,7 +762,9 @@ export default function PlacementForm({ placement, onSave, onCancel }) {
       </Card>
 
       <div className="flex justify-end gap-3 mt-6">
-        <Button type="button" variant="outline" onClick={onCancel}><X className="w-4 h-4 mr-1" /> Annuleren</Button>
+        <Button type="button" variant="outline" onClick={() => { if (isNew) localStorage.removeItem(DRAFT_KEY); onCancel(); }}>
+          <X className="w-4 h-4 mr-1" /> Annuleren
+        </Button>
         <Button type="submit"><Save className="w-4 h-4 mr-1" /> Opslaan</Button>
       </div>
     </form>
