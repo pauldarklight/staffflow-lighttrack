@@ -12,7 +12,6 @@ import { formatCurrency } from '@/lib/formatters';
 import AddressFields, { composeAddress } from './AddressFields';
 import VatLookupInput from './VatLookupInput';
 import SalesContributorField from './SalesContributorField';
-import VatLookupInput from './VatLookupInput';
 
 const TYPE_LABELS = {
   contract_client: 'Contract Klant',
