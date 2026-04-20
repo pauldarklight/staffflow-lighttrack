@@ -220,7 +220,6 @@ export default function Timesheets() {
   const totalRevenue = filtered.reduce((s, t) => s + (t.client_revenue || 0), 0);
   const totalCost = filtered.reduce((s, t) => s + (t.consultant_revenue || 0), 0);
   const totalMargin = filtered.reduce((s, t) => s + (t.margin || 0), 0);
-  const lateCount = filtered.filter(t => t.late).length;
 
   const quickCreateTimesheet = (virtual) => {
     const days = virtual.days_worked;
@@ -298,12 +297,7 @@ export default function Timesheets() {
         <StatCard title="Dagen" value={`${filtered.reduce((s, t) => s + (t.days_worked || 0), 0)}d`} />
       </div>
 
-      {lateCount > 0 && (
-        <div className="mb-4 flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-          <span><strong>{lateCount}</strong> timesheet{lateCount > 1 ? 's' : ''} meer dan 15 dagen te laat ingediend.</span>
-        </div>
-      )}
+
 
       {/* Search + Sort bar */}
       <div className="flex flex-wrap items-center gap-2 mb-4 p-3 bg-muted/40 rounded-lg border border-border">
