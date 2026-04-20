@@ -13,40 +13,50 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-[#050f09] flex flex-col items-center justify-center relative overflow-hidden select-none">
 
-      {/* Background grid */}
+      {/* Background grid — iets warmer/zachter */}
       <div
-        className="absolute inset-0 opacity-[0.04]"
+        className="absolute inset-0 opacity-[0.035]"
         style={{
           backgroundImage: 'linear-gradient(#22c55e 1px, transparent 1px), linear-gradient(90deg, #22c55e 1px, transparent 1px)',
-          backgroundSize: '60px 60px',
+          backgroundSize: '80px 80px',
         }}
       />
 
-      {/* Green radial glow center */}
+      {/* Warme zijkant-glows om de koude randen te verzachten */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse 70% 50% at 50% 55%, rgba(34,197,94,0.10) 0%, transparent 70%)',
+          background: `
+            radial-gradient(ellipse 60% 80% at 0% 50%, rgba(34,197,94,0.07) 0%, transparent 60%),
+            radial-gradient(ellipse 60% 80% at 100% 50%, rgba(34,197,94,0.07) 0%, transparent 60%),
+            radial-gradient(ellipse 70% 50% at 50% 55%, rgba(34,197,94,0.10) 0%, transparent 70%)
+          `,
         }}
       />
 
-      {/* Animated arc lines */}
-      <svg className="absolute inset-0 w-full h-full opacity-20" viewBox="0 0 1440 800" preserveAspectRatio="none">
+      {/* Arc lines */}
+      <svg className="absolute inset-0 w-full h-full opacity-15" viewBox="0 0 1440 800" preserveAspectRatio="none">
         <ellipse cx="720" cy="820" rx="900" ry="400" fill="none" stroke="#22c55e" strokeWidth="1" />
         <ellipse cx="720" cy="860" rx="700" ry="330" fill="none" stroke="#16a34a" strokeWidth="0.8" />
         <ellipse cx="720" cy="900" rx="500" ry="260" fill="none" stroke="#4ade80" strokeWidth="0.6" />
       </svg>
 
+      {/* Top-left logo: dark light logo in wit */}
+      <div className="absolute top-6 left-8 flex items-center gap-3 z-20">
+        <div className="flex items-center justify-center w-10 h-10 rounded-xl border border-white/20 bg-white/5">
+          <span className="text-white font-black text-xl leading-none tracking-tighter">d.</span>
+        </div>
+        <div className="flex flex-col leading-tight">
+          <span className="text-white font-bold text-base tracking-tight">dark light.</span>
+          <span className="text-white/40 text-[10px] uppercase tracking-widest">humanizing data</span>
+        </div>
+      </div>
+
       {/* Content */}
       <div
-        className="relative z-10 flex flex-col items-center text-center px-6 transition-all duration-1000"
+        className="relative z-10 flex flex-col items-center text-center px-8 sm:px-16 transition-all duration-1000"
         style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(24px)' }}
       >
-        {/* Logo mark */}
-        <div className="mb-10 flex items-center justify-center w-20 h-20 rounded-2xl border border-[#22c55e]/20 bg-[#0a1a10]/80 shadow-lg shadow-green-950/40">
-          <span className="text-[#22c55e] font-black text-4xl leading-none tracking-tighter">d.</span>
-        </div>
-
         {/* Greeting */}
         <p className="text-[#4ade80] text-xl font-medium tracking-wide mb-4">
           Hey Paul & Adnane 👋
@@ -65,11 +75,19 @@ export default function Landing() {
         {/* Divider */}
         <div className="w-16 h-px bg-[#22c55e]/40 my-6" />
 
+        {/* LightTrack tag */}
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-white/50 text-xs uppercase tracking-widest">powered by</span>
+          <span className="text-white font-bold text-sm tracking-tight border border-white/15 rounded-full px-3 py-0.5 bg-white/5">
+            LightTrack
+          </span>
+        </div>
+
         {/* Tag lines */}
-        <p className="text-white/70 text-xl font-semibold mb-1">Staffing & Consultancy</p>
+        <p className="text-white/70 text-xl font-semibold mb-1 mt-3">Staffing & Consultancy</p>
         <p className="text-white/40 text-base italic mb-12">Data & Business Intelligence</p>
 
-        {/* CTA + countdown */}
+        {/* CTA */}
         <button
           onClick={() => navigate('/Dashboard')}
           className="inline-flex items-center gap-3 bg-[#22c55e] hover:bg-[#16a34a] text-black font-bold text-base px-10 py-4 rounded-full transition-all duration-200 shadow-xl shadow-green-900/40 hover:shadow-green-800/50 hover:scale-105"
@@ -83,7 +101,7 @@ export default function Landing() {
 
       {/* Bottom brand strip */}
       <div className="absolute bottom-6 left-0 right-0 flex justify-center">
-        <p className="text-white/15 text-xs tracking-widest uppercase">© {new Date().getFullYear()} Dark Light · All rights reserved</p>
+        <p className="text-white/15 text-xs tracking-widest uppercase">© {new Date().getFullYear()} Dark Light · LightTrack · All rights reserved</p>
       </div>
     </div>
   );
