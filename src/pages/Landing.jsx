@@ -60,7 +60,7 @@ export default function Landing() {
         <img
           src="https://media.base44.com/images/public/69babb9b316585d1576607e8/0e1fc2701_image.png"
           alt="dark light logo"
-          className="w-14 h-14 rounded-2xl object-cover"
+          className="w-14 h-14 rounded-2xl object-cover bg-white p-1.5"
         />
         <div className="flex flex-col leading-tight">
           <span className="text-white font-black text-2xl tracking-tight">dark light.</span>
