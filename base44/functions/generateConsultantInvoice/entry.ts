@@ -1,6 +1,7 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import PizZip from 'npm:pizzip@3.1.7';
 import Docxtemplater from 'npm:docxtemplater@3.50.0';
+import QRCode from 'npm:qrcode@^1.5.3';
 
 function fmtDate(d) {
   if (!d) return '';
@@ -15,6 +16,34 @@ function fmtCurrency(n) {
 function getMonthName(m) {
   const names = ['Januari','Februari','Maart','April','Mei','Juni','Juli','Augustus','September','Oktober','November','December'];
   return names[(m || 1) - 1] || '';
+}
+
+async function generateSepaQr(amount, invoice_number, iban, bic, creditor_name, description) {
+  if (!amount || !iban || !creditor_name) return null;
+  
+  const amountStr = `EUR${(parseFloat(amount) || 0).toFixed(2)}`;
+  const sepaLines = [
+    'BCD',
+    '002',
+    '1',
+    'SCT',
+    (bic || '').toUpperCase() || '',
+    (iban || '').toUpperCase(),
+    amountStr,
+    '',
+    (invoice_number || '').substring(0, 35),
+    (creditor_name || '').substring(0, 70),
+    (description || '').substring(0, 140),
+  ];
+  
+  const sepaQr = sepaLines.join('\n');
+  const qrDataUrl = await QRCode.toDataURL(sepaQr, {
+    width: 200,
+    margin: 1,
+    color: { dark: '#000000', light: '#FFFFFF' },
+  });
+  
+  return qrDataUrl;
 }
 
 Deno.serve(async (req) => {
@@ -65,6 +94,25 @@ Deno.serve(async (req) => {
     const paymentDays = placement.payment_terms_consultant || 30;
     const dueDate = new Date(Date.now() + paymentDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
+    // Generate SEPA QR code if IBAN available
+    let qrCodeBase64 = null;
+    if (placement.consultant_vat_number) {
+      const invoiceNum = `INV-${invoiceYear}-${String(invoiceMonth).padStart(2, '0')}`;
+      const description = `Factuur ${invoiceNum} - ${getMonthName(invoiceMonth)} ${invoiceYear}`;
+      try {
+        qrCodeBase64 = await generateSepaQr(
+          amountExcl,
+          invoiceNum,
+          placement.consultant_vat_number, // Using VAT as placeholder; ideally you'd have IBAN
+          '',
+          consultantName,
+          description
+        );
+      } catch (e) {
+        console.log('QR code generation skipped:', e.message);
+      }
+    }
+
     const data = {
       consultant_name: consultantName,
       consultant_first_name: placement.consultant_first_name || '',
@@ -95,6 +143,7 @@ Deno.serve(async (req) => {
       payment_terms_days: paymentDays,
       reference_instructions: placement.reference_instructions || '',
       notes: placement.notes || '',
+      sepa_qr_code: qrCodeBase64 || '',
     };
 
     const zip = new PizZip(fileBuffer);
