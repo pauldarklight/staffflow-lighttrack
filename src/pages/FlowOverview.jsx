@@ -325,15 +325,15 @@ export default function FlowOverview() {
                   f.health === 'warn' ? 'border-amber-200' : f.health === 'ok' ? 'border-emerald-200/60' : 'border-border'
                 }`}>
                   {/* Main row */}
-                  <div className="flex flex-wrap items-center gap-3 px-4 py-3">
+                  <div className="flex items-center gap-3 px-4 py-3">
                     {/* Status dot */}
                     <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${
                       f.health === 'ok' ? 'bg-emerald-500' : f.health === 'warn' ? 'bg-amber-400' : 'bg-blue-400'
                     }`} />
 
-                    {/* Samenwerking */}
-                    <div className="min-w-[180px] flex-1">
-                      <div className="font-semibold text-sm flex items-center gap-2 flex-wrap">
+                    {/* Consultant + klant — vaste breedte */}
+                    <div className="w-48 shrink-0">
+                      <div className="font-semibold text-sm leading-tight flex items-center gap-1.5 flex-wrap">
                         {p.consultant_first_name} {p.consultant_last_name}
                         {isImported && (
                           <span className="inline-flex items-center gap-1 text-xs font-medium bg-emerald-100 text-emerald-700 border border-emerald-200 rounded px-1.5 py-0.5">
@@ -341,66 +341,64 @@ export default function FlowOverview() {
                           </span>
                         )}
                       </div>
-                      <div className="text-xs text-muted-foreground">{p.client_company_name}</div>
+                      <div className="text-xs text-muted-foreground truncate">{p.client_company_name}</div>
                     </div>
 
-                    {/* Process status badges */}
-                    <div className="flex flex-wrap gap-2 flex-1">
-                      {/* Contract */}
-                      <div className={`inline-flex items-center gap-1.5 text-xs font-medium border rounded-lg px-2.5 py-1 ${contractBadgeColor}`}>
-                        <ContractIcon className="w-3.5 h-3.5" />
+                    {/* Process status badges — flex-1 zodat ze de beschikbare ruimte vullen */}
+                    <div className="flex-1 flex items-center gap-2 justify-center flex-wrap">
+                      <div className={`inline-flex items-center gap-1.5 text-xs font-medium border rounded-lg px-2.5 py-1 whitespace-nowrap ${contractBadgeColor}`}>
+                        <ContractIcon className="w-3.5 h-3.5 shrink-0" />
                         <span>Contract</span>
                         <span className="opacity-70 font-normal">· {contractLabel}</span>
                       </div>
-                      {/* Timesheets */}
-                      <div className={`inline-flex items-center gap-1.5 text-xs font-medium border rounded-lg px-2.5 py-1 ${tsBadgeColor}`}>
-                        <TsIcon className="w-3.5 h-3.5" />
+                      <div className={`inline-flex items-center gap-1.5 text-xs font-medium border rounded-lg px-2.5 py-1 whitespace-nowrap ${tsBadgeColor}`}>
+                        <TsIcon className="w-3.5 h-3.5 shrink-0" />
                         <span>Timesheets</span>
                         <span className="opacity-70 font-normal">· {f.approvedTS.length}/{f.pTimesheets.length}</span>
                       </div>
-                      {/* Factuur */}
-                      <div className={`inline-flex items-center gap-1.5 text-xs font-medium border rounded-lg px-2.5 py-1 ${invBadgeColor}`}>
-                        <InvIcon className="w-3.5 h-3.5" />
+                      <div className={`inline-flex items-center gap-1.5 text-xs font-medium border rounded-lg px-2.5 py-1 whitespace-nowrap ${invBadgeColor}`}>
+                        <InvIcon className="w-3.5 h-3.5 shrink-0" />
                         <span>Factuur</span>
                         <span className="opacity-70 font-normal">· {f.clientInvoices.length} stuks</span>
                       </div>
                     </div>
 
-                    {/* Date range + info + expand */}
+                    {/* Datum + info + expand — vaste breedte rechts */}
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-xs text-muted-foreground whitespace-nowrap">
                         {formatDate(p.start_date)} → {p.end_date ? formatDate(p.end_date) : '∞'}
                       </span>
-                      {/* Info button */}
-                      {issues.length > 0 && (
-                        <div className="relative">
-                          <button
-                            onClick={() => setInfoOpen(o => ({ ...o, [p.id]: !o[p.id] }))}
-                            className="w-6 h-6 rounded border border-amber-300 bg-amber-50 flex items-center justify-center text-amber-600 hover:bg-amber-100 transition-colors"
-                            title="Bekijk issues"
-                          >
-                            <Info className="w-3.5 h-3.5" />
-                          </button>
-                          {infoOpen[p.id] && (
-                            <div className="absolute right-0 top-8 z-50 bg-background border border-border rounded-lg shadow-lg p-3 w-72 text-xs space-y-1.5">
-                              <div className="font-semibold text-sm mb-2 flex items-center gap-1.5">
-                                <AlertTriangle className="w-4 h-4 text-amber-500" /> Aandachtspunten
-                              </div>
-                              {issues.map((issue, i) => (
-                                <div key={i} className="flex items-start gap-2 text-foreground">
-                                  <span className="text-amber-500 mt-0.5">•</span>
-                                  <span>{issue}</span>
+                      {/* Info / OK button */}
+                      <div className="relative">
+                        {issues.length > 0 ? (
+                          <>
+                            <button
+                              onClick={() => setInfoOpen(o => ({ ...o, [p.id]: !o[p.id] }))}
+                              className="w-6 h-6 rounded border border-blue-300 bg-blue-50 flex items-center justify-center text-blue-500 hover:bg-blue-100 transition-colors"
+                              title="Bekijk aandachtspunten"
+                            >
+                              <Info className="w-3.5 h-3.5" />
+                            </button>
+                            {infoOpen[p.id] && (
+                              <div className="absolute right-0 top-8 z-50 bg-background border border-border rounded-lg shadow-lg p-3 w-72 text-xs space-y-1.5">
+                                <div className="font-semibold text-sm mb-2 flex items-center gap-1.5">
+                                  <AlertTriangle className="w-4 h-4 text-amber-500" /> Aandachtspunten
                                 </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      {issues.length === 0 && (
-                        <div className="w-6 h-6 rounded border border-emerald-200 bg-emerald-50 flex items-center justify-center" title="Alles in orde">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                        </div>
-                      )}
+                                {issues.map((issue, i) => (
+                                  <div key={i} className="flex items-start gap-2 text-foreground">
+                                    <span className="text-amber-500 mt-0.5">•</span>
+                                    <span>{issue}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="w-6 h-6 rounded border border-emerald-200 bg-emerald-50 flex items-center justify-center" title="Alles in orde">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                          </div>
+                        )}
+                      </div>
                       <button
                         onClick={() => setExpanded(e => ({ ...e, [p.id]: !e[p.id] }))}
                         className="w-6 h-6 rounded border border-border flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
