@@ -169,7 +169,7 @@ export default function Timesheets() {
         clientVat: p.client_vat_number || '',
         clientRate: p.client_rate || 0,
         consultantRate: p.consultant_rate || 0,
-        days_worked: Math.round(((p.days_per_week || 5) / 5) * 21 * 10) / 10,
+        days_worked: null,
         month: mo,
         year: yr,
       }));
@@ -524,14 +524,14 @@ export default function Timesheets() {
                         </td>
                         <td className="py-3 px-4 text-muted-foreground">{r.client_company || '—'}</td>
                         <td className="py-3 px-4 text-xs text-muted-foreground">{r.clientVat || '—'}</td>
-                        <td className="py-3 px-4 text-right text-amber-600 text-xs">{r.days_worked}~</td>
+                        <td className="py-3 px-4 text-right text-muted-foreground text-xs">—</td>
                         <td className="py-3 px-4 text-right font-bold text-foreground text-xs">
                           <div>{formatCurrency(r.clientRate)}</div>
                           <div className="text-muted-foreground font-normal">cons: {formatCurrency(r.consultantRate)}</div>
                         </td>
-                        <td className="py-3 px-4 text-right bg-primary/5 text-amber-600">{formatCurrency(estRevenue)}</td>
-                        <td className="py-3 px-4 text-right bg-primary/5 text-amber-600">{formatCurrency(estCost)}</td>
-                        <td className="py-3 px-4 text-right text-amber-600">{formatCurrency(estRevenue - estCost)}</td>
+                        <td className="py-3 px-4 text-right bg-primary/5 text-muted-foreground">—</td>
+                        <td className="py-3 px-4 text-right bg-primary/5 text-muted-foreground">—</td>
+                        <td className="py-3 px-4 text-right text-muted-foreground">—</td>
                         <td className="py-3 px-4">
                           <Badge variant="outline" className="text-xs bg-amber-100 text-amber-700 border-amber-200">Ontbreekt</Badge>
                         </td>
@@ -539,7 +539,7 @@ export default function Timesheets() {
                         <td className="py-3 px-4"><span className="text-xs text-muted-foreground">—</span></td>
                         <td className="py-3 px-4"><span className="text-xs text-muted-foreground">—</span></td>
                         <td className="py-3 px-4 text-right">
-                          <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => { setForm({ placement_id: r.placement_id, month: r.month, year: r.year, days_worked: r.days_worked, hours_worked: '', status: 'approved' }); setEditing(null); setShowForm(true); }}>Aanmaken</Button>
+                          <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => { setForm({ placement_id: r.placement_id, month: r.month, year: r.year, days_worked: '', hours_worked: '', status: 'approved' }); setEditing(null); setShowForm(true); }}>Aanmaken</Button>
                         </td>
                       </tr>
                     );
