@@ -3,23 +3,12 @@ import { useNavigate } from 'react-router-dom';
 
 export default function Landing() {
   const navigate = useNavigate();
-  const [countdown, setCountdown] = useState(4);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    // Fade in
     const t = setTimeout(() => setVisible(true), 100);
     return () => clearTimeout(t);
   }, []);
-
-  useEffect(() => {
-    if (countdown <= 0) {
-      navigate('/Dashboard');
-      return;
-    }
-    const t = setTimeout(() => setCountdown(c => c - 1), 1000);
-    return () => clearTimeout(t);
-  }, [countdown, navigate]);
 
   return (
     <div className="min-h-screen bg-[#050f09] flex flex-col items-center justify-center relative overflow-hidden select-none">
@@ -83,15 +72,13 @@ export default function Landing() {
         {/* CTA + countdown */}
         <button
           onClick={() => navigate('/Dashboard')}
-          className="group relative inline-flex items-center gap-3 bg-[#22c55e] hover:bg-[#16a34a] text-black font-bold text-base px-8 py-4 rounded-full transition-all duration-200 shadow-xl shadow-green-900/40 hover:shadow-green-800/50 hover:scale-105"
+          className="inline-flex items-center gap-3 bg-[#22c55e] hover:bg-[#16a34a] text-black font-bold text-base px-10 py-4 rounded-full transition-all duration-200 shadow-xl shadow-green-900/40 hover:shadow-green-800/50 hover:scale-105"
         >
-          <span>Naar het dashboard</span>
-          <span className="w-7 h-7 rounded-full bg-black/15 flex items-center justify-center text-sm font-black tabular-nums">
-            {countdown}
-          </span>
+          <span>Inloggen</span>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+          </svg>
         </button>
-
-        <p className="text-white/20 text-xs mt-4">Automatisch doorgestuurd in {countdown}s</p>
       </div>
 
       {/* Bottom brand strip */}
