@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { CheckCircle2, Clock, AlertTriangle, Circle, Search, X, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import PageHeader from '@/components/shared/PageHeader';
+import ImportedBadge from '@/components/shared/ImportedBadge';
 import { formatDate, formatCurrency, getMonthName } from '@/lib/formatters';
 import { Link } from 'react-router-dom';
 
@@ -335,11 +336,7 @@ export default function FlowOverview() {
                     <div className="w-48 shrink-0">
                       <div className="font-semibold text-sm leading-tight flex items-center gap-1.5 flex-wrap">
                         {p.consultant_first_name} {p.consultant_last_name}
-                        {isImported && (
-                          <span className="inline-flex items-center gap-1 text-xs font-medium bg-emerald-100 text-emerald-700 border border-emerald-200 rounded px-1.5 py-0.5">
-                            <CheckCircle2 className="w-3 h-3" /> Geïmporteerd
-                          </span>
-                        )}
+                        {isImported && <ImportedBadge />}
                       </div>
                       <div className="text-xs text-muted-foreground truncate">{p.client_company_name}</div>
                     </div>

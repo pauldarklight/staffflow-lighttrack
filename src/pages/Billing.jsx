@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import ImportedBadge from '@/components/shared/ImportedBadge';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -483,7 +484,10 @@ export default function Billing() {
                     <tr key={row.placement.id} className={`border-b border-border/50 transition-colors ${clientOverdue ? 'bg-red-50/40 hover:bg-red-50/60' : 'hover:bg-muted/20'}`}>
                       <td className="py-3 px-3 font-bold text-foreground">{row.idx}</td>
                       <td className="py-3 px-3">
-                        <div className="font-normal text-foreground">{row.placement.consultant_first_name} {row.placement.consultant_last_name}</div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-normal text-foreground">{row.placement.consultant_first_name} {row.placement.consultant_last_name}</span>
+                          {row.placement.notes?.includes('Geïmporteerd vanuit Actuals Excel') && <ImportedBadge />}
+                        </div>
                         {row.placement.consultant_company_name && <div className="text-xs text-muted-foreground">{row.placement.consultant_company_name}</div>}
                       </td>
                       <td className="py-3 px-3 text-xs font-bold text-foreground">{row.placement.consultant_vat_number || '—'}</td>
@@ -647,7 +651,12 @@ export default function Billing() {
                   return (
                     <tr key={row.placement.id} className={`border-b border-border/50 transition-colors ${clientOverdue ? 'bg-red-50/40 hover:bg-red-50/60' : 'hover:bg-muted/20'}`}>
                       <td className="py-3 px-4 font-bold text-foreground">{row.idx}</td>
-                      <td className="py-3 px-4 font-normal text-foreground">{row.placement.consultant_first_name} {row.placement.consultant_last_name}</td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-normal text-foreground">{row.placement.consultant_first_name} {row.placement.consultant_last_name}</span>
+                          {row.placement.notes?.includes('Geïmporteerd vanuit Actuals Excel') && <ImportedBadge />}
+                        </div>
+                      </td>
                       <td className="py-3 px-4 font-bold text-foreground">{row.placement.client_company_name}</td>
                       <td className="py-3 px-4 text-xs font-normal text-muted-foreground">{row.placement.client_vat_number || '—'}</td>
                       <td className="py-3 px-4 text-xs font-bold text-foreground">{formatDate(row.placement.start_date)}</td>

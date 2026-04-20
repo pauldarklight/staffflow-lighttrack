@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import PageHeader from '@/components/shared/PageHeader';
 import EmptyState from '@/components/shared/EmptyState';
+import ImportedBadge from '@/components/shared/ImportedBadge';
 import PlacementForm from '@/components/placements/PlacementForm';
 import ExtendContractDialog from '@/components/placements/ExtendContractDialog';
 import { formatCurrency, formatDate } from '@/lib/formatters';
@@ -535,7 +536,10 @@ export default function Placements() {
                       <tr className="border-b border-border/50 hover:bg-muted/20 transition-colors">
                         <td className="py-3 px-3 font-bold text-foreground">{p.idx}</td>
                         <td className="py-3 px-3">
-                          <div className="font-bold text-foreground whitespace-nowrap">{p.consultant_first_name} {p.consultant_last_name}</div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-bold text-foreground whitespace-nowrap">{p.consultant_first_name} {p.consultant_last_name}</span>
+                            {p.notes?.includes('Geïmporteerd vanuit Actuals Excel') && <ImportedBadge />}
+                          </div>
                           {p.consultant_company_name && <div className="text-xs text-muted-foreground">{p.consultant_company_name}</div>}
                           {p.consultant_vat_number && <div className="text-xs text-muted-foreground font-mono">{p.consultant_vat_number}</div>}
                         </td>

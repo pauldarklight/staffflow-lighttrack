@@ -16,6 +16,7 @@ import { generateContractPdf } from '@/lib/contractPdf';
 import PageHeader from '@/components/shared/PageHeader';
 
 import EmptyState from '@/components/shared/EmptyState';
+import ImportedBadge from '@/components/shared/ImportedBadge';
 import { formatDate, formatCurrency } from '@/lib/formatters';
 
 const STATUS_STYLES = {
@@ -473,7 +474,13 @@ export default function Contracts() {
                   }).map(col => (
                     <tr key={col.placement_id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
                       <td className="py-3 px-4"><span className="font-mono text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">{col.reference}</span></td>
-                      <td className="py-3 px-4"><div className="font-bold">{col.consultantName}</div>{col.placement?.consultant_company_name && <div className="text-xs text-muted-foreground">{col.placement.consultant_company_name}</div>}</td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-bold">{col.consultantName}</span>
+                          {col.placement?.notes?.includes('Geïmporteerd vanuit Actuals Excel') && <ImportedBadge />}
+                        </div>
+                        {col.placement?.consultant_company_name && <div className="text-xs text-muted-foreground">{col.placement.consultant_company_name}</div>}
+                      </td>
                       <td className="py-3 px-4"><div className="font-bold">{col.clientName}</div></td>
                       <td className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap"><div>{formatDate(col.startDate)}</div><div className="font-medium text-foreground">{col.endDate ? formatDate(col.endDate) : '—'}</div></td>
                       <td className="py-3 px-4 text-right"><div className="font-bold">{col.consultantRate ? formatCurrency(col.consultantRate) : '—'}</div></td>
@@ -515,7 +522,13 @@ export default function Contracts() {
                   }).map(col => (
                     <tr key={col.placement_id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
                       <td className="py-3 px-4"><span className="font-mono text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">{col.reference}</span></td>
-                      <td className="py-3 px-4"><div className="font-bold">{col.consultantName}</div>{col.placement?.consultant_company_name && <div className="text-xs text-muted-foreground">{col.placement.consultant_company_name}</div>}</td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-bold">{col.consultantName}</span>
+                          {col.placement?.notes?.includes('Geïmporteerd vanuit Actuals Excel') && <ImportedBadge />}
+                        </div>
+                        {col.placement?.consultant_company_name && <div className="text-xs text-muted-foreground">{col.placement.consultant_company_name}</div>}
+                      </td>
                       <td className="py-3 px-4"><div className="font-bold">{col.clientName}</div>{col.placement?.client_vat_number && <div className="text-xs text-muted-foreground font-mono">{col.placement.client_vat_number}</div>}</td>
                       <td className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap"><div>{formatDate(col.startDate)}</div><div className="font-medium text-foreground">{col.endDate ? formatDate(col.endDate) : '—'}</div></td>
                       <td className="py-3 px-4 text-right"><div className="font-bold">{col.clientRate ? formatCurrency(col.clientRate) : '—'}</div></td>

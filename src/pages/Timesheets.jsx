@@ -13,6 +13,7 @@ import ReconcileCell from '@/components/timesheets/ReconcileCell';
 import PageHeader from '@/components/shared/PageHeader';
 import StatCard from '@/components/shared/StatCard';
 import EmptyState from '@/components/shared/EmptyState';
+import ImportedBadge from '@/components/shared/ImportedBadge';
 import { formatCurrency, getMonthName } from '@/lib/formatters';
 
 // Returns true if timesheet is "late": created_date > 15 days after end of the month it covers
@@ -458,7 +459,7 @@ export default function Timesheets() {
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-foreground">{t.consultant_name || '—'}</span>
                           {t.late && <AlertTriangle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" title="Te laat ingediend (>15 dagen)" />}
-                          {t.isImported && <span className="inline-flex items-center gap-1 text-xs font-medium bg-emerald-100 text-emerald-700 border border-emerald-200 rounded px-1.5 py-0.5">✓ Import</span>}
+                          {t.isImported && <ImportedBadge />}
                         </div>
                       </td>
                       <td className="py-3 px-4 text-muted-foreground">{t.client_company || '—'}</td>
