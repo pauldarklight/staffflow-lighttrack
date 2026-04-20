@@ -17,6 +17,7 @@ import Templates from '@/pages/Templates';
 import ImportData from '@/pages/ImportData';
 import FlowOverview from '@/pages/FlowOverview';
 import Settings from '@/pages/Settings';
+import Landing from '@/pages/Landing';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -44,7 +45,7 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/Dashboard" replace />} />
+      <Route path="/" element={<Landing />} />
       <Route element={<AppLayout />}>
         <Route path="/Dashboard" element={<Dashboard />} />
         <Route path="/Placements" element={<Placements />} />
