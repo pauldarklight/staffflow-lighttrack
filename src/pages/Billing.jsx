@@ -586,14 +586,18 @@ export default function Billing() {
                         </div>
                       </td>
                       <td className="py-3 px-3 border-r border-foreground/10" style={{backgroundColor: 'rgba(0,0,0,0.06)'}}>
-                        <button
-                          className="text-xs text-primary hover:underline flex items-center gap-1"
-                          disabled={generatingInvoice === row.placement.id}
-                          onClick={() => handleGenerateConsultantInvoice(row)}
-                        >
-                          {generatingInvoice === row.placement.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
-                          {row.consultantInvoice?.file_url ? 'Downloaden' : 'Genereren'}
-                        </button>
+                        {row.consultantInvoice?.file_url ? (
+                          <a
+                            href={row.consultantInvoice.file_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary hover:underline flex items-center gap-1"
+                          >
+                            <Download className="w-3 h-3" /> Downloaden
+                          </a>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
                       </td>
                       <td className="py-3 px-3">
                         <button
