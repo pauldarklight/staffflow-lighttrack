@@ -414,10 +414,6 @@ export default function Billing() {
                   <th className="text-left py-3 px-3 font-bold text-foreground">Contractduur</th>
                   <th className="text-right py-3 px-3 font-normal text-foreground">Dagen</th>
                   <th className="text-right py-3 px-3 font-bold text-foreground">Tarief</th>
-                  <th className="text-right py-3 px-3 font-normal text-white bg-primary">Bill</th>
-                    <th className="text-left py-3 px-3 font-bold text-white bg-primary">Factuur klant</th>
-                  <th className="text-right py-3 px-3 font-normal text-white bg-foreground">Pay</th>
-                    <th className="text-left py-3 px-3 font-bold text-white bg-foreground">Factuur consultant</th>
                   <th className="text-right py-3 px-3 font-normal text-foreground">Marge</th>
                 </tr>
               </thead>
@@ -451,90 +447,7 @@ export default function Billing() {
                         <div>{formatCurrency(row.clientRate)}/dag</div>
                         <div className="text-muted-foreground font-normal">cons: {formatCurrency(row.consultantRate)}/dag</div>
                       </td>
-                      <td className={`py-3 px-3 text-right bg-primary/10 font-bold ${clientOverdue ? 'text-red-600' : 'text-primary'}`}>
-                        <div className="flex items-center justify-end gap-1">
-                          {clientOverdue && <AlertCircle className="w-3.5 h-3.5 text-red-500" />}
-                          {fmtVal(row.clientAmountExcl)}
-                        </div>
-                      </td>
-                      <td className="py-3 px-3 bg-primary/10">
-                       <ReferenceReminder instructions={row.placement?.reference_instructions} />
-                       <InvoiceRef invoice={row.clientInvoice} />
-                       <StatusCell invoice={row.clientInvoice} hasTimesheet={!!row.ts} onMarkPaid={markPaid} onSendReminder={sendReminder} sendingReminder={sendingReminderId === row.clientInvoice?.id} showTimesheetStatus={false} />
-                       {row.clientInvoice?.file_url && (
-                         <a href={row.clientInvoice.file_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1 mt-1">
-                           <Paperclip className="w-3 h-3" /> Factuur bekijken
-                         </a>
-                       )}
-                      </td>
-                      <td className={`py-3 px-3 text-right bg-foreground/8 font-bold border-l border-foreground/10 ${consultantOverdue ? 'text-red-600' : 'text-foreground'}`} style={{backgroundColor: 'rgba(0,0,0,0.06)'}}>
-                        <div className="flex items-center justify-end gap-1">
-                          {consultantOverdue && <AlertCircle className="w-3.5 h-3.5 text-red-500" />}
-                          {fmtVal(row.consultantAmountExcl)}
-                        </div>
-                      </td>
-                      <td className="py-3 px-3 border-r border-foreground/10" style={{backgroundColor: 'rgba(0,0,0,0.06)'}}>
-                        <div className="flex flex-col gap-1">
-                          {/* Betaalstatus consultant */}
-                          {row.consultantInvoice ? (
-                            <button
-                              onClick={() => {
-                                const newStatus = row.consultantInvoice.status === 'paid' ? 'sent' : 'paid';
-                                updateInvoiceMutation.mutate({
-                                  id: row.consultantInvoice.id,
-                                  data: { ...row.consultantInvoice, status: newStatus, paid_date: newStatus === 'paid' ? new Date().toISOString().split('T')[0] : null }
-                                });
-                              }}
-                              className={`flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-md border transition-colors w-fit ${
-                                row.consultantInvoice.status === 'paid'
-                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
-                                  : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
-                              }`}
-                            >
-                              <span>{row.consultantInvoice.status === 'paid' ? '✓' : '○'}</span>
-                              <span>{row.consultantInvoice.status === 'paid' ? 'Betaald' : 'Onbetaald'}</span>
-                            </button>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          )}
-                          {/* Bestand */}
-                          {row.consultantInvoice?.file_url && (
-                            <a href={row.consultantInvoice.file_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
-                              <Paperclip className="w-3 h-3" /> Bekijken
-                            </a>
-                          )}
-                          <label className="cursor-pointer text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
-                            {uploadingInvoiceId === (row.consultantInvoice?.id || `cons-${row.placement.id}`) ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                            ) : (
-                              <Upload className="w-3 h-3" />
-                            )}
-                            {row.consultantInvoice?.file_url ? 'Vervangen' : 'Uploaden'}
-                            <input
-                              type="file"
-                              className="hidden"
-                              accept=".pdf,.jpg,.png,.docx"
-                              onChange={async (e) => {
-                                const file = e.target.files[0];
-                                if (!file) return;
-                                const tempId = row.consultantInvoice?.id || `cons-${row.placement.id}`;
-                                setUploadingInvoiceId(tempId);
-                                const { file_url } = await base44.integrations.Core.UploadFile({ file });
-                                if (row.consultantInvoice?.id) {
-                                  await base44.entities.Invoice.update(row.consultantInvoice.id, { file_url });
-                                } else {
-                                  toast.error('Geen factuurrecord gevonden. Maak eerst een factuurrecord aan.');
-                                  setUploadingInvoiceId(null);
-                                  return;
-                                }
-                                queryClient.invalidateQueries({ queryKey: ['invoices'] });
-                                toast.success('Factuur opgeslagen');
-                                setUploadingInvoiceId(null);
-                              }}
-                            />
-                          </label>
-                        </div>
-                      </td>
+
                       <td className={`py-3 px-3 text-right font-normal ${row.marginExcl >= 0 ? 'text-primary' : 'text-red-500'}`}>
                         {fmtVal(row.marginExcl)}
                         {row.days > 0 && <div className="text-xs text-muted-foreground">{formatCurrency(row.clientRate - row.consultantRate)}/dag</div>}
@@ -548,9 +461,6 @@ export default function Billing() {
                 {filteredFl.length > 0 && (
                   <tr className="bg-muted/40 font-semibold border-t-2">
                     <td colSpan={7} className="py-3 px-3 text-right text-xs text-muted-foreground font-bold">Totaal (gefilterd)</td>
-                    <td className="py-3 px-3 text-right bg-primary/10 font-bold text-primary">{fmtVal(filteredFl.reduce((s, r) => s + r.clientAmountExcl, 0))}</td>
-                    <td className="bg-primary/10" />
-                    <td className="py-3 px-3 text-right font-bold" style={{backgroundColor:'rgba(0,0,0,0.06)'}}>{fmtVal(filteredFl.reduce((s, r) => s + r.consultantAmountExcl, 0))}</td>
                     <td className="py-3 px-3 text-right text-primary">{fmtVal(filteredFl.reduce((s, r) => s + r.marginExcl, 0))}</td>
                   </tr>
                 )}
