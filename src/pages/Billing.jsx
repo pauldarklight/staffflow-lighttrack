@@ -418,7 +418,6 @@ export default function Billing() {
                     <th className="text-left py-3 px-3 font-bold text-white bg-primary">Factuur klant</th>
                   <th className="text-right py-3 px-3 font-normal text-white bg-foreground">Pay</th>
                     <th className="text-left py-3 px-3 font-bold text-white bg-foreground">Factuur consultant</th>
-                    <th className="text-left py-3 px-3 font-bold text-foreground">Betaald</th>
                   <th className="text-right py-3 px-3 font-normal text-foreground">Marge</th>
                 </tr>
               </thead>
@@ -476,6 +475,29 @@ export default function Billing() {
                       </td>
                       <td className="py-3 px-3 border-r border-foreground/10" style={{backgroundColor: 'rgba(0,0,0,0.06)'}}>
                         <div className="flex flex-col gap-1">
+                          {/* Betaalstatus consultant */}
+                          {row.consultantInvoice ? (
+                            <button
+                              onClick={() => {
+                                const newStatus = row.consultantInvoice.status === 'paid' ? 'sent' : 'paid';
+                                updateInvoiceMutation.mutate({
+                                  id: row.consultantInvoice.id,
+                                  data: { ...row.consultantInvoice, status: newStatus, paid_date: newStatus === 'paid' ? new Date().toISOString().split('T')[0] : null }
+                                });
+                              }}
+                              className={`flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-md border transition-colors w-fit ${
+                                row.consultantInvoice.status === 'paid'
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                                  : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+                              }`}
+                            >
+                              <span>{row.consultantInvoice.status === 'paid' ? '✓' : '○'}</span>
+                              <span>{row.consultantInvoice.status === 'paid' ? 'Betaald' : 'Onbetaald'}</span>
+                            </button>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                          {/* Bestand */}
                           {row.consultantInvoice?.file_url && (
                             <a href={row.consultantInvoice.file_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
                               <Paperclip className="w-3 h-3" /> Bekijken
@@ -513,22 +535,6 @@ export default function Billing() {
                           </label>
                         </div>
                       </td>
-                      <td className="py-3 px-3">
-                        {row.consultantInvoice && (
-                          <button
-                            onClick={() => markPaid(row.consultantInvoice)}
-                            className={`flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-md border transition-colors ${
-                              row.consultantInvoice.status === 'paid'
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
-                                : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
-                            }`}
-                          >
-                            <span>{row.consultantInvoice.status === 'paid' ? '✓' : '○'}</span>
-                            <span>{row.consultantInvoice.status === 'paid' ? 'Betaald' : 'Onbetaald'}</span>
-                          </button>
-                        )}
-                        {!row.consultantInvoice && <span className="text-xs text-muted-foreground">—</span>}
-                      </td>
                       <td className={`py-3 px-3 text-right font-normal ${row.marginExcl >= 0 ? 'text-primary' : 'text-red-500'}`}>
                         {fmtVal(row.marginExcl)}
                         {row.days > 0 && <div className="text-xs text-muted-foreground">{formatCurrency(row.clientRate - row.consultantRate)}/dag</div>}
@@ -545,7 +551,6 @@ export default function Billing() {
                     <td className="py-3 px-3 text-right bg-primary/10 font-bold text-primary">{fmtVal(filteredFl.reduce((s, r) => s + r.clientAmountExcl, 0))}</td>
                     <td className="bg-primary/10" />
                     <td className="py-3 px-3 text-right font-bold" style={{backgroundColor:'rgba(0,0,0,0.06)'}}>{fmtVal(filteredFl.reduce((s, r) => s + r.consultantAmountExcl, 0))}</td>
-                    <td style={{backgroundColor:'rgba(0,0,0,0.06)'}} />
                     <td className="py-3 px-3 text-right text-primary">{fmtVal(filteredFl.reduce((s, r) => s + r.marginExcl, 0))}</td>
                   </tr>
                 )}
