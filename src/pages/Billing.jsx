@@ -335,16 +335,18 @@ export default function Billing() {
 
   const isImported = (p) => p.notes?.includes('Geïmporteerd vanuit Actuals Excel');
 
-  const { freelancerRows, permRows, importRows } = useMemo(() => {
+  const { freelancerRows, permRows, importFreelancerRows, importPermRows } = useMemo(() => {
     const freelancers = placements.filter(p => (!p.placement_type || p.placement_type === 'freelancer') && !isImported(p)).map((p, i) => buildRow(p, i + 1));
     const perms = placements.filter(p => p.placement_type === 'perm' && !isImported(p)).map((p, i) => buildRow(p, i + 1));
-    const imports = placements.filter(p => isImported(p)).map((p, i) => buildRow(p, i + 1));
-    return { freelancerRows: freelancers, permRows: perms, importRows: imports };
+    const importFreelancers = placements.filter(p => isImported(p) && (!p.placement_type || p.placement_type === 'freelancer')).map((p, i) => buildRow(p, i + 1));
+    const importPerms = placements.filter(p => isImported(p) && p.placement_type === 'perm').map((p, i) => buildRow(p, i + 1));
+    return { freelancerRows: freelancers, permRows: perms, importFreelancerRows: importFreelancers, importPermRows: importPerms };
   }, [placements, timesheets, invoices, filterMonth, filterYear]);
 
   const filteredFl = useMemo(() => applyFilters(freelancerRows, flSearch, flStatus, flSort), [freelancerRows, flSearch, flStatus, flSort]);
   const filteredPm = useMemo(() => applyFilters(permRows, pmSearch, pmStatus, pmSort), [permRows, pmSearch, pmStatus, pmSort]);
-  const filteredIm = useMemo(() => applyFilters(importRows, flSearch, flStatus, flSort), [importRows, flSearch, flStatus, flSort]);
+  const filteredImFl = useMemo(() => applyFilters(importFreelancerRows, flSearch, flStatus, flSort), [importFreelancerRows, flSearch, flStatus, flSort]);
+  const filteredImPm = useMemo(() => applyFilters(importPermRows, pmSearch, pmStatus, pmSort), [importPermRows, pmSearch, pmStatus, pmSort]);
 
   const fmtVal = (excl) => formatCurrency(excl * (showVat ? VAT_RATE : 1));
 
@@ -392,23 +394,22 @@ export default function Billing() {
       <SummaryBar label={`Freelancers — ${periodLabel}`} expected={flExpected} received={flReceived} open={flExpected - flReceived} margin={flMargin} showVat={showVat} />
       <SummaryBar label={`PERM — ${periodLabel}`} expected={pmExpected} received={pmReceived} open={pmExpected - pmReceived} showVat={showVat} />
 
-      {/* Section filter toggle */}
-      <div className="flex gap-2 mb-6 flex-wrap">
-        {[
-          { value: 'all', label: 'Alle' },
-          { value: 'freelancer', label: 'Freelancer' },
-          { value: 'perm', label: 'PERM' },
-          { value: 'import', label: '📦 Import' },
-        ].map(opt => (
-          <Button
-            key={opt.value}
-            size="sm"
-            variant={sectionFilter === opt.value ? 'default' : 'outline'}
-            onClick={() => setSectionFilter(opt.value)}
-          >
-            {opt.label}
-          </Button>
-        ))}
+      {/* Section filter dropdown */}
+      <div className="flex items-center gap-2 mb-6">
+        <span className="text-sm text-muted-foreground">Toon:</span>
+        <Select value={sectionFilter} onValueChange={setSectionFilter}>
+          <SelectTrigger className="w-56">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Alle secties</SelectItem>
+            <SelectItem value="freelancer">Freelancer</SelectItem>
+            <SelectItem value="perm">PERM</SelectItem>
+            <SelectItem value="import_freelancer">📦 Import — Freelancer</SelectItem>
+            <SelectItem value="import_perm">📦 Import — PERM</SelectItem>
+            <SelectItem value="import_all">📦 Import (alle)</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* ── FREELANCERS ── */}
@@ -586,13 +587,13 @@ export default function Billing() {
         </CardContent>
       </Card>}
 
-      {/* ── IMPORTS ── */}
-      {(sectionFilter === 'all' || sectionFilter === 'import') && (
+      {/* ── IMPORT FREELANCERS ── */}
+      {(['all', 'import_freelancer', 'import_all'].includes(sectionFilter)) && (
         <Card className="mb-8 mt-8">
           <CardHeader className="pb-2">
             <div className="flex items-center gap-3 mb-2">
-              <CardTitle className="text-base font-semibold">Imports — {periodLabel}</CardTitle>
-              <Badge className="bg-violet-100 text-violet-700 border-violet-200">📦 Import</Badge>
+              <CardTitle className="text-base font-semibold">Import — Freelancers — {periodLabel}</CardTitle>
+              <Badge className="bg-violet-100 text-violet-700 border-violet-200">📦 Import · Freelancer</Badge>
               <span className="text-xs text-muted-foreground ml-auto">{showVat ? 'Incl. BTW' : 'Excl. BTW'}</span>
             </div>
             <FilterBar
@@ -620,7 +621,7 @@ export default function Billing() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredIm.map(row => {
+                  {filteredImFl.map(row => {
                     const clientOverdue = row.clientInvoice ? isOverdue(row.clientInvoice) : false;
                     const consultantOverdue = row.consultantInvoice ? isOverdue(row.consultantInvoice) : false;
                     return (
@@ -661,15 +662,94 @@ export default function Billing() {
                       </tr>
                     );
                   })}
-                  {filteredIm.length === 0 && (
-                    <tr><td colSpan={10} className="py-8 text-center text-muted-foreground text-sm">Geen geïmporteerde placements gevonden</td></tr>
+                  {filteredImFl.length === 0 && (
+                    <tr><td colSpan={10} className="py-8 text-center text-muted-foreground text-sm">Geen geïmporteerde freelancer-placements gevonden</td></tr>
                   )}
-                  {filteredIm.length > 0 && (
+                  {filteredImFl.length > 0 && (
                     <tr className="bg-muted/40 font-semibold border-t-2">
                       <td colSpan={7} className="py-3 px-3 text-right text-xs text-muted-foreground font-bold">Totaal (gefilterd)</td>
-                      <td className="py-3 px-3 text-right bg-primary/10 font-bold text-primary">{fmtVal(filteredIm.reduce((s, r) => s + r.clientAmountExcl, 0))}</td>
-                      <td className="py-3 px-3 text-right font-bold" style={{backgroundColor:'rgba(0,0,0,0.06)'}}>{fmtVal(filteredIm.reduce((s, r) => s + r.consultantAmountExcl, 0))}</td>
-                      <td className="py-3 px-3 text-right text-primary">{fmtVal(filteredIm.reduce((s, r) => s + r.marginExcl, 0))}</td>
+                      <td className="py-3 px-3 text-right bg-primary/10 font-bold text-primary">{fmtVal(filteredImFl.reduce((s, r) => s + r.clientAmountExcl, 0))}</td>
+                      <td className="py-3 px-3 text-right font-bold" style={{backgroundColor:'rgba(0,0,0,0.06)'}}>{fmtVal(filteredImFl.reduce((s, r) => s + r.consultantAmountExcl, 0))}</td>
+                      <td className="py-3 px-3 text-right text-primary">{fmtVal(filteredImFl.reduce((s, r) => s + r.marginExcl, 0))}</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── IMPORT PERM ── */}
+      {(['all', 'import_perm', 'import_all'].includes(sectionFilter)) && (
+        <Card className="mb-8">
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-3 mb-2">
+              <CardTitle className="text-base font-semibold">Import — PERM — {periodLabel}</CardTitle>
+              <Badge className="bg-violet-100 text-violet-700 border-violet-200">📦 Import · PERM</Badge>
+              <span className="text-xs text-muted-foreground ml-auto">{showVat ? 'Incl. BTW' : 'Excl. BTW'}</span>
+            </div>
+            <FilterBar
+              search={pmSearch} setSearch={setPmSearch}
+              statusFilter={pmStatus} setStatusFilter={setPmStatus}
+              sortBy={pmSort} setSortBy={setPmSort}
+              onReset={() => { setPmSearch(''); setPmStatus('all'); setPmSort('default'); }}
+            />
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/50">
+                    <th className="text-left py-3 px-4 font-bold text-foreground">#</th>
+                    <th className="text-left py-3 px-4 font-normal text-foreground">Kandidaat</th>
+                    <th className="text-left py-3 px-4 font-bold text-foreground">Klant</th>
+                    <th className="text-left py-3 px-4 font-normal text-foreground">BTW nr. klant</th>
+                    <th className="text-left py-3 px-4 font-bold text-foreground">Startdatum</th>
+                    <th className="text-right py-3 px-4 font-normal text-foreground">Jaarloon</th>
+                    <th className="text-right py-3 px-4 font-bold text-foreground">Fee %</th>
+                    <th className="text-right py-3 px-4 font-normal text-white bg-primary">Fee aan klant</th>
+                    <th className="text-left py-3 px-4 font-bold text-white bg-primary">Ref. klant</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredImPm.map(row => {
+                    const clientOverdue = row.clientInvoice ? isOverdue(row.clientInvoice) : false;
+                    return (
+                      <tr key={row.placement.id} className={`border-b border-border/50 transition-colors ${clientOverdue ? 'bg-red-50/40 hover:bg-red-50/60' : 'hover:bg-muted/20'}`}>
+                        <td className="py-3 px-4 font-bold text-foreground">{row.idx}</td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-normal text-foreground">{row.placement.consultant_first_name} {row.placement.consultant_last_name}</span>
+                            <ImportedBadge />
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 font-bold text-foreground">{row.placement.client_company_name}</td>
+                        <td className="py-3 px-4 text-xs font-normal text-muted-foreground">{row.placement.client_vat_number || '—'}</td>
+                        <td className="py-3 px-4 text-xs font-bold text-foreground">{formatDate(row.placement.start_date)}</td>
+                        <td className="py-3 px-4 text-right font-normal text-muted-foreground">{formatCurrency(row.placement.perm_annual_salary || 0)}</td>
+                        <td className="py-3 px-4 text-right font-bold text-foreground">{row.placement.perm_fee_percentage || 20}%</td>
+                        <td className={`py-3 px-4 text-right bg-primary/10 font-bold ${clientOverdue ? 'text-red-600' : 'text-primary'}`}>
+                          <div className="flex items-center justify-end gap-1">
+                            {clientOverdue && <AlertCircle className="w-3.5 h-3.5 text-red-500" />}
+                            {fmtVal(row.clientAmountExcl)}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 bg-primary/10">
+                          <InvoiceRef invoice={row.clientInvoice} />
+                          <StatusCell invoice={row.clientInvoice} hasTimesheet={false} onMarkPaid={markPaid} onSendReminder={sendReminder} sendingReminder={sendingReminderId === row.clientInvoice?.id} showTimesheetStatus={false} />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {filteredImPm.length === 0 && (
+                    <tr><td colSpan={9} className="py-8 text-center text-muted-foreground text-sm">Geen geïmporteerde PERM-placements gevonden</td></tr>
+                  )}
+                  {filteredImPm.length > 0 && (
+                    <tr className="bg-muted/40 font-semibold border-t-2">
+                      <td colSpan={7} className="py-3 px-4 text-right text-xs font-bold text-muted-foreground">Totaal fees (gefilterd)</td>
+                      <td className="py-3 px-4 text-right bg-primary/10 font-bold text-primary">{fmtVal(filteredImPm.reduce((s, r) => s + r.clientAmountExcl, 0))}</td>
+                      <td className="bg-primary/10" />
                     </tr>
                   )}
                 </tbody>
