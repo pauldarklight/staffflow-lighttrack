@@ -9,7 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Plus, FileText, Search, X, Download, RefreshCw, Loader2, ChevronDown, Info } from 'lucide-react';
+import { Plus, FileText, Search, X, Download, RefreshCw, Loader2, ChevronDown, Info, Trash2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { generateContractPdf } from '@/lib/contractPdf';
@@ -145,6 +146,17 @@ export default function Contracts() {
 
   const openEditPlacement = (placement) => {
     setEditingPlacement(placement);
+  };
+
+  const deleteCollaboration = async (col) => {
+    // Delete all contracts linked to this placement
+    if (col.client) await base44.entities.Contract.delete(col.client.id);
+    if (col.consultant) await base44.entities.Contract.delete(col.consultant.id);
+    // Delete the placement itself
+    if (col.placement) await base44.entities.Placement.delete(col.placement.id);
+    queryClient.invalidateQueries({ queryKey: ['contracts'] });
+    queryClient.invalidateQueries({ queryKey: ['placements'] });
+    toast.success('Samenwerking verwijderd');
   };
 
   const getPlacement = (id) => placements.find(p => p.id === id);
@@ -515,7 +527,7 @@ export default function Contracts() {
                       <td className="py-3 px-4 text-right"><div className="font-bold">{col.consultantRate ? formatCurrency(col.consultantRate) : '—'}</div></td>
                        <td className="py-3 px-4 text-xs">{col.placement?.payroll_number ? <span className="font-mono font-bold">{col.placement.payroll_number}</span> : <span className="text-muted-foreground">—</span>}</td>
                        <td className="py-3 px-4">{col.consultant ? <Badge variant="outline" className={`text-xs ${STATUS_STYLES[col.consultant.status]}`}>{STATUS_LABELS[col.consultant.status]}</Badge> : <span className="text-xs text-red-500 font-medium">Ontbreekt</span>}</td>
-                       <td className="py-3 px-4"><div className="flex items-center gap-1">{col.consultant && <DownloadDropdown contract={col.consultant} placement={col.placement} />}{col.placement && <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openEditPlacement(col.placement)}>Bewerken</Button>}</div></td>
+                       <td className="py-3 px-4"><div className="flex items-center gap-1">{col.consultant && <DownloadDropdown contract={col.consultant} placement={col.placement} />}{col.placement && <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openEditPlacement(col.placement)}>Bewerken</Button>}<AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10"><Trash2 className="w-3.5 h-3.5" /></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Samenwerking verwijderen?</AlertDialogTitle><AlertDialogDescription>Dit verwijdert de placement en alle bijbehorende contracten van {col.consultantName} bij {col.clientName}. Deze actie kan niet ongedaan worden gemaakt.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Annuleren</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => deleteCollaboration(col)}>Verwijderen</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></div></td>
                     </tr>
                   ))}
                 </tbody>
@@ -557,7 +569,7 @@ export default function Contracts() {
                       <td className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap"><div>{formatDate(col.startDate)}</div><div className="font-medium text-foreground">{col.endDate ? formatDate(col.endDate) : '—'}</div></td>
                       <td className="py-3 px-4 text-right"><div className="font-bold">{col.clientRate ? formatCurrency(col.clientRate) : '—'}</div></td>
                        <td className="py-3 px-4">{col.client ? <Badge variant="outline" className={`text-xs ${STATUS_STYLES[col.client.status]}`}>{STATUS_LABELS[col.client.status]}</Badge> : <span className="text-xs text-red-500 font-medium">Ontbreekt</span>}</td>
-                       <td className="py-3 px-4"><div className="flex items-center gap-1">{col.client && <DownloadDropdown contract={col.client} placement={col.placement} />}{col.placement && <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openEditPlacement(col.placement)}>Bewerken</Button>}</div></td>
+                       <td className="py-3 px-4"><div className="flex items-center gap-1">{col.client && <DownloadDropdown contract={col.client} placement={col.placement} />}{col.placement && <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openEditPlacement(col.placement)}>Bewerken</Button>}<AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10"><Trash2 className="w-3.5 h-3.5" /></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Samenwerking verwijderen?</AlertDialogTitle><AlertDialogDescription>Dit verwijdert de placement en alle bijbehorende contracten van {col.consultantName} bij {col.clientName}. Deze actie kan niet ongedaan worden gemaakt.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Annuleren</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => deleteCollaboration(col)}>Verwijderen</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></div></td>
                     </tr>
                   ))}
                 </tbody>
