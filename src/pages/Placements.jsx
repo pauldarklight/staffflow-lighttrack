@@ -168,6 +168,7 @@ export default function Placements() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [sortBy, setSortBy] = useState('default');
+  const [sectionFilter, setSectionFilter] = useState('all');
   const queryClient = useQueryClient();
 
   const { data: placements = [], isLoading } = useQuery({
@@ -309,8 +310,18 @@ export default function Placements() {
     return { ...p, idx: idx + 1, totalDays, totalRevenue, totalCost, totalMargin, marginPerDay, totalMonths, endingSoon };
   }), [placements, timesheets]);
 
+  const isImported = (p) => p.notes?.includes('Geïmporteerd vanuit Actuals Excel');
+
   const filtered = useMemo(() => {
     let rows = enriched;
+
+    // Section filter
+    if (sectionFilter === 'freelancer') rows = rows.filter(p => !isImported(p) && (p.placement_type || 'freelancer') === 'freelancer');
+    else if (sectionFilter === 'perm') rows = rows.filter(p => !isImported(p) && p.placement_type === 'perm');
+    else if (sectionFilter === 'import_freelancer') rows = rows.filter(p => isImported(p) && (p.placement_type || 'freelancer') === 'freelancer');
+    else if (sectionFilter === 'import_perm') rows = rows.filter(p => isImported(p) && p.placement_type === 'perm');
+    else if (sectionFilter === 'import_all') rows = rows.filter(p => isImported(p));
+
     if (search) {
       const q = search.toLowerCase();
       rows = rows.filter(p =>
@@ -343,7 +354,7 @@ export default function Placements() {
     return rows;
   }, [enriched, search, statusFilter, typeFilter, sortBy]);
 
-  const hasFilters = search || statusFilter !== 'all' || typeFilter !== 'all' || sortBy !== 'default';
+  const hasFilters = search || statusFilter !== 'all' || typeFilter !== 'all' || sortBy !== 'default' || sectionFilter !== 'all';
 
   return (
     <div>
@@ -410,8 +421,19 @@ export default function Placements() {
             <SelectItem value="duration_asc">Kortste looptijd</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={sectionFilter} onValueChange={setSectionFilter}>
+          <SelectTrigger className="w-52 h-8 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Alle secties</SelectItem>
+            <SelectItem value="freelancer">Freelancer</SelectItem>
+            <SelectItem value="perm">PERM</SelectItem>
+            <SelectItem value="import_freelancer">Import — Freelancer</SelectItem>
+            <SelectItem value="import_perm">Import — PERM</SelectItem>
+            <SelectItem value="import_all">Import (alle)</SelectItem>
+          </SelectContent>
+        </Select>
         {hasFilters && (
-          <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => { setSearch(''); setStatusFilter('all'); setTypeFilter('all'); setSortBy('default'); }}>
+          <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => { setSearch(''); setStatusFilter('all'); setTypeFilter('all'); setSortBy('default'); setSectionFilter('all'); }}>
             <X className="w-3.5 h-3.5 mr-1" /> Reset
           </Button>
         )}

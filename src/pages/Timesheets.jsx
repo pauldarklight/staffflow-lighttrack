@@ -51,6 +51,7 @@ export default function Timesheets() {
   const [sortBy, setSortBy] = useState(() => localStorage.getItem('ts_sortBy') || 'default');
   const [onlyActive, setOnlyActive] = useState(() => localStorage.getItem('ts_onlyActive') === 'true');
   const [completionFilter, setCompletionFilter] = useState(() => localStorage.getItem('ts_completionFilter') || 'all');
+  const [sectionFilter, setSectionFilter] = useState('all');
   const queryClient = useQueryClient();
 
   // Persist filters
@@ -190,6 +191,11 @@ export default function Timesheets() {
     } else {
       rows = enriched.filter(t => t.year === yr);
     }
+
+    // Section filter
+    if (sectionFilter === 'freelancer') rows = rows.filter(t => !t.isImported && t.placement?.placement_type !== 'perm');
+    else if (sectionFilter === 'import_freelancer') rows = rows.filter(t => t.isImported && t.placement?.placement_type !== 'perm');
+    else if (sectionFilter === 'import_all') rows = rows.filter(t => t.isImported);
 
     if (onlyActive) {
       rows = rows.filter(t => t.placement?.status === 'active');
@@ -349,8 +355,17 @@ export default function Timesheets() {
         >
           Enkel actieve placements
         </Button>
-        {(search || sortBy !== 'default' || onlyActive || completionFilter !== 'all') && (
-          <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => { setSearch(''); setSortBy('default'); setOnlyActive(false); setCompletionFilter('all'); }}>
+        <Select value={sectionFilter} onValueChange={setSectionFilter}>
+          <SelectTrigger className="w-52 h-8 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Alle secties</SelectItem>
+            <SelectItem value="freelancer">Freelancer</SelectItem>
+            <SelectItem value="import_freelancer">Import — Freelancer</SelectItem>
+            <SelectItem value="import_all">Import (alle)</SelectItem>
+          </SelectContent>
+        </Select>
+        {(search || sortBy !== 'default' || onlyActive || completionFilter !== 'all' || sectionFilter !== 'all') && (
+          <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => { setSearch(''); setSortBy('default'); setOnlyActive(false); setCompletionFilter('all'); setSectionFilter('all'); }}>
             <X className="w-3.5 h-3.5 mr-1" /> Reset
           </Button>
         )}

@@ -44,6 +44,7 @@ export default function Contracts() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [sortBy, setSortBy] = useState('default');
+  const [sectionFilter, setSectionFilter] = useState('all');
   const queryClient = useQueryClient();
   const [syncing, setSyncing] = useState(false);
 
@@ -266,6 +267,14 @@ export default function Contracts() {
 
   const filtered = useMemo(() => {
     let rows = collaborationsWithRef;
+
+    // Section filter
+    if (sectionFilter === 'freelancer') rows = rows.filter(c => !c.placement?.notes?.includes('Geïmporteerd vanuit Actuals Excel') && (c.placement?.placement_type || 'freelancer') === 'freelancer');
+    else if (sectionFilter === 'perm') rows = rows.filter(c => !c.placement?.notes?.includes('Geïmporteerd vanuit Actuals Excel') && c.placement?.placement_type === 'perm');
+    else if (sectionFilter === 'import_freelancer') rows = rows.filter(c => c.placement?.notes?.includes('Geïmporteerd vanuit Actuals Excel') && (c.placement?.placement_type || 'freelancer') === 'freelancer');
+    else if (sectionFilter === 'import_perm') rows = rows.filter(c => c.placement?.notes?.includes('Geïmporteerd vanuit Actuals Excel') && c.placement?.placement_type === 'perm');
+    else if (sectionFilter === 'import_all') rows = rows.filter(c => c.placement?.notes?.includes('Geïmporteerd vanuit Actuals Excel'));
+
     if (search) {
       const q = search.toLowerCase();
       rows = rows.filter(c =>
@@ -283,9 +292,9 @@ export default function Contracts() {
       rows = rows.filter(c => typeFilter === 'client' ? !!c.client : !!c.consultant);
     }
     return rows;
-  }, [collaborationsWithRef, search, statusFilter, typeFilter]);
+  }, [collaborationsWithRef, search, statusFilter, typeFilter, sectionFilter]);
 
-  const hasFilters = search || statusFilter !== 'all' || typeFilter !== 'all';
+  const hasFilters = search || statusFilter !== 'all' || typeFilter !== 'all' || sectionFilter !== 'all';
 
   return (
     <div>
@@ -339,8 +348,19 @@ export default function Contracts() {
           </SelectContent>
         </Select>
 
+        <Select value={sectionFilter} onValueChange={setSectionFilter}>
+          <SelectTrigger className="w-52 h-8 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Alle secties</SelectItem>
+            <SelectItem value="freelancer">Freelancer</SelectItem>
+            <SelectItem value="perm">PERM</SelectItem>
+            <SelectItem value="import_freelancer">Import — Freelancer</SelectItem>
+            <SelectItem value="import_perm">Import — PERM</SelectItem>
+            <SelectItem value="import_all">Import (alle)</SelectItem>
+          </SelectContent>
+        </Select>
         {hasFilters && (
-          <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => { setSearch(''); setStatusFilter('all'); setTypeFilter('all'); }}>
+          <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => { setSearch(''); setStatusFilter('all'); setTypeFilter('all'); setSectionFilter('all'); }}>
             <X className="w-3.5 h-3.5 mr-1" /> Reset
           </Button>
         )}
