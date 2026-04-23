@@ -405,9 +405,9 @@ export default function Billing() {
             <SelectItem value="all">Alle secties</SelectItem>
             <SelectItem value="freelancer">Freelancer</SelectItem>
             <SelectItem value="perm">PERM</SelectItem>
-            <SelectItem value="import_freelancer">📦 Import — Freelancer</SelectItem>
-            <SelectItem value="import_perm">📦 Import — PERM</SelectItem>
-            <SelectItem value="import_all">📦 Import (alle)</SelectItem>
+            <SelectItem value="import_freelancer">Import — Freelancer</SelectItem>
+            <SelectItem value="import_perm">Import — PERM</SelectItem>
+            <SelectItem value="import_all">Import (alle)</SelectItem>
           </SelectContent>
         </Select>
       </div>
