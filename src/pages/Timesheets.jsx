@@ -229,7 +229,7 @@ export default function Timesheets() {
     }
 
     return rows;
-  }, [enriched, filterMonth, filterYear, viewMode, search, sortBy, onlyActive, completionFilter]);
+  }, [enriched, filterMonth, filterYear, viewMode, search, sortBy, onlyActive, completionFilter, sectionFilter]);
 
   const totalRevenue = filtered.reduce((s, t) => s + (t.client_revenue || 0), 0);
   const totalCost = filtered.reduce((s, t) => s + (t.consultant_revenue || 0), 0);
@@ -547,7 +547,13 @@ export default function Timesheets() {
                       </td>
                     </tr>
                   ))}
-                  {missingRows.filter(r => !search || r.consultant_name.toLowerCase().includes(search.toLowerCase()) || r.client_company?.toLowerCase().includes(search.toLowerCase())).map(r => {
+                  {missingRows.filter(r => {
+                    const isImportedRow = r.placement?.notes?.includes('Geïmporteerd vanuit Actuals Excel');
+                    if (sectionFilter === 'freelancer' && isImportedRow) return false;
+                    if (sectionFilter === 'import_freelancer' && !isImportedRow) return false;
+                    if (sectionFilter === 'import_all' && !isImportedRow) return false;
+                    return !search || r.consultant_name.toLowerCase().includes(search.toLowerCase()) || r.client_company?.toLowerCase().includes(search.toLowerCase());
+                  }).map(r => {
                     const estRevenue = r.days_worked * r.clientRate;
                     const estCost = r.days_worked * r.consultantRate;
                     return (
