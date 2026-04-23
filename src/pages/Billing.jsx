@@ -414,6 +414,8 @@ export default function Billing() {
                   <th className="text-left py-3 px-3 font-bold text-foreground">Contractduur</th>
                   <th className="text-right py-3 px-3 font-normal text-foreground">Dagen</th>
                   <th className="text-right py-3 px-3 font-bold text-foreground">Tarief</th>
+                  <th className="text-right py-3 px-3 font-normal text-white bg-primary">Bill</th>
+                  <th className="text-right py-3 px-3 font-normal text-white bg-foreground">Pay</th>
                   <th className="text-right py-3 px-3 font-normal text-foreground">Marge</th>
                 </tr>
               </thead>
@@ -447,7 +449,18 @@ export default function Billing() {
                         <div>{formatCurrency(row.clientRate)}/dag</div>
                         <div className="text-muted-foreground font-normal">cons: {formatCurrency(row.consultantRate)}/dag</div>
                       </td>
-
+                      <td className={`py-3 px-3 text-right bg-primary/10 font-bold ${clientOverdue ? 'text-red-600' : 'text-primary'}`}>
+                        <div className="flex items-center justify-end gap-1">
+                          {clientOverdue && <AlertCircle className="w-3.5 h-3.5 text-red-500" />}
+                          {fmtVal(row.clientAmountExcl)}
+                        </div>
+                      </td>
+                      <td className="py-3 px-3 text-right font-bold border-l border-foreground/10" style={{backgroundColor: 'rgba(0,0,0,0.06)'}}>
+                        <div className="flex items-center justify-end gap-1">
+                          {consultantOverdue && <AlertCircle className="w-3.5 h-3.5 text-red-500" />}
+                          <span className={consultantOverdue ? 'text-red-600' : 'text-foreground'}>{fmtVal(row.consultantAmountExcl)}</span>
+                        </div>
+                      </td>
                       <td className={`py-3 px-3 text-right font-normal ${row.marginExcl >= 0 ? 'text-primary' : 'text-red-500'}`}>
                         {fmtVal(row.marginExcl)}
                         {row.days > 0 && <div className="text-xs text-muted-foreground">{formatCurrency(row.clientRate - row.consultantRate)}/dag</div>}
@@ -461,6 +474,8 @@ export default function Billing() {
                 {filteredFl.length > 0 && (
                   <tr className="bg-muted/40 font-semibold border-t-2">
                     <td colSpan={7} className="py-3 px-3 text-right text-xs text-muted-foreground font-bold">Totaal (gefilterd)</td>
+                    <td className="py-3 px-3 text-right bg-primary/10 font-bold text-primary">{fmtVal(filteredFl.reduce((s, r) => s + r.clientAmountExcl, 0))}</td>
+                    <td className="py-3 px-3 text-right font-bold" style={{backgroundColor:'rgba(0,0,0,0.06)'}}>{fmtVal(filteredFl.reduce((s, r) => s + r.consultantAmountExcl, 0))}</td>
                     <td className="py-3 px-3 text-right text-primary">{fmtVal(filteredFl.reduce((s, r) => s + r.marginExcl, 0))}</td>
                   </tr>
                 )}
