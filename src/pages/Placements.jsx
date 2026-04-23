@@ -622,38 +622,12 @@ export default function Placements() {
                                  <Check className="w-4 h-4 text-emerald-600" />
                                </Button>
                              )}
-                             <Button variant="ghost" size="icon" title="Verlengen" onClick={() => setExtendingPlacement(p)}>
-                              <RefreshCw className="w-4 h-4 text-primary" />
-                            </Button>
-                            {p.notes && (
+
+                            {p.notes && !p.notes?.includes('Geïmporteerd vanuit Actuals Excel') && (
                               <Button variant="ghost" size="icon" title="Opmerkingen" onClick={() => setExpandedNotes(n => ({ ...n, [p.id]: !n[p.id] }))}>
                                 <MessageSquare className="w-4 h-4 text-amber-500" />
                               </Button>
                             )}
-                            {(() => {
-                              const tpls = getContractTemplatesForPlacement(p);
-                              if (tpls.length === 0) return null;
-                              const isLoading = tpls.some(t => generatingContract[`${p.id}-${t.id}`]);
-                              return (
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" title="Contracten downloaden" disabled={isLoading}>
-                                      {isLoading ? <Loader2 className="w-4 h-4 animate-spin text-primary" /> : <Download className="w-4 h-4 text-primary" />}
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuLabel className="text-xs">Contracten genereren</DropdownMenuLabel>
-                                    <DropdownMenuSeparator />
-                                    {tpls.map(t => (
-                                      <DropdownMenuItem key={t.id} onClick={() => handleGenerateContract(p, t)} className="text-xs gap-2">
-                                        <Download className="w-3.5 h-3.5" />
-                                        {t.name} <span className="text-muted-foreground">· {t.language?.toUpperCase()}</span>
-                                      </DropdownMenuItem>
-                                    ))}
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              );
-                            })()}
                             <Button variant="ghost" size="icon" onClick={() => { setEditing(p); setShowForm(true); }}>
                               <Pencil className="w-4 h-4" />
                             </Button>
