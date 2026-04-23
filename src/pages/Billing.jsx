@@ -533,27 +533,24 @@ export default function Billing() {
                              <Paperclip className="w-3 h-3" /> Factuur bekijken
                            </a>
                          )}
-                         <label className="cursor-pointer text-xs text-muted-foreground hover:text-primary flex items-center gap-1">
-                           {uploadingInvoiceId === (row.clientInvoice?.id || `new-${row.placement.id}`) ? (
-                             <Loader2 className="w-3 h-3 animate-spin" />
-                           ) : (
-                             <Upload className="w-3 h-3" />
-                           )}
-                           {row.clientInvoice?.file_url ? 'Vervangen' : 'Factuur uploaden'}
-                           <input
-                             type="file"
-                             className="hidden"
-                             accept=".pdf,.jpg,.png,.docx"
-                             onChange={async (e) => {
-                               const file = e.target.files[0];
-                               if (!file) return;
-                               const tempId = row.clientInvoice?.id || `new-${row.placement.id}`;
-                               setUploadingInvoiceId(tempId);
-                               const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                         <button
+                           className="text-xs text-primary hover:underline flex items-center gap-1 text-left"
+                           disabled={generatingInvoice === row.placement.id}
+                           onClick={async () => {
+                             setGeneratingInvoice(row.placement.id);
+                             try {
+                               const res = await base44.functions.invoke('generateClientInvoice', {
+                                 placement_id: row.placement.id,
+                                 timesheet_id: row.ts?.id || null,
+                                 month: showAll ? null : month,
+                                 year,
+                               });
+                               const { file_url, file_name, error } = res.data;
+                               if (error) { toast.error(error); setGeneratingInvoice(null); return; }
+                               // Auto-save: update existing or create new invoice record
                                if (row.clientInvoice?.id) {
                                  await base44.entities.Invoice.update(row.clientInvoice.id, { file_url });
                                } else {
-                                 // Create a new invoice record with the uploaded file
                                  await base44.entities.Invoice.create({
                                    placement_id: row.placement.id,
                                    timesheet_id: row.ts?.id || null,
@@ -561,7 +558,7 @@ export default function Billing() {
                                    amount: row.clientAmountExcl,
                                    vat_amount: row.clientAmountExcl * 0.21,
                                    total_amount: row.clientAmountExcl * 1.21,
-                                   status: 'sent',
+                                   status: 'draft',
                                    month: showAll ? null : month,
                                    year,
                                    consultant_name: `${row.placement.consultant_first_name} ${row.placement.consultant_last_name}`,
@@ -572,11 +569,17 @@ export default function Billing() {
                                  });
                                }
                                queryClient.invalidateQueries({ queryKey: ['invoices'] });
-                               toast.success('Factuur opgeslagen');
-                               setUploadingInvoiceId(null);
-                             }}
-                           />
-                         </label>
+                               window.open(file_url, '_blank');
+                               toast.success(`Factuur gegenereerd: ${file_name}`);
+                             } catch (e) {
+                               toast.error(e.response?.data?.error || e.message || 'Fout bij genereren factuur');
+                             }
+                             setGeneratingInvoice(null);
+                           }}
+                         >
+                           {generatingInvoice === row.placement.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                           Maak Factuur
+                         </button>
                        </div>
                       </td>
                       <td className={`py-3 px-3 text-right bg-foreground/8 font-bold border-l border-foreground/10 ${consultantOverdue ? 'text-red-600' : 'text-foreground'}`} style={{backgroundColor: 'rgba(0,0,0,0.06)'}}>
@@ -586,18 +589,56 @@ export default function Billing() {
                         </div>
                       </td>
                       <td className="py-3 px-3 border-r border-foreground/10" style={{backgroundColor: 'rgba(0,0,0,0.06)'}}>
-                        {row.consultantInvoice?.file_url ? (
-                          <a
-                            href={row.consultantInvoice.file_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-primary hover:underline flex items-center gap-1"
-                          >
-                            <Download className="w-3 h-3" /> Downloaden
-                          </a>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
+                        <div className="flex flex-col gap-1">
+                          {row.consultantInvoice?.file_url && (
+                            <a href={row.consultantInvoice.file_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
+                              <Paperclip className="w-3 h-3" /> Bekijken
+                            </a>
+                          )}
+                          <label className="cursor-pointer text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+                            {uploadingInvoiceId === (row.consultantInvoice?.id || `cons-${row.placement.id}`) ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Upload className="w-3 h-3" />
+                            )}
+                            {row.consultantInvoice?.file_url ? 'Vervangen' : 'Uploaden'}
+                            <input
+                              type="file"
+                              className="hidden"
+                              accept=".pdf,.jpg,.png,.docx"
+                              onChange={async (e) => {
+                                const file = e.target.files[0];
+                                if (!file) return;
+                                const tempId = row.consultantInvoice?.id || `cons-${row.placement.id}`;
+                                setUploadingInvoiceId(tempId);
+                                const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                                if (row.consultantInvoice?.id) {
+                                  await base44.entities.Invoice.update(row.consultantInvoice.id, { file_url });
+                                } else {
+                                  await base44.entities.Invoice.create({
+                                    placement_id: row.placement.id,
+                                    timesheet_id: row.ts?.id || null,
+                                    invoice_type: 'consultant_invoice',
+                                    amount: row.consultantAmountExcl,
+                                    vat_amount: row.consultantAmountExcl * 0.21,
+                                    total_amount: row.consultantAmountExcl * 1.21,
+                                    status: 'sent',
+                                    month: showAll ? null : month,
+                                    year,
+                                    consultant_name: `${row.placement.consultant_first_name} ${row.placement.consultant_last_name}`,
+                                    client_company: row.placement.client_company_name,
+                                    payment_terms_days: row.placement.payment_terms_consultant || 30,
+                                    issue_date: new Date().toISOString().split('T')[0],
+                                    file_url,
+                                  });
+                                }
+                                queryClient.invalidateQueries({ queryKey: ['invoices'] });
+                                toast.success('Factuur opgeslagen');
+                                setUploadingInvoiceId(null);
+                              }}
+                            />
+                          </label>
+                        </div>
                       </td>
                       <td className="py-3 px-3">
                         <button
