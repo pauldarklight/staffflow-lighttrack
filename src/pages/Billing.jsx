@@ -227,6 +227,7 @@ export default function Billing() {
   const [showVat, setShowVat] = useState(true);
   const [sendingReminderId, setSendingReminderId] = useState(null);
   const [uploadingInvoiceId, setUploadingInvoiceId] = useState(null);
+  const [sectionFilter, setSectionFilter] = useState('all'); // 'all' | 'freelancer' | 'perm' | 'import'
 
   // Freelancer filters
   const [flSearch, setFlSearch] = useState('');
@@ -332,14 +333,18 @@ export default function Billing() {
     return filtered;
   };
 
-  const { freelancerRows, permRows } = useMemo(() => {
-    const freelancers = placements.filter(p => !p.placement_type || p.placement_type === 'freelancer').map((p, i) => buildRow(p, i + 1));
-    const perms = placements.filter(p => p.placement_type === 'perm').map((p, i) => buildRow(p, i + 1));
-    return { freelancerRows: freelancers, permRows: perms };
+  const isImported = (p) => p.notes?.includes('Geïmporteerd vanuit Actuals Excel');
+
+  const { freelancerRows, permRows, importRows } = useMemo(() => {
+    const freelancers = placements.filter(p => (!p.placement_type || p.placement_type === 'freelancer') && !isImported(p)).map((p, i) => buildRow(p, i + 1));
+    const perms = placements.filter(p => p.placement_type === 'perm' && !isImported(p)).map((p, i) => buildRow(p, i + 1));
+    const imports = placements.filter(p => isImported(p)).map((p, i) => buildRow(p, i + 1));
+    return { freelancerRows: freelancers, permRows: perms, importRows: imports };
   }, [placements, timesheets, invoices, filterMonth, filterYear]);
 
   const filteredFl = useMemo(() => applyFilters(freelancerRows, flSearch, flStatus, flSort), [freelancerRows, flSearch, flStatus, flSort]);
   const filteredPm = useMemo(() => applyFilters(permRows, pmSearch, pmStatus, pmSort), [permRows, pmSearch, pmStatus, pmSort]);
+  const filteredIm = useMemo(() => applyFilters(importRows, flSearch, flStatus, flSort), [importRows, flSearch, flStatus, flSort]);
 
   const fmtVal = (excl) => formatCurrency(excl * (showVat ? VAT_RATE : 1));
 
@@ -387,8 +392,27 @@ export default function Billing() {
       <SummaryBar label={`Freelancers — ${periodLabel}`} expected={flExpected} received={flReceived} open={flExpected - flReceived} margin={flMargin} showVat={showVat} />
       <SummaryBar label={`PERM — ${periodLabel}`} expected={pmExpected} received={pmReceived} open={pmExpected - pmReceived} showVat={showVat} />
 
+      {/* Section filter toggle */}
+      <div className="flex gap-2 mb-6 flex-wrap">
+        {[
+          { value: 'all', label: 'Alle' },
+          { value: 'freelancer', label: 'Freelancer' },
+          { value: 'perm', label: 'PERM' },
+          { value: 'import', label: '📦 Import' },
+        ].map(opt => (
+          <Button
+            key={opt.value}
+            size="sm"
+            variant={sectionFilter === opt.value ? 'default' : 'outline'}
+            onClick={() => setSectionFilter(opt.value)}
+          >
+            {opt.label}
+          </Button>
+        ))}
+      </div>
+
       {/* ── FREELANCERS ── */}
-      <Card className="mb-8">
+      {(sectionFilter === 'all' || sectionFilter === 'freelancer') && <Card className="mb-8">
         <CardHeader className="pb-2">
           <div className="flex items-center gap-3 mb-2">
             <CardTitle className="text-base font-semibold">Freelancers — {periodLabel}</CardTitle>
@@ -483,10 +507,10 @@ export default function Billing() {
             </table>
           </div>
         </CardContent>
-      </Card>
+      </Card>}
 
       {/* ── PERM ── */}
-      <Card>
+      {(sectionFilter === 'all' || sectionFilter === 'perm') && <Card>
         <CardHeader className="pb-2">
           <div className="flex items-center gap-3 mb-2">
             <CardTitle className="text-base font-semibold">PERM — Vaste aanwervingen</CardTitle>
@@ -560,7 +584,100 @@ export default function Billing() {
             </table>
           </div>
         </CardContent>
-      </Card>
+      </Card>}
+
+      {/* ── IMPORTS ── */}
+      {(sectionFilter === 'all' || sectionFilter === 'import') && (
+        <Card className="mb-8 mt-8">
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-3 mb-2">
+              <CardTitle className="text-base font-semibold">Imports — {periodLabel}</CardTitle>
+              <Badge className="bg-violet-100 text-violet-700 border-violet-200">📦 Import</Badge>
+              <span className="text-xs text-muted-foreground ml-auto">{showVat ? 'Incl. BTW' : 'Excl. BTW'}</span>
+            </div>
+            <FilterBar
+              search={flSearch} setSearch={setFlSearch}
+              statusFilter={flStatus} setStatusFilter={setFlStatus}
+              sortBy={flSort} setSortBy={setFlSort}
+              onReset={() => { setFlSearch(''); setFlStatus('all'); setFlSort('default'); }}
+            />
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/50">
+                    <th className="text-left py-3 px-3 font-bold text-foreground">#</th>
+                    <th className="text-left py-3 px-3 font-normal text-foreground">Consultant</th>
+                    <th className="text-left py-3 px-3 font-bold text-foreground">BTW nr.</th>
+                    <th className="text-left py-3 px-3 font-normal text-foreground">Klant</th>
+                    <th className="text-left py-3 px-3 font-bold text-foreground">Contractduur</th>
+                    <th className="text-right py-3 px-3 font-normal text-foreground">Dagen</th>
+                    <th className="text-right py-3 px-3 font-bold text-foreground">Tarief</th>
+                    <th className="text-right py-3 px-3 font-normal text-white bg-primary">Bill</th>
+                    <th className="text-right py-3 px-3 font-normal text-white bg-foreground">Pay</th>
+                    <th className="text-right py-3 px-3 font-normal text-foreground">Marge</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredIm.map(row => {
+                    const clientOverdue = row.clientInvoice ? isOverdue(row.clientInvoice) : false;
+                    const consultantOverdue = row.consultantInvoice ? isOverdue(row.consultantInvoice) : false;
+                    return (
+                      <tr key={row.placement.id} className={`border-b border-border/50 transition-colors ${clientOverdue ? 'bg-red-50/40 hover:bg-red-50/60' : 'hover:bg-muted/20'}`}>
+                        <td className="py-3 px-3 font-bold text-foreground">{row.idx}</td>
+                        <td className="py-3 px-3">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-normal text-foreground">{row.placement.consultant_first_name} {row.placement.consultant_last_name}</span>
+                            <ImportedBadge />
+                          </div>
+                          {row.placement.consultant_company_name && <div className="text-xs text-muted-foreground">{row.placement.consultant_company_name}</div>}
+                        </td>
+                        <td className="py-3 px-3 text-xs font-bold text-foreground">{row.placement.consultant_vat_number || '—'}</td>
+                        <td className="py-3 px-3">
+                          <div className="font-normal text-foreground">{row.placement.client_company_name}</div>
+                          {row.placement.client_vat_number && <div className="text-xs text-muted-foreground">{row.placement.client_vat_number}</div>}
+                        </td>
+                        <td className="py-3 px-3 font-bold"><ContractDuration placement={row.placement} /></td>
+                        <td className="py-3 px-3 text-right">
+                          {row.ts ? <span className="font-normal text-foreground">{row.days}</span> : <span className="text-amber-600 text-xs">{row.days}~</span>}
+                        </td>
+                        <td className="py-3 px-3 text-right text-xs font-bold text-foreground">
+                          <div>{formatCurrency(row.clientRate)}/dag</div>
+                          <div className="text-muted-foreground font-normal">cons: {formatCurrency(row.consultantRate)}/dag</div>
+                        </td>
+                        <td className={`py-3 px-3 text-right bg-primary/10 font-bold ${clientOverdue ? 'text-red-600' : 'text-primary'}`}>
+                          <div className="flex items-center justify-end gap-1">
+                            {clientOverdue && <AlertCircle className="w-3.5 h-3.5 text-red-500" />}
+                            {fmtVal(row.clientAmountExcl)}
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 text-right font-bold border-l border-foreground/10" style={{backgroundColor: 'rgba(0,0,0,0.06)'}}>
+                          <span className={consultantOverdue ? 'text-red-600' : 'text-foreground'}>{fmtVal(row.consultantAmountExcl)}</span>
+                        </td>
+                        <td className={`py-3 px-3 text-right font-normal ${row.marginExcl >= 0 ? 'text-primary' : 'text-red-500'}`}>
+                          {fmtVal(row.marginExcl)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {filteredIm.length === 0 && (
+                    <tr><td colSpan={10} className="py-8 text-center text-muted-foreground text-sm">Geen geïmporteerde placements gevonden</td></tr>
+                  )}
+                  {filteredIm.length > 0 && (
+                    <tr className="bg-muted/40 font-semibold border-t-2">
+                      <td colSpan={7} className="py-3 px-3 text-right text-xs text-muted-foreground font-bold">Totaal (gefilterd)</td>
+                      <td className="py-3 px-3 text-right bg-primary/10 font-bold text-primary">{fmtVal(filteredIm.reduce((s, r) => s + r.clientAmountExcl, 0))}</td>
+                      <td className="py-3 px-3 text-right font-bold" style={{backgroundColor:'rgba(0,0,0,0.06)'}}>{fmtVal(filteredIm.reduce((s, r) => s + r.consultantAmountExcl, 0))}</td>
+                      <td className="py-3 px-3 text-right text-primary">{fmtVal(filteredIm.reduce((s, r) => s + r.marginExcl, 0))}</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="mt-6 border-border bg-muted/30">
         <CardContent className="p-4 flex items-start gap-3">
