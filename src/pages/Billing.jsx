@@ -286,6 +286,11 @@ export default function Billing() {
   };
 
   const handleGenerateConsultantInvoice = async (row) => {
+    // If there's already a generated file on the invoice record, download it directly
+    if (row.consultantInvoice?.file_url) {
+      window.open(row.consultantInvoice.file_url, '_blank');
+      return;
+    }
     setGeneratingInvoice(row.placement.id);
     const res = await base44.functions.invoke('generateConsultantInvoice', {
       placement_id: row.placement.id,
@@ -294,11 +299,12 @@ export default function Billing() {
       year,
     });
     const { file_url, file_name } = res.data;
-    const a = document.createElement('a');
-    a.href = file_url;
-    a.download = file_name;
-    a.target = '_blank';
-    a.click();
+    // Save the file_url to the invoice record if it exists
+    if (row.consultantInvoice?.id) {
+      await base44.entities.Invoice.update(row.consultantInvoice.id, { file_url });
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    }
+    window.open(file_url, '_blank');
     toast.success(`Factuur gegenereerd: ${file_name}`);
     setGeneratingInvoice(null);
   };
@@ -513,24 +519,60 @@ export default function Billing() {
                         </div>
                       </td>
                       <td className="py-3 px-3 bg-primary/10">
-                        <ReferenceReminder instructions={row.placement?.reference_instructions} />
-                        <InvoiceRef invoice={row.clientInvoice} />
-                        <StatusCell invoice={row.clientInvoice} hasTimesheet={!!row.ts} onMarkPaid={markPaid} onSendReminder={sendReminder} sendingReminder={sendingReminderId === row.clientInvoice?.id} showTimesheetStatus={false} />
-                        {row.clientInvoice && (
-                          <div className="mt-1">
-                            {row.clientInvoice.file_url ? (
-                              <a href={row.clientInvoice.file_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
-                                <Paperclip className="w-3 h-3" /> Factuur bekijken
-                              </a>
-                            ) : (
-                              <label className="cursor-pointer text-xs text-muted-foreground hover:text-primary flex items-center gap-1">
-                                {uploadingInvoiceId === row.clientInvoice.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
-                                Factuur uploaden
-                                <input type="file" className="hidden" accept=".pdf,.jpg,.png" onChange={e => e.target.files[0] && handleUploadInvoiceFile(row.clientInvoice.id, e.target.files[0])} />
-                              </label>
-                            )}
-                          </div>
-                        )}
+                       <ReferenceReminder instructions={row.placement?.reference_instructions} />
+                       <InvoiceRef invoice={row.clientInvoice} />
+                       <StatusCell invoice={row.clientInvoice} hasTimesheet={!!row.ts} onMarkPaid={markPaid} onSendReminder={sendReminder} sendingReminder={sendingReminderId === row.clientInvoice?.id} showTimesheetStatus={false} />
+                       <div className="mt-1 flex flex-col gap-1">
+                         {row.clientInvoice?.file_url && (
+                           <a href={row.clientInvoice.file_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
+                             <Paperclip className="w-3 h-3" /> Factuur bekijken
+                           </a>
+                         )}
+                         <label className="cursor-pointer text-xs text-muted-foreground hover:text-primary flex items-center gap-1">
+                           {uploadingInvoiceId === (row.clientInvoice?.id || `new-${row.placement.id}`) ? (
+                             <Loader2 className="w-3 h-3 animate-spin" />
+                           ) : (
+                             <Upload className="w-3 h-3" />
+                           )}
+                           {row.clientInvoice?.file_url ? 'Vervangen' : 'Factuur uploaden'}
+                           <input
+                             type="file"
+                             className="hidden"
+                             accept=".pdf,.jpg,.png,.docx"
+                             onChange={async (e) => {
+                               const file = e.target.files[0];
+                               if (!file) return;
+                               const tempId = row.clientInvoice?.id || `new-${row.placement.id}`;
+                               setUploadingInvoiceId(tempId);
+                               const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                               if (row.clientInvoice?.id) {
+                                 await base44.entities.Invoice.update(row.clientInvoice.id, { file_url });
+                               } else {
+                                 // Create a new invoice record with the uploaded file
+                                 await base44.entities.Invoice.create({
+                                   placement_id: row.placement.id,
+                                   timesheet_id: row.ts?.id || null,
+                                   invoice_type: 'client_invoice',
+                                   amount: row.clientAmountExcl,
+                                   vat_amount: row.clientAmountExcl * 0.21,
+                                   total_amount: row.clientAmountExcl * 1.21,
+                                   status: 'sent',
+                                   month: showAll ? null : month,
+                                   year,
+                                   consultant_name: `${row.placement.consultant_first_name} ${row.placement.consultant_last_name}`,
+                                   client_company: row.placement.client_company_name,
+                                   payment_terms_days: row.placement.payment_terms_client || 30,
+                                   issue_date: new Date().toISOString().split('T')[0],
+                                   file_url,
+                                 });
+                               }
+                               queryClient.invalidateQueries({ queryKey: ['invoices'] });
+                               toast.success('Factuur opgeslagen');
+                               setUploadingInvoiceId(null);
+                             }}
+                           />
+                         </label>
+                       </div>
                       </td>
                       <td className={`py-3 px-3 text-right bg-foreground/8 font-bold border-l border-foreground/10 ${consultantOverdue ? 'text-red-600' : 'text-foreground'}`} style={{backgroundColor: 'rgba(0,0,0,0.06)'}}>
                         <div className="flex items-center justify-end gap-1">
@@ -545,13 +587,8 @@ export default function Billing() {
                           onClick={() => handleGenerateConsultantInvoice(row)}
                         >
                           {generatingInvoice === row.placement.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
-                          Downloaden
+                          {row.consultantInvoice?.file_url ? 'Downloaden' : 'Genereren'}
                         </button>
-                        {row.consultantInvoice?.file_url && (
-                          <a href={row.consultantInvoice.file_url} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 mt-1">
-                            <Paperclip className="w-3 h-3" /> Geüpload
-                          </a>
-                        )}
                       </td>
                       <td className="py-3 px-3">
                         <button
