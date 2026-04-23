@@ -292,20 +292,25 @@ export default function Billing() {
       return;
     }
     setGeneratingInvoice(row.placement.id);
-    const res = await base44.functions.invoke('generateConsultantInvoice', {
-      placement_id: row.placement.id,
-      timesheet_id: row.ts?.id || null,
-      month: month || null,
-      year,
-    });
-    const { file_url, file_name } = res.data;
-    // Save the file_url to the invoice record if it exists
-    if (row.consultantInvoice?.id) {
-      await base44.entities.Invoice.update(row.consultantInvoice.id, { file_url });
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    try {
+      const res = await base44.functions.invoke('generateConsultantInvoice', {
+        placement_id: row.placement.id,
+        timesheet_id: row.ts?.id || null,
+        month: month || null,
+        year,
+      });
+      const { file_url, file_name, error } = res.data;
+      if (error) { toast.error(error); setGeneratingInvoice(null); return; }
+      // Save the file_url to the invoice record if it exists
+      if (row.consultantInvoice?.id) {
+        await base44.entities.Invoice.update(row.consultantInvoice.id, { file_url });
+        queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      }
+      window.open(file_url, '_blank');
+      toast.success(`Factuur gegenereerd: ${file_name}`);
+    } catch (e) {
+      toast.error(e.response?.data?.error || e.message || 'Fout bij genereren factuur');
     }
-    window.open(file_url, '_blank');
-    toast.success(`Factuur gegenereerd: ${file_name}`);
     setGeneratingInvoice(null);
   };
 

@@ -151,11 +151,11 @@ Deno.serve(async (req) => {
     doc.render(data);
     const output = doc.getZip().generate({ type: 'uint8array' });
 
-    const blob = new Blob([output], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
     const safeConsultant = consultantName.replace(/\s+/g, '_');
     const fileName = `Factuur_${safeConsultant}_${getMonthName(invoiceMonth)}_${invoiceYear}.docx`;
 
-    const { file_url } = await base44.asServiceRole.integrations.Core.UploadFile({ file: blob });
+    const file = new File([output], fileName, { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    const { file_url } = await base44.asServiceRole.integrations.Core.UploadFile({ file });
 
     return Response.json({ file_url, file_name: fileName });
   } catch (error) {
