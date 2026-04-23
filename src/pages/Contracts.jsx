@@ -14,7 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { toast } from 'sonner';
 import { generateContractPdf } from '@/lib/contractPdf';
 import PageHeader from '@/components/shared/PageHeader';
-
+import PlacementForm from '@/components/placements/PlacementForm';
 import EmptyState from '@/components/shared/EmptyState';
 import ImportedBadge from '@/components/shared/ImportedBadge';
 import { formatDate, formatCurrency } from '@/lib/formatters';
@@ -36,7 +36,8 @@ const TYPE_LABELS = { client: 'Klant', consultant: 'Consultant' };
 
 export default function Contracts() {
   const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState(null);
+  const [editing, setEditing] = useState(null); // editing = contract record
+  const [editingPlacement, setEditingPlacement] = useState(null); // full placement for edit dialog
   const [generating, setGenerating] = useState({}); // { [contractId]: true }
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -127,10 +128,23 @@ export default function Contracts() {
     else createMutation.mutate(form);
   };
 
+  const updatePlacementMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Placement.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['placements'] });
+      setEditingPlacement(null);
+      toast.success('Placement bijgewerkt');
+    },
+  });
+
   const openEdit = (contract) => {
     setEditing(contract);
     setForm({ ...contract });
     setShowForm(true);
+  };
+
+  const openEditPlacement = (placement) => {
+    setEditingPlacement(placement);
   };
 
   const getPlacement = (id) => placements.find(p => p.id === id);
@@ -430,6 +444,23 @@ export default function Contracts() {
         </DialogContent>
       </Dialog>
 
+      {/* Placement Edit Dialog */}
+      {editingPlacement && (
+        <Dialog open={!!editingPlacement} onOpenChange={(open) => { if (!open) setEditingPlacement(null); }}>
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Placement bewerken — {editingPlacement.consultant_first_name} {editingPlacement.consultant_last_name}</DialogTitle>
+              <DialogDescription>Pas alle gegevens van deze placement aan. Contracten worden automatisch bijgewerkt.</DialogDescription>
+            </DialogHeader>
+            <PlacementForm
+              placement={editingPlacement}
+              onSave={(data) => updatePlacementMutation.mutate({ id: editingPlacement.id, data })}
+              onCancel={() => setEditingPlacement(null)}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
       {/* Toggle: klant / consultant */}
       <div className="flex gap-2 mb-4">
         <Button
@@ -460,8 +491,6 @@ export default function Contracts() {
                     <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Klant</th>
                     <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Periode</th>
                     <th className="text-right py-3 px-4 font-bold whitespace-nowrap">Pay/dag</th>
-                    <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Agoria-index</th>
-                    <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Betalingstermijn</th>
                     <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Payroll nr.</th>
                     <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Status</th>
                     <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Acties</th>
@@ -484,11 +513,9 @@ export default function Contracts() {
                       <td className="py-3 px-4"><div className="font-bold">{col.clientName}</div></td>
                       <td className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap"><div>{formatDate(col.startDate)}</div><div className="font-medium text-foreground">{col.endDate ? formatDate(col.endDate) : '—'}</div></td>
                       <td className="py-3 px-4 text-right"><div className="font-bold">{col.consultantRate ? formatCurrency(col.consultantRate) : '—'}</div></td>
-                      <td className="py-3 px-4 text-xs font-mono font-bold">{col.consultant?.agoria_index_consultant || col.placement?.agoria_index_consultant || <span className="text-muted-foreground">—</span>}</td>
-                      <td className="py-3 px-4 text-xs">{col.placement?.payment_terms_consultant ? <span className="font-semibold">{col.placement.payment_terms_consultant}d</span> : <span className="text-muted-foreground">—</span>}</td>
-                      <td className="py-3 px-4 text-xs">{col.placement?.payroll_number ? <span className="font-mono font-bold">{col.placement.payroll_number}</span> : <span className="text-muted-foreground">—</span>}</td>
-                      <td className="py-3 px-4">{col.consultant ? <Badge variant="outline" className={`text-xs ${STATUS_STYLES[col.consultant.status]}`}>{STATUS_LABELS[col.consultant.status]}</Badge> : <span className="text-xs text-red-500 font-medium">Ontbreekt</span>}</td>
-                      <td className="py-3 px-4"><div className="flex items-center gap-1">{col.consultant && <DownloadDropdown contract={col.consultant} placement={col.placement} />}{col.consultant && <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openEdit(col.consultant)}>Bewerken</Button>}</div></td>
+                       <td className="py-3 px-4 text-xs">{col.placement?.payroll_number ? <span className="font-mono font-bold">{col.placement.payroll_number}</span> : <span className="text-muted-foreground">—</span>}</td>
+                       <td className="py-3 px-4">{col.consultant ? <Badge variant="outline" className={`text-xs ${STATUS_STYLES[col.consultant.status]}`}>{STATUS_LABELS[col.consultant.status]}</Badge> : <span className="text-xs text-red-500 font-medium">Ontbreekt</span>}</td>
+                       <td className="py-3 px-4"><div className="flex items-center gap-1">{col.consultant && <DownloadDropdown contract={col.consultant} placement={col.placement} />}{col.placement && <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openEditPlacement(col.placement)}>Bewerken</Button>}</div></td>
                     </tr>
                   ))}
                 </tbody>
@@ -508,9 +535,6 @@ export default function Contracts() {
                     <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Klant</th>
                     <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Periode</th>
                     <th className="text-right py-3 px-4 font-bold whitespace-nowrap">Bill/dag</th>
-                    <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Agoria-index</th>
-                    <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Betalingstermijn</th>
-                    <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Aansprakelijkheid</th>
                     <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Status</th>
                     <th className="text-left py-3 px-4 font-bold whitespace-nowrap">Acties</th>
                   </tr>
@@ -532,11 +556,8 @@ export default function Contracts() {
                       <td className="py-3 px-4"><div className="font-bold">{col.clientName}</div>{col.placement?.client_vat_number && <div className="text-xs text-muted-foreground font-mono">{col.placement.client_vat_number}</div>}</td>
                       <td className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap"><div>{formatDate(col.startDate)}</div><div className="font-medium text-foreground">{col.endDate ? formatDate(col.endDate) : '—'}</div></td>
                       <td className="py-3 px-4 text-right"><div className="font-bold">{col.clientRate ? formatCurrency(col.clientRate) : '—'}</div></td>
-                      <td className="py-3 px-4 text-xs font-mono font-bold">{col.client?.agoria_index_client || col.placement?.agoria_index_client || <span className="text-muted-foreground">—</span>}</td>
-                      <td className="py-3 px-4 text-xs">{col.placement?.payment_terms_client ? <span className="font-semibold">{col.placement.payment_terms_client}d</span> : <span className="text-muted-foreground">—</span>}</td>
-                      <td className="py-3 px-4 text-xs">{col.placement?.liability_limit || <span className="text-muted-foreground">—</span>}</td>
-                      <td className="py-3 px-4">{col.client ? <Badge variant="outline" className={`text-xs ${STATUS_STYLES[col.client.status]}`}>{STATUS_LABELS[col.client.status]}</Badge> : <span className="text-xs text-red-500 font-medium">Ontbreekt</span>}</td>
-                      <td className="py-3 px-4"><div className="flex items-center gap-1">{col.client && <DownloadDropdown contract={col.client} placement={col.placement} />}{col.client && <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openEdit(col.client)}>Bewerken</Button>}</div></td>
+                       <td className="py-3 px-4">{col.client ? <Badge variant="outline" className={`text-xs ${STATUS_STYLES[col.client.status]}`}>{STATUS_LABELS[col.client.status]}</Badge> : <span className="text-xs text-red-500 font-medium">Ontbreekt</span>}</td>
+                       <td className="py-3 px-4"><div className="flex items-center gap-1">{col.client && <DownloadDropdown contract={col.client} placement={col.placement} />}{col.placement && <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openEditPlacement(col.placement)}>Bewerken</Button>}</div></td>
                     </tr>
                   ))}
                 </tbody>
