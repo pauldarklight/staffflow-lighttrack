@@ -240,11 +240,14 @@ export default function EntityDashboard({ timesheets, placements, years }) {
     setSelectedNames(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]);
   };
 
-  // Reset selection when switching entity type
+  // Reset selection and search when switching entity type
   const handleEntitySwitch = (key) => {
     setActiveEntity(key);
     setSelectedNames([]);
   };
+
+  // Sync placeholder and allNames always reflect activeEntity
+  
 
   return (
     <div className="space-y-6">
