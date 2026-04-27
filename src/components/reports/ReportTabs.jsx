@@ -1,34 +1,90 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend, ComposedChart } from 'recharts';
-import { BarChart2, List } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend, PieChart, Pie, Cell } from 'recharts';
+import { List } from 'lucide-react';
 import { formatCurrency, getMonthName } from '@/lib/formatters';
 import StatusBadge from '@/components/shared/StatusBadge';
 import VergelijkingDrillDown from '@/components/reports/VergelijkingDrillDown';
 
-function ChartToggle({ view, setView }) {
+const PIE_COLORS = [
+  'hsl(221, 83%, 53%)', 'hsl(142, 72%, 29%)', 'hsl(43, 74%, 55%)',
+  'hsl(0, 84%, 60%)', 'hsl(262, 83%, 58%)', 'hsl(200, 80%, 50%)',
+  'hsl(30, 90%, 55%)', 'hsl(160, 60%, 40%)', 'hsl(330, 70%, 55%)', 'hsl(80, 60%, 40%)',
+];
+
+// chart types: 'table' | 'bar' | 'line' | 'pie'
+function ChartToggle({ view, setView, types = ['table', 'bar', 'line'] }) {
+  const labels = { table: '📋 Tabel', bar: '📊 Staaf', line: '📈 Lijn', pie: '🥧 Cirkel' };
   return (
-    <div className="flex rounded-md border border-border overflow-hidden">
-      <button onClick={() => setView('table')} className={`px-2 py-1 text-xs flex items-center gap-1 transition-colors ${view === 'table' ? 'bg-primary text-primary-foreground' : 'bg-background text-muted-foreground hover:bg-muted'}`}>
-        <List className="w-3.5 h-3.5" /> Tabel
-      </button>
-      <button onClick={() => setView('chart')} className={`px-2 py-1 text-xs flex items-center gap-1 transition-colors ${view === 'chart' ? 'bg-primary text-primary-foreground' : 'bg-background text-muted-foreground hover:bg-muted'}`}>
-        <BarChart2 className="w-3.5 h-3.5" /> Grafiek
-      </button>
+    <div className="flex rounded-md border border-border overflow-hidden flex-shrink-0">
+      {types.map(t => (
+        <button
+          key={t}
+          onClick={() => setView(t)}
+          className={`px-2.5 py-1 text-xs font-medium transition-colors whitespace-nowrap ${view === t ? 'bg-primary text-primary-foreground' : 'bg-background text-muted-foreground hover:bg-muted'}`}
+        >
+          {labels[t]}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function PieChartView({ data, dataKey, nameKey = 'name', height = 300 }) {
+  const [activeIdx, setActiveIdx] = useState(null);
+  const total = data.reduce((s, d) => s + (d[dataKey] || 0), 0);
+  return (
+    <div className="flex flex-col md:flex-row items-center gap-4">
+      <ResponsiveContainer width="100%" height={height}>
+        <PieChart>
+          <Pie
+            data={data}
+            dataKey={dataKey}
+            nameKey={nameKey}
+            cx="50%"
+            cy="50%"
+            outerRadius={110}
+            innerRadius={50}
+            paddingAngle={2}
+            onMouseEnter={(_, idx) => setActiveIdx(idx)}
+            onMouseLeave={() => setActiveIdx(null)}
+          >
+            {data.map((entry, idx) => (
+              <Cell
+                key={idx}
+                fill={PIE_COLORS[idx % PIE_COLORS.length]}
+                opacity={activeIdx === null || activeIdx === idx ? 1 : 0.5}
+                stroke="white"
+                strokeWidth={1}
+              />
+            ))}
+          </Pie>
+          <Tooltip formatter={(v, name) => [formatCurrency(v), name]} />
+          <Legend />
+        </PieChart>
+      </ResponsiveContainer>
+      {activeIdx !== null && data[activeIdx] && (
+        <div className="text-sm bg-muted/50 rounded-lg p-3 min-w-[160px] border border-border">
+          <div className="font-semibold">{data[activeIdx][nameKey]}</div>
+          <div className="text-primary font-bold mt-1">{formatCurrency(data[activeIdx][dataKey])}</div>
+          <div className="text-muted-foreground text-xs mt-0.5">{total > 0 ? ((data[activeIdx][dataKey] / total) * 100).toFixed(1) : 0}% van totaal</div>
+        </div>
+      )}
     </div>
   );
 }
 
 export function MonthlyTab({ monthlyData, year }) {
-  const [view, setView] = useState('chart');
+  const [view, setView] = useState('bar');
+  const pieData = monthlyData.filter(r => r.omzet > 0).map(r => ({ name: r.name, omzet: r.omzet }));
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
         <CardTitle className="text-base">Maandelijks Overzicht {year}</CardTitle>
-        <ChartToggle view={view} setView={setView} />
+        <ChartToggle view={view} setView={setView} types={['table', 'bar', 'line', 'pie']} />
       </CardHeader>
       <CardContent className={view === 'table' ? 'p-0' : ''}>
-        {view === 'chart' ? (
+        {view === 'bar' && (
           <ResponsiveContainer width="100%" height={320}>
             <BarChart data={monthlyData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
@@ -40,7 +96,23 @@ export function MonthlyTab({ monthlyData, year }) {
               <Bar dataKey="marge" fill="hsl(142, 72%, 29%)" radius={[4,4,0,0]} name="Marge" />
             </BarChart>
           </ResponsiveContainer>
-        ) : (
+        )}
+        {view === 'line' && (
+          <ResponsiveContainer width="100%" height={320}>
+            <LineChart data={monthlyData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
+              <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `€${(v/1000).toFixed(0)}k`} />
+              <Tooltip formatter={v => formatCurrency(v)} />
+              <Legend />
+              <Line type="monotone" dataKey="omzet" stroke="hsl(221, 83%, 53%)" strokeWidth={2} name="Omzet" dot={{ r: 4 }} />
+              <Line type="monotone" dataKey="kost" stroke="hsl(0, 84%, 60%)" strokeWidth={2} name="Kost" dot={{ r: 4 }} />
+              <Line type="monotone" dataKey="marge" stroke="hsl(142, 72%, 29%)" strokeWidth={2.5} name="Marge" dot={{ r: 4 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
+        {view === 'pie' && <PieChartView data={pieData} dataKey="omzet" height={320} />}
+        {view === 'table' && (
           <table className="w-full text-sm">
             <thead><tr className="border-b bg-muted/50">
               <th className="text-left py-3 px-4 font-medium text-muted-foreground">Maand</th>
@@ -68,17 +140,18 @@ export function MonthlyTab({ monthlyData, year }) {
 }
 
 export function ClientsTab({ clientTable }) {
-  const [view, setView] = useState('table');
+  const [view, setView] = useState('bar');
   const chartData = clientTable.slice(0, 10).map(([name, d]) => ({ name: name.length > 14 ? name.slice(0,13)+'…' : name, omzet: d.omzet, marge: d.marge }));
+  const pieData = clientTable.slice(0, 10).map(([name, d]) => ({ name: name.length > 14 ? name.slice(0,13)+'…' : name, omzet: d.omzet }));
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
         <CardTitle className="text-base">Omzet & Marge per Klant</CardTitle>
-        <ChartToggle view={view} setView={setView} />
+        <ChartToggle view={view} setView={setView} types={['table', 'bar', 'pie']} />
       </CardHeader>
       <CardContent className={view === 'table' ? 'p-0' : ''}>
-        {view === 'chart' ? (
-          <ResponsiveContainer width="100%" height={320}>
+        {view === 'bar' && (
+          <ResponsiveContainer width="100%" height={Math.max(280, chartData.length * 36)}>
             <BarChart data={chartData} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
               <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={v => `€${(v/1000).toFixed(0)}k`} />
@@ -89,7 +162,9 @@ export function ClientsTab({ clientTable }) {
               <Bar dataKey="marge" fill="hsl(142, 72%, 29%)" name="Marge" radius={[0,4,4,0]} />
             </BarChart>
           </ResponsiveContainer>
-        ) : (
+        )}
+        {view === 'pie' && <PieChartView data={pieData} dataKey="omzet" height={320} />}
+        {view === 'table' && (
           <table className="w-full text-sm">
             <thead><tr className="border-b bg-muted/50">
               <th className="text-left py-3 px-4 font-medium text-muted-foreground">Klant</th>
@@ -115,17 +190,18 @@ export function ClientsTab({ clientTable }) {
 }
 
 export function ConsultantsTab({ consultantTable }) {
-  const [view, setView] = useState('table');
+  const [view, setView] = useState('bar');
   const chartData = consultantTable.slice(0, 10).map(([name, d]) => ({ name: name.split(' ').slice(0,2).join(' '), omzet: d.omzet, marge: d.marge, kost: d.kost }));
+  const pieData = consultantTable.slice(0, 10).map(([name, d]) => ({ name: name.split(' ').slice(0,2).join(' '), marge: d.marge }));
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
         <CardTitle className="text-base">Marge per Consultant</CardTitle>
-        <ChartToggle view={view} setView={setView} />
+        <ChartToggle view={view} setView={setView} types={['table', 'bar', 'pie']} />
       </CardHeader>
       <CardContent className={view === 'table' ? 'p-0' : ''}>
-        {view === 'chart' ? (
-          <ResponsiveContainer width="100%" height={320}>
+        {view === 'bar' && (
+          <ResponsiveContainer width="100%" height={Math.max(280, chartData.length * 36)}>
             <BarChart data={chartData} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
               <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={v => `€${(v/1000).toFixed(0)}k`} />
@@ -137,7 +213,9 @@ export function ConsultantsTab({ consultantTable }) {
               <Bar dataKey="marge" fill="hsl(142, 72%, 29%)" name="Marge" radius={[0,4,4,0]} />
             </BarChart>
           </ResponsiveContainer>
-        ) : (
+        )}
+        {view === 'pie' && <PieChartView data={pieData} dataKey="marge" height={320} />}
+        {view === 'table' && (
           <table className="w-full text-sm">
             <thead><tr className="border-b bg-muted/50">
               <th className="text-left py-3 px-4 font-medium text-muted-foreground">Consultant</th>
@@ -165,32 +243,37 @@ export function ConsultantsTab({ consultantTable }) {
 }
 
 export function SalesTab({ salesTable }) {
-  const [view, setView] = useState('table');
+  const [view, setView] = useState('bar');
   const chartData = salesTable.map(([name, d]) => ({ name, omzet: d.omzet, marge: d.marge }));
+  const pieData = salesTable.map(([name, d]) => ({ name, marge: d.marge }));
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
         <CardTitle className="text-base">Overzicht per Commerciële Consultant</CardTitle>
-        <ChartToggle view={view} setView={setView} />
+        <ChartToggle view={view} setView={setView} types={['table', 'bar', 'pie']} />
       </CardHeader>
       <CardContent className={view === 'table' ? 'p-0' : ''}>
-        {view === 'chart' ? (
-          salesTable.length === 0 ? (
-            <p className="py-8 text-center text-muted-foreground text-sm">Geen sales contributors gekoppeld aan placements</p>
-          ) : (
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
-                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `€${(v/1000).toFixed(0)}k`} />
-                <Tooltip formatter={v => formatCurrency(v)} />
-                <Legend />
-                <Bar dataKey="omzet" fill="hsl(221, 83%, 53%)" name="Omzet" radius={[4,4,0,0]} />
-                <Bar dataKey="marge" fill="hsl(142, 72%, 29%)" name="Marge" radius={[4,4,0,0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          )
-        ) : (
+        {view === 'bar' && (
+          salesTable.length === 0
+            ? <p className="py-8 text-center text-muted-foreground text-sm">Geen sales contributors gekoppeld aan placements</p>
+            : <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
+                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `€${(v/1000).toFixed(0)}k`} />
+                  <Tooltip formatter={v => formatCurrency(v)} />
+                  <Legend />
+                  <Bar dataKey="omzet" fill="hsl(221, 83%, 53%)" name="Omzet" radius={[4,4,0,0]} />
+                  <Bar dataKey="marge" fill="hsl(142, 72%, 29%)" name="Marge" radius={[4,4,0,0]} />
+                </BarChart>
+              </ResponsiveContainer>
+        )}
+        {view === 'pie' && (
+          salesTable.length === 0
+            ? <p className="py-8 text-center text-muted-foreground text-sm">Geen data</p>
+            : <PieChartView data={pieData} dataKey="marge" height={280} />
+        )}
+        {view === 'table' && (
           <table className="w-full text-sm">
             <thead><tr className="border-b bg-muted/50">
               <th className="text-left py-3 px-4 font-medium text-muted-foreground">Sales</th>
@@ -217,32 +300,52 @@ export function SalesTab({ salesTable }) {
 }
 
 export function CommissionTab({ commissionTable }) {
-  const [view, setView] = useState('table');
+  const [view, setView] = useState('bar');
   const chartData = commissionTable.map(row => ({ name: `${row.name} ${row.quarter}`, marge: row.marge, commissie: row.marge * 0.1 }));
+  const pieData = commissionTable.map(row => ({ name: `${row.name} ${row.quarter}`, commissie: row.marge * 0.1 }));
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
         <CardTitle className="text-base">Commissie per Kwartaal</CardTitle>
-        <ChartToggle view={view} setView={setView} />
+        <ChartToggle view={view} setView={setView} types={['table', 'bar', 'line', 'pie']} />
       </CardHeader>
       <CardContent className={view === 'table' ? 'p-0' : ''}>
-        {view === 'chart' ? (
-          commissionTable.length === 0 ? (
-            <p className="py-8 text-center text-muted-foreground text-sm">Geen commissiedata beschikbaar</p>
-          ) : (
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `€${(v/1000).toFixed(0)}k`} />
-                <Tooltip formatter={v => formatCurrency(v)} />
-                <Legend />
-                <Bar dataKey="marge" fill="hsl(221, 83%, 53%)" name="Toegew. Marge" radius={[4,4,0,0]} />
-                <Bar dataKey="commissie" fill="hsl(142, 72%, 29%)" name="Commissie (10%)" radius={[4,4,0,0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          )
-        ) : (
+        {view === 'bar' && (
+          commissionTable.length === 0
+            ? <p className="py-8 text-center text-muted-foreground text-sm">Geen commissiedata beschikbaar</p>
+            : <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `€${(v/1000).toFixed(0)}k`} />
+                  <Tooltip formatter={v => formatCurrency(v)} />
+                  <Legend />
+                  <Bar dataKey="marge" fill="hsl(221, 83%, 53%)" name="Toegew. Marge" radius={[4,4,0,0]} />
+                  <Bar dataKey="commissie" fill="hsl(142, 72%, 29%)" name="Commissie (10%)" radius={[4,4,0,0]} />
+                </BarChart>
+              </ResponsiveContainer>
+        )}
+        {view === 'line' && (
+          commissionTable.length === 0
+            ? <p className="py-8 text-center text-muted-foreground text-sm">Geen commissiedata beschikbaar</p>
+            : <ResponsiveContainer width="100%" height={280}>
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `€${(v/1000).toFixed(0)}k`} />
+                  <Tooltip formatter={v => formatCurrency(v)} />
+                  <Legend />
+                  <Line type="monotone" dataKey="marge" stroke="hsl(221, 83%, 53%)" strokeWidth={2} name="Toegew. Marge" dot={{ r: 4 }} />
+                  <Line type="monotone" dataKey="commissie" stroke="hsl(142, 72%, 29%)" strokeWidth={2} name="Commissie (10%)" dot={{ r: 4 }} />
+                </LineChart>
+              </ResponsiveContainer>
+        )}
+        {view === 'pie' && (
+          commissionTable.length === 0
+            ? <p className="py-8 text-center text-muted-foreground text-sm">Geen data</p>
+            : <PieChartView data={pieData} dataKey="commissie" height={280} />
+        )}
+        {view === 'table' && (
           <table className="w-full text-sm">
             <thead><tr className="border-b bg-muted/50">
               <th className="text-left py-3 px-4 font-medium text-muted-foreground">Sales</th>
@@ -388,7 +491,7 @@ export function FacturatieTab({ invoicedClients, invoicedConsultants }) {
 }
 
 export function VergelijkingTab({ vergelijkingData, placements, timesheets, year, ytd, expandedMonth, setExpandedMonth }) {
-  const [view, setView] = useState('table');
+  const [view, setView] = useState('bar');
   const chartData = vergelijkingData.map(r => ({ name: r.name, verwacht: r.verwacht, werkelijk: r.werkelijk }));
 
   return (
@@ -398,10 +501,10 @@ export function VergelijkingTab({ vergelijkingData, placements, timesheets, year
           <CardTitle className="text-base">Verwachte vs Werkelijke Omzet {ytd ? `YTD ${year}` : year}</CardTitle>
           <p className="text-xs text-muted-foreground mt-1">Verwacht = actieve freelancers × werkdagen × tarief. Klik op een maand voor breakdown.</p>
         </div>
-        <ChartToggle view={view} setView={setView} />
+        <ChartToggle view={view} setView={setView} types={['table', 'bar', 'line']} />
       </CardHeader>
       <CardContent className={view === 'table' ? 'p-0' : ''}>
-        {view === 'chart' ? (
+        {view === 'bar' && (
           <ResponsiveContainer width="100%" height={320}>
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
@@ -413,7 +516,21 @@ export function VergelijkingTab({ vergelijkingData, placements, timesheets, year
               <Bar dataKey="werkelijk" fill="hsl(142, 72%, 29%)" name="Werkelijk" radius={[4,4,0,0]} />
             </BarChart>
           </ResponsiveContainer>
-        ) : (
+        )}
+        {view === 'line' && (
+          <ResponsiveContainer width="100%" height={320}>
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
+              <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `€${(v/1000).toFixed(0)}k`} />
+              <Tooltip formatter={v => formatCurrency(v)} />
+              <Legend />
+              <Line type="monotone" dataKey="verwacht" stroke="hsl(221, 83%, 53%)" strokeWidth={2} strokeDasharray="5 3" name="Verwacht" dot={{ r: 4 }} />
+              <Line type="monotone" dataKey="werkelijk" stroke="hsl(142, 72%, 29%)" strokeWidth={2.5} name="Werkelijk" dot={{ r: 4 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
+        {view === 'table' && (<>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
@@ -481,22 +598,23 @@ export function VergelijkingTab({ vergelijkingData, placements, timesheets, year
               </tr>
             </tfoot>
           </table>
-        )}
+        </>)}
       </CardContent>
     </Card>
   );
 }
 
 export function MargeopbouwTab({ data, year }) {
-  const [view, setView] = useState('chart');
+  const [view, setView] = useState('bar');
+  const pieData = data.filter(r => r.marge > 0).map(r => ({ name: r.name, marge: r.marge }));
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
         <CardTitle className="text-base">Margeopbouw {year} — maandelijks & cumulatief</CardTitle>
-        <ChartToggle view={view} setView={setView} />
+        <ChartToggle view={view} setView={setView} types={['table', 'bar', 'line', 'pie']} />
       </CardHeader>
       <CardContent className={view === 'table' ? 'p-0' : 'space-y-6'}>
-        {view === 'chart' ? (
+        {view === 'bar' && (
           <>
             <div>
               <p className="text-xs text-muted-foreground mb-2 font-medium">Maandelijkse marge per maand</p>
@@ -526,7 +644,24 @@ export function MargeopbouwTab({ data, year }) {
               </ResponsiveContainer>
             </div>
           </>
-        ) : (
+        )}
+        {view === 'line' && (
+          <ResponsiveContainer width="100%" height={320}>
+            <LineChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
+              <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `€${(v/1000).toFixed(0)}k`} />
+              <Tooltip formatter={v => formatCurrency(v)} />
+              <Legend />
+              <Line type="monotone" dataKey="omzet" stroke="hsl(221, 83%, 53%)" strokeWidth={2} name="Omzet" dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="kost" stroke="hsl(0, 84%, 60%)" strokeWidth={2} name="Kost" dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="marge" stroke="hsl(142, 72%, 29%)" strokeWidth={2.5} name="Marge" dot={{ r: 4 }} />
+              <Line type="monotone" dataKey="cumulatieve_marge" stroke="hsl(262, 83%, 58%)" strokeWidth={2} strokeDasharray="5 3" name="Cumulatief" dot={{ r: 3 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
+        {view === 'pie' && <PieChartView data={pieData} dataKey="marge" height={320} />}
+        {view === 'table' && (
           <table className="w-full text-sm">
             <thead><tr className="border-b bg-muted/50">
               <th className="text-left py-3 px-4 font-medium text-muted-foreground">Maand</th>
