@@ -1,7 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/formatters';
 import { TrendingUp, TrendingDown, CheckCircle2, AlertCircle } from 'lucide-react';
 
@@ -50,6 +51,8 @@ function MetricCard({ label, target, actual, isCount = false, showValue = true }
 }
 
 export default function TargetVsActualTab({ timesheets, placements, year }) {
+  const [filterQuarter, setFilterQuarter] = useState('all');
+  
   const { data: targets = [] } = useQuery({
     queryKey: ['targets'],
     queryFn: () => base44.entities.Target.list(),
@@ -92,10 +95,31 @@ export default function TargetVsActualTab({ timesheets, placements, year }) {
     });
   }, [targets, timesheets, placements, yr]);
 
+  const displayRows = filterQuarter === 'all' ? rows : rows.filter(r => r.q === filterQuarter);
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+      {/* Quarter filter */}
+      <div className="flex gap-2 flex-wrap">
+        <div className="flex rounded-md border border-border overflow-hidden">
+          {['all', 'Q1', 'Q2', 'Q3', 'Q4'].map(q => (
+            <button
+              key={q}
+              onClick={() => setFilterQuarter(q)}
+              className={`px-3 py-1.5 text-xs font-medium transition-colors whitespace-nowrap ${
+                filterQuarter === q
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-background text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              {q === 'all' ? 'Alle kwartalen' : q}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Per kwartaal: 3 kaarten (Brutomarge, Actieve Consultants, PERM) */}
-      {rows.map(r => (
+      {displayRows.map(r => (
         <Card key={r.q}>
           <CardHeader className="pb-4">
             <CardTitle className="text-lg">{r.q} {year}</CardTitle>
