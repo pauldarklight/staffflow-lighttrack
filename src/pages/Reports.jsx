@@ -3,6 +3,7 @@ import { TrendingUp, TrendingDown, AlertTriangle, Award, Users, Target, Zap, Pie
 import { exportToExcel } from '@/lib/exportReport';
 import { useQuery } from '@tanstack/react-query';
 import PersoneelslidTab from '@/components/reports/PersoneelslidTab';
+import EntityDashboard from '@/components/reports/EntityDashboard';
 import TargetTab from '@/components/reports/TargetTab';
 import TargetVsActualTab from '@/components/reports/TargetVsActualTab';
 import { MonthlyTab, ClientsTab, ConsultantsTab, SalesTab, MargeopbouwTab, FacturatieTab, VergelijkingTab } from '@/components/reports/ReportTabs';
@@ -314,6 +315,7 @@ export default function Reports() {
           <TabsTrigger value="vergelijking">Verwacht vs Werkelijk</TabsTrigger>
           <TabsTrigger value="targets">🎯 Targets</TabsTrigger>
           <TabsTrigger value="targets_vs_actual">📊 Target vs Werkelijk</TabsTrigger>
+          <TabsTrigger value="entity_dashboard">📋 Dashboard</TabsTrigger>
         </TabsList>
 
         <TabsContent value="inzichten">
@@ -517,6 +519,10 @@ export default function Reports() {
 
         <TabsContent value="targets_vs_actual">
           <TargetVsActualTab timesheets={timesheets} placements={placements} year={year} />
+        </TabsContent>
+
+        <TabsContent value="entity_dashboard">
+          <EntityDashboard timesheets={timesheets} placements={placements} years={years} />
         </TabsContent>
 
         <TabsContent value="vergelijking">
