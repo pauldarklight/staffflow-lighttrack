@@ -1,16 +1,14 @@
 import React, { useState, useMemo } from 'react';
-import { TrendingUp, TrendingDown, AlertTriangle, Award, Users, Target, Zap, PieChart, BarChart2, List } from 'lucide-react';
+import { TrendingUp, TrendingDown, AlertTriangle, Award, Users, Target, Zap, PieChart } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import VergelijkingDrillDown from '@/components/reports/VergelijkingDrillDown';
 import PersoneelslidTab from '@/components/reports/PersoneelslidTab';
-import { MonthlyTab, ClientsTab, ConsultantsTab, SalesTab, CommissionTab, MargeopbouwTab } from '@/components/reports/ReportTabs';
+import { MonthlyTab, ClientsTab, ConsultantsTab, SalesTab, CommissionTab, MargeopbouwTab, FacturatieTab, VergelijkingTab } from '@/components/reports/ReportTabs';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import PageHeader from '@/components/shared/PageHeader';
-import StatusBadge from '@/components/shared/StatusBadge';
 import { formatCurrency, getMonthName, getQuarter } from '@/lib/formatters';
 
 export default function Reports() {
@@ -508,57 +506,7 @@ export default function Reports() {
         </TabsContent>
 
         <TabsContent value="invoiced">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader><CardTitle className="text-base">Klantfacturen</CardTitle></CardHeader>
-              <CardContent className="p-0">
-                <table className="w-full text-sm">
-                  <thead><tr className="border-b bg-muted/50">
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Klant</th>
-                    <th className="text-right py-3 px-4 font-medium text-muted-foreground">Bedrag</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
-                  </tr></thead>
-                  <tbody>
-                    {invoicedClients.map(i => (
-                      <tr key={i.id} className="border-b border-border/50">
-                        <td className="py-3 px-4">{i.client_company || '-'}</td>
-                        <td className="py-3 px-4 text-right font-medium">{formatCurrency(i.total_amount || i.amount)}</td>
-                        <td className="py-3 px-4"><StatusBadge status={i.status} /></td>
-                      </tr>
-                    ))}
-                    {invoicedClients.length === 0 && (
-                      <tr><td colSpan={3} className="py-8 text-center text-muted-foreground">Geen klantfacturen</td></tr>
-                    )}
-                  </tbody>
-                </table>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader><CardTitle className="text-base">Ontvangen Consultantfacturen</CardTitle></CardHeader>
-              <CardContent className="p-0">
-                <table className="w-full text-sm">
-                  <thead><tr className="border-b bg-muted/50">
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Consultant</th>
-                    <th className="text-right py-3 px-4 font-medium text-muted-foreground">Bedrag</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
-                  </tr></thead>
-                  <tbody>
-                    {invoicedConsultants.map(i => (
-                      <tr key={i.id} className="border-b border-border/50">
-                        <td className="py-3 px-4">{i.consultant_name || '-'}</td>
-                        <td className="py-3 px-4 text-right font-medium">{formatCurrency(i.total_amount || i.amount)}</td>
-                        <td className="py-3 px-4"><StatusBadge status={i.status} /></td>
-                      </tr>
-                    ))}
-                    {invoicedConsultants.length === 0 && (
-                      <tr><td colSpan={3} className="py-8 text-center text-muted-foreground">Geen consultantfacturen</td></tr>
-                    )}
-                  </tbody>
-                </table>
-              </CardContent>
-            </Card>
-          </div>
+          <FacturatieTab invoicedClients={invoicedClients} invoicedConsultants={invoicedConsultants} />
         </TabsContent>
 
         <TabsContent value="personeelslid">
@@ -566,103 +514,15 @@ export default function Reports() {
         </TabsContent>
 
         <TabsContent value="vergelijking">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Verwachte vs Werkelijke Omzet {ytd ? `YTD ${year}` : year}</CardTitle>
-              <p className="text-xs text-muted-foreground mt-1">Verwacht = actieve freelancers × werkdagen × tarief. Werkelijk = ingediende timesheets. Klik op een maand voor breakdown per consultant.</p>
-            </CardHeader>
-            <CardContent className="p-0">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Maand</th>
-                    <th className="text-right py-3 px-4 font-medium text-muted-foreground">Verwacht</th>
-                    <th className="text-right py-3 px-4 font-medium text-muted-foreground">Werkelijk</th>
-                    <th className="text-right py-3 px-4 font-medium text-muted-foreground">Afwijking</th>
-                    <th className="text-right py-3 px-4 font-medium text-muted-foreground">% Afwijking</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {vergelijkingData.map(row => {
-                    const hasData = row.werkelijk > 0;
-                    const isOk = Math.abs(row.pct) <= 5;
-                    const isWarn = Math.abs(row.pct) > 5 && Math.abs(row.pct) <= 15;
-                    const isDanger = Math.abs(row.pct) > 15;
-                    const isExpanded = expandedMonth === row.m;
-                    return (
-                      <React.Fragment key={row.m}>
-                        <tr
-                          className={`border-b border-border/50 cursor-pointer select-none ${
-                            !hasData ? 'hover:bg-muted/20' : isDanger ? 'bg-red-50/40 hover:bg-red-50/60' : isWarn ? 'bg-amber-50/30 hover:bg-amber-50/50' : 'bg-emerald-50/20 hover:bg-emerald-50/40'
-                          } ${isExpanded ? 'border-b-0' : ''}`}
-                          onClick={() => setExpandedMonth(isExpanded ? null : row.m)}
-                        >
-                          <td className="py-3 px-4 font-medium text-foreground flex items-center gap-2">
-                            <span className={`text-xs transition-transform ${isExpanded ? 'rotate-90' : ''}`}>▶</span>
-                            {row.name}
-                          </td>
-                          <td className="py-3 px-4 text-right text-muted-foreground">{formatCurrency(row.verwacht)}</td>
-                          <td className="py-3 px-4 text-right font-semibold">{hasData ? formatCurrency(row.werkelijk) : <span className="text-muted-foreground text-xs">Geen TS</span>}</td>
-                          <td className={`py-3 px-4 text-right font-semibold ${
-                            !hasData ? 'text-muted-foreground' : row.afwijking >= 0 ? 'text-emerald-600' : 'text-red-600'
-                          }`}>
-                            {hasData ? (row.afwijking >= 0 ? '+' : '') + formatCurrency(row.afwijking) : '—'}
-                          </td>
-                          <td className={`py-3 px-4 text-right font-semibold ${
-                            !hasData ? 'text-muted-foreground' : isOk ? 'text-emerald-600' : isWarn ? 'text-amber-600' : 'text-red-600'
-                          }`}>
-                            {hasData ? (row.pct >= 0 ? '+' : '') + row.pct.toFixed(1) + '%' : '—'}
-                          </td>
-                          <td className="py-3 px-4">
-                            {!hasData ? (
-                              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground border">Geen data</span>
-                            ) : isOk ? (
-                              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">✓ OK</span>
-                            ) : isWarn ? (
-                              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">⚠ Kleine afwijking</span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200">✗ Grote afwijking</span>
-                            )}
-                          </td>
-                        </tr>
-                        {isExpanded && (
-                          <VergelijkingDrillDown
-                            placements={placements}
-                            timesheets={timesheets}
-                            month={row.m}
-                            year={year}
-                            workingDays={row.workDays}
-                          />
-                        )}
-                      </React.Fragment>
-                    );
-                  })}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t-2 bg-muted/40 font-semibold">
-                    <td className="py-3 px-4">Totaal</td>
-                    <td className="py-3 px-4 text-right">{formatCurrency(vergelijkingData.reduce((s, r) => s + r.verwacht, 0))}</td>
-                    <td className="py-3 px-4 text-right">{formatCurrency(vergelijkingData.reduce((s, r) => s + r.werkelijk, 0))}</td>
-                    <td className={`py-3 px-4 text-right ${
-                      vergelijkingData.reduce((s, r) => s + r.afwijking, 0) >= 0 ? 'text-emerald-600' : 'text-red-600'
-                    }`}>
-                      {(() => { const t = vergelijkingData.reduce((s, r) => s + r.afwijking, 0); return (t >= 0 ? '+' : '') + formatCurrency(t); })()}
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      {(() => {
-                        const tv = vergelijkingData.reduce((s, r) => s + r.verwacht, 0);
-                        const tw = vergelijkingData.reduce((s, r) => s + r.werkelijk, 0);
-                        const p = tv > 0 ? ((tw - tv) / tv * 100) : 0;
-                        return <span className={p >= 0 ? 'text-emerald-600' : 'text-red-600'}>{(p >= 0 ? '+' : '') + p.toFixed(1)}%</span>;
-                      })()}
-                    </td>
-                    <td />
-                  </tr>
-                </tfoot>
-              </table>
-            </CardContent>
-          </Card>
+          <VergelijkingTab
+            vergelijkingData={vergelijkingData}
+            placements={placements}
+            timesheets={timesheets}
+            year={year}
+            ytd={ytd}
+            expandedMonth={expandedMonth}
+            setExpandedMonth={setExpandedMonth}
+          />
         </TabsContent>
       </Tabs>
     </div>
