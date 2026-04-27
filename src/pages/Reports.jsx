@@ -7,7 +7,6 @@ import EntityDashboard from '@/components/reports/EntityDashboard';
 import TargetTab from '@/components/reports/TargetTab';
 import TargetVsActualTab from '@/components/reports/TargetVsActualTab';
 import BusinessGrowthTab from '@/components/reports/BusinessGrowthTab';
-import ControlMechanismTab from '@/components/reports/ControlMechanismTab';
 import { MonthlyTab, ClientsTab, ConsultantsTab, SalesTab, MargeopbouwTab, FacturatieTab, VergelijkingTab } from '@/components/reports/ReportTabs';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -310,14 +309,13 @@ export default function Reports() {
           <TabsTrigger value="clients">Per Klant</TabsTrigger>
           <TabsTrigger value="consultants">Per Consultant</TabsTrigger>
           <TabsTrigger value="sales">Per Sales Werknemer</TabsTrigger>
-
-
-
+          <TabsTrigger value="margeopbouw">Margeopbouw</TabsTrigger>
+          <TabsTrigger value="vergelijking">Vergelijking</TabsTrigger>
+          <TabsTrigger value="facturatie">💰 Facturatie</TabsTrigger>
 
           <TabsTrigger value="targets">🎯 Targets</TabsTrigger>
           <TabsTrigger value="targets_vs_actual">📊 Targets vs Actuals</TabsTrigger>
           <TabsTrigger value="business_growth">📈 Business Growth</TabsTrigger>
-          <TabsTrigger value="control">🔍 Controlemechanisme</TabsTrigger>
           <TabsTrigger value="entity_dashboard" className="gap-1.5">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
             Dashboard
@@ -507,8 +505,17 @@ export default function Reports() {
           <SalesTab salesTable={salesTable} />
         </TabsContent>
 
+        <TabsContent value="margeopbouw">
+          <MargeopbouwTab data={margeopbouwData} year={year} />
+        </TabsContent>
 
+        <TabsContent value="vergelijking">
+          <VergelijkingTab vergelijkingData={vergelijkingData} placements={placements} timesheets={timesheets} year={year} ytd={ytd} expandedMonth={expandedMonth} setExpandedMonth={setExpandedMonth} />
+        </TabsContent>
 
+        <TabsContent value="facturatie">
+          <FacturatieTab invoicedClients={invoicedClients} invoicedConsultants={invoicedConsultants} invoices={invoices} timesheets={timesheets} placements={placements} year={year} />
+        </TabsContent>
 
 
         <TabsContent value="targets">
@@ -521,10 +528,6 @@ export default function Reports() {
 
         <TabsContent value="business_growth">
           <BusinessGrowthTab timesheets={timesheets} placements={placements} year={year} />
-        </TabsContent>
-
-        <TabsContent value="control">
-          <ControlMechanismTab invoices={invoices} timesheets={timesheets} placements={placements} year={year} />
         </TabsContent>
 
         <TabsContent value="entity_dashboard">
