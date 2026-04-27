@@ -128,7 +128,7 @@ export default function TargetVsActualTab({ timesheets, placements, year }) {
             {!r.hasTgt ? (
               <p className="text-sm text-muted-foreground italic">Geen targets ingesteld voor {r.q}</p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <MetricCard 
                   label="Brutomarge" 
                   target={r.brutomarge.target} 
@@ -144,6 +144,12 @@ export default function TargetVsActualTab({ timesheets, placements, year }) {
                   label="PERM Fees" 
                   target={r.perm.target} 
                   actual={r.perm.actual}
+                />
+                <MetricCard 
+                  label="New Deals" 
+                  target={r.new_deals.target} 
+                  actual={r.new_deals.actual}
+                  isCount={true}
                 />
               </div>
             )}
