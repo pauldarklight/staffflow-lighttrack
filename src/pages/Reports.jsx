@@ -342,7 +342,7 @@ export default function Reports() {
           <TabsTrigger value="clients">Per Klant</TabsTrigger>
           <TabsTrigger value="consultants">Per Consultant</TabsTrigger>
           <TabsTrigger value="sales">Per Sales Werknemer</TabsTrigger>
-          <TabsTrigger value="commission">Commissie</TabsTrigger>
+
           <TabsTrigger value="margeopbouw">Margeopbouw</TabsTrigger>
           <TabsTrigger value="invoiced">Facturatiestatus</TabsTrigger>
           <TabsTrigger value="personeelslid">Per Personeelslid</TabsTrigger>
@@ -534,9 +534,7 @@ export default function Reports() {
           <SalesTab salesTable={salesTable} />
         </TabsContent>
 
-        <TabsContent value="commission">
-          <CommissionTab commissionTable={commissionTable} years={years} currentYear={parseInt(year)} />
-        </TabsContent>
+
 
         <TabsContent value="margeopbouw">
           <MargeopbouwTab data={margeopbouwData} year={year} />
