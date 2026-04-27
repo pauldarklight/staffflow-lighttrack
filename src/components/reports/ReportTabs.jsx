@@ -16,15 +16,20 @@ function ChartToggle({ view, setView, types = ['table', 'bar', 'line'] }) {
   const labels = { table: '📋', bar: '📊', line: '📈', pie: '🥧', area: '🏔️' };
   const fullLabels = { table: 'Tabel', bar: 'Staaf', line: 'Lijn', pie: 'Cirkel', area: 'Gebied' };
   return (
-    <div className="flex rounded-md border border-border overflow-hidden flex-shrink-0">
-      {types.map(t => (
-        <button key={t} onClick={() => setView(t)}
-          title={fullLabels[t]}
-          className={`px-2.5 py-1 text-xs font-medium transition-colors whitespace-nowrap ${view === t ? 'bg-primary text-primary-foreground' : 'bg-background text-muted-foreground hover:bg-muted'}`}>
-          {labels[t]} {fullLabels[t]}
-        </button>
-      ))}
-    </div>
+    <Select value={view} onValueChange={setView}>
+      <SelectTrigger className="h-7 w-32 text-xs">
+        <SelectValue>
+          {labels[view]} {fullLabels[view]}
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        {types.map(t => (
+          <SelectItem key={t} value={t} className="text-xs">
+            {labels[t]} {fullLabels[t]}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 
