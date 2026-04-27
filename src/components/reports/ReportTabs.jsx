@@ -1,10 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { AlertTriangle, CheckCircle2, Search, X } from 'lucide-react';
 import { formatCurrency, getMonthName } from '@/lib/formatters';
 import StatusBadge from '@/components/shared/StatusBadge';
 import VergelijkingDrillDown from '@/components/reports/VergelijkingDrillDown';
@@ -630,188 +627,8 @@ export function CommissionTab({ commissionTable, years, currentYear }) {
   );
 }
 
-// ─── CONTROL MECHANISM ─────────────────────────────────────────────────────────
-function ControlMechanismSection({ invoices, timesheets, placements, year }) {
-  const [search, setSearch] = useState('');
-  const yr = parseInt(year);
-
-  const controlData = useMemo(() => {
-    return invoices
-      .filter(inv => inv.year === yr && inv.invoice_type === 'client_invoice')
-      .map(inv => {
-        const placement = placements.find(p => p.id === inv.placement_id);
-        if (!placement) return null;
-
-        const monthTs = timesheets.filter(t =>
-          t.placement_id === inv.placement_id &&
-          t.year === yr &&
-          t.month === inv.month &&
-          t.status === 'approved'
-        );
-
-        const expectedDays = monthTs.reduce((s, t) => s + (t.days_worked || 0), 0);
-        const expectedAmount = expectedDays * (placement.client_rate || 0);
-        const factuurdAmount = inv.amount || 0;
-        const verschil = factuurdAmount - expectedAmount;
-        const verschilPerc = expectedAmount > 0 ? (verschil / expectedAmount) * 100 : 0;
-
-        let status = 'match';
-        let statusLabel = 'OK';
-        let statusColor = 'bg-emerald-100 text-emerald-700 border-emerald-200';
-
-        if (monthTs.length === 0) {
-          status = 'no_ts';
-          statusLabel = 'Geen TS';
-          statusColor = 'bg-slate-100 text-slate-600 border-slate-200';
-        } else if (Math.abs(verschilPerc) > 2) {
-          status = 'mismatch';
-          statusLabel = 'Afwijking';
-          statusColor = 'bg-red-100 text-red-700 border-red-200';
-        }
-
-        return {
-          id: inv.id,
-          invoiceNumber: inv.invoice_number || '—',
-          invoiceAmount: factuurdAmount,
-          placement,
-          consultant: `${placement.consultant_first_name} ${placement.consultant_last_name}`,
-          client: placement.client_company_name,
-          clientRate: placement.client_rate || 0,
-          month: inv.month,
-          expectedDays,
-          expectedAmount,
-          verschil,
-          verschilPerc,
-          status,
-          statusLabel,
-          statusColor,
-          timesheetIds: monthTs.map(t => t.id),
-        };
-      })
-      .filter(Boolean)
-      .filter(row => {
-        if (!search) return true;
-        const q = search.toLowerCase();
-        return (
-          row.consultant.toLowerCase().includes(q) ||
-          row.client.toLowerCase().includes(q) ||
-          row.invoiceNumber.toLowerCase().includes(q)
-        );
-      })
-      .sort((a, b) => {
-        if (a.status !== b.status) {
-          return a.status === 'mismatch' ? -1 : 1;
-        }
-        return Math.abs(b.verschil) - Math.abs(a.verschil);
-      });
-  }, [invoices, timesheets, placements, yr, search]);
-
-  const stats = useMemo(() => {
-    const total = controlData.length;
-    const matches = controlData.filter(r => r.status === 'match').length;
-    const mismatches = controlData.filter(r => r.status === 'mismatch').length;
-    const noTs = controlData.filter(r => r.status === 'no_ts').length;
-    const totalVerschil = controlData.reduce((s, r) => s + Math.abs(r.verschil), 0);
-    return { total, matches, mismatches, noTs, totalVerschil };
-  }, [controlData]);
-
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-5 gap-2">
-        <div className="rounded-lg border bg-blue-50 border-blue-200 p-3">
-          <div className="text-xs text-muted-foreground font-medium">Totaal</div>
-          <div className="text-xl font-bold text-blue-600">{stats.total}</div>
-        </div>
-        <div className="rounded-lg border bg-emerald-50 border-emerald-200 p-3">
-          <div className="text-xs text-muted-foreground font-medium">OK</div>
-          <div className="text-xl font-bold text-emerald-600">{stats.matches}</div>
-        </div>
-        <div className="rounded-lg border bg-red-50 border-red-200 p-3">
-          <div className="text-xs text-muted-foreground font-medium">Afwijking</div>
-          <div className="text-xl font-bold text-red-600">{stats.mismatches}</div>
-        </div>
-        <div className="rounded-lg border bg-slate-100 border-slate-200 p-3">
-          <div className="text-xs text-muted-foreground font-medium">Geen TS</div>
-          <div className="text-xl font-bold text-slate-600">{stats.noTs}</div>
-        </div>
-        <div className="rounded-lg border bg-orange-50 border-orange-200 p-3">
-          <div className="text-xs text-muted-foreground font-medium">Verschil €</div>
-          <div className="text-sm font-bold text-orange-600">{formatCurrency(stats.totalVerschil)}</div>
-        </div>
-      </div>
-
-      <div className="relative">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-        <Input
-          placeholder="Zoek op consultant, klant of factuurnummer..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="pl-8 h-8 text-xs"
-        />
-        {search && (
-          <button
-            onClick={() => setSearch('')}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        )}
-      </div>
-
-      <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="text-left py-2 px-3 font-medium text-muted-foreground">Factuurnr</th>
-                  <th className="text-left py-2 px-3 font-medium text-muted-foreground">Consultant</th>
-                  <th className="text-left py-2 px-3 font-medium text-muted-foreground">Klant</th>
-                  <th className="text-right py-2 px-3 font-medium text-muted-foreground">Tarief</th>
-                  <th className="text-right py-2 px-3 font-medium text-muted-foreground">Dagen</th>
-                  <th className="text-right py-2 px-3 font-medium text-muted-foreground">Verwacht</th>
-                  <th className="text-right py-2 px-3 font-medium text-muted-foreground">Factuur</th>
-                  <th className="text-right py-2 px-3 font-medium text-muted-foreground">Verschil</th>
-                  <th className="text-center py-2 px-3 font-medium text-muted-foreground">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {controlData.length === 0 ? (
-                  <tr><td colSpan={9} className="py-6 text-center text-muted-foreground text-xs">Geen facturen gevonden</td></tr>
-                ) : (
-                  controlData.map(row => (
-                    <tr key={row.id} className={`border-b border-border/50 text-xs ${row.status === 'mismatch' ? 'bg-red-50/30' : row.status === 'no_ts' ? 'bg-slate-50/30' : ''}`}>
-                      <td className="py-2 px-3 font-bold">{row.invoiceNumber}</td>
-                      <td className="py-2 px-3 text-muted-foreground">{row.consultant}</td>
-                      <td className="py-2 px-3 text-muted-foreground">{row.client}</td>
-                      <td className="py-2 px-3 text-right font-semibold">{formatCurrency(row.clientRate)}</td>
-                      <td className="py-2 px-3 text-right">{row.expectedDays}</td>
-                      <td className="py-2 px-3 text-right text-muted-foreground">{formatCurrency(row.expectedAmount)}</td>
-                      <td className="py-2 px-3 text-right font-bold">{formatCurrency(row.invoiceAmount)}</td>
-                      <td className={`py-2 px-3 text-right font-bold ${row.verschil !== 0 ? (row.verschil > 0 ? 'text-blue-600' : 'text-red-600') : 'text-emerald-600'}`}>
-                        {(row.verschil >= 0 ? '+' : '') + formatCurrency(row.verschil)}
-                      </td>
-                      <td className="py-2 px-3 text-center">
-                        <Badge variant="outline" className={`text-xs whitespace-nowrap ${row.statusColor}`}>
-                          {row.status === 'mismatch' && <AlertTriangle className="w-2.5 h-2.5 mr-0.5" />}
-                          {row.status === 'match' && <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" />}
-                          {row.statusLabel}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
 // ─── FACTURATIE TAB ────────────────────────────────────────────────────────────
-export function FacturatieTab({ invoicedClients, invoicedConsultants, invoices, timesheets, placements, year }) {
+export function FacturatieTab({ invoicedClients, invoicedConsultants }) {
   const [view, setView] = useState('table');
   const [focus, setFocus] = useState('beiden'); // beiden | klanten | consultants
 
@@ -845,19 +662,10 @@ export function FacturatieTab({ invoicedClients, invoicedConsultants, invoices, 
 
   return (
     <div className="space-y-6">
-      {/* Controlemechanisme subsection */}
-      <div className="border-t pt-6">
-        <h3 className="text-sm font-bold text-foreground mb-4">🔍 Controlemechanisme</h3>
-        <ControlMechanismSection invoices={invoices} timesheets={timesheets} placements={placements} year={year} />
+      <div className="flex justify-end gap-2">
+        <MetricSelect value={focus} onChange={setFocus} options={focusOptions} />
+        <ChartToggle view={view} setView={setView} />
       </div>
-
-      {/* Originele facturatie content */}
-      <div className="border-t pt-6">
-        <h3 className="text-sm font-bold text-foreground mb-4">Betaalmiddelen</h3>
-        <div className="flex justify-end gap-2 mb-4">
-          <MetricSelect value={focus} onChange={setFocus} options={focusOptions} />
-          <ChartToggle view={view} setView={setView} />
-        </div>
       {view === 'table' ? (
         <div className={`grid gap-6 ${focus === 'beiden' ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
           {showClients && (
@@ -951,7 +759,6 @@ export function FacturatieTab({ invoicedClients, invoicedConsultants, invoices, 
           )}
         </div>
       )}
-      </div>
     </div>
   );
 }

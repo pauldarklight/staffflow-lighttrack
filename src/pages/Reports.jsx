@@ -309,9 +309,9 @@ export default function Reports() {
           <TabsTrigger value="clients">Per Klant</TabsTrigger>
           <TabsTrigger value="consultants">Per Consultant</TabsTrigger>
           <TabsTrigger value="sales">Per Sales Werknemer</TabsTrigger>
-          <TabsTrigger value="margeopbouw">Margeopbouw</TabsTrigger>
-          <TabsTrigger value="vergelijking">Vergelijking</TabsTrigger>
-          <TabsTrigger value="facturatie">💰 Facturatie</TabsTrigger>
+
+
+
 
           <TabsTrigger value="targets">🎯 Targets</TabsTrigger>
           <TabsTrigger value="targets_vs_actual">📊 Targets vs Actuals</TabsTrigger>
@@ -505,17 +505,8 @@ export default function Reports() {
           <SalesTab salesTable={salesTable} />
         </TabsContent>
 
-        <TabsContent value="margeopbouw">
-          <MargeopbouwTab data={margeopbouwData} year={year} />
-        </TabsContent>
 
-        <TabsContent value="vergelijking">
-          <VergelijkingTab vergelijkingData={vergelijkingData} placements={placements} timesheets={timesheets} year={year} ytd={ytd} expandedMonth={expandedMonth} setExpandedMonth={setExpandedMonth} />
-        </TabsContent>
 
-        <TabsContent value="facturatie">
-          <FacturatieTab invoicedClients={invoicedClients} invoicedConsultants={invoicedConsultants} invoices={invoices} timesheets={timesheets} placements={placements} year={year} />
-        </TabsContent>
 
 
         <TabsContent value="targets">
