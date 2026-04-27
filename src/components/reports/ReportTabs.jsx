@@ -310,6 +310,7 @@ export function ConsultantsTab({ consultantTable }) {
   const [view, setView] = useState('bar');
   const [metric, setMetric] = useState('alle'); // alle | omzet | marge | kost | marge_perc
   const [sortBy, setSortBy] = useState('marge'); // marge | omzet | kost | margeperc
+  const [sortDir, setSortDir] = useState('desc'); // desc | asc
   const [search, setSearch] = useState('');
 
   const metricOptions = [
@@ -326,7 +327,10 @@ export function ConsultantsTab({ consultantTable }) {
 
   const sorted = [...consultantTable]
     .filter(([name]) => name.toLowerCase().includes(search.toLowerCase()))
-    .sort(([, a], [, b]) => (b[sortBy] || 0) - (a[sortBy] || 0));
+    .sort(([, a], [, b]) => sortDir === 'desc'
+      ? (b[sortBy] || 0) - (a[sortBy] || 0)
+      : (a[sortBy] || 0) - (b[sortBy] || 0)
+    );
   const chartData = sorted.slice(0, 10).map(([name, d]) => ({
     name: name.split(' ').slice(0,2).join(' '),
     omzet: d.omzet, marge: d.marge, kost: d.kost,
@@ -356,10 +360,22 @@ export function ConsultantsTab({ consultantTable }) {
             onChange={e => setSearch(e.target.value)}
             className="h-7 px-2 text-xs border border-input rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-ring w-40"
           />
-          {view !== 'table' && <>
-            <MetricSelect value={metric} onChange={setMetric} options={metricOptions} />
-            <MetricSelect value={sortBy} onChange={setSortBy} options={sortOptions} />
-          </>}
+          {view !== 'table' && <MetricSelect value={metric} onChange={setMetric} options={metricOptions} />}
+          <div className="flex rounded-md border border-border overflow-hidden">
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="h-7 w-32 text-xs border-0 rounded-none border-r border-border focus:ring-0">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {sortOptions.map(o => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label.replace('Sorteer: ', '')}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <button onClick={() => setSortDir(d => d === 'desc' ? 'asc' : 'desc')}
+              className="px-2 text-xs font-medium bg-background text-muted-foreground hover:bg-muted transition-colors whitespace-nowrap"
+              title={sortDir === 'desc' ? 'Hoogste eerst' : 'Laagste eerst'}>
+              {sortDir === 'desc' ? '↓ Hoog' : '↑ Laag'}
+            </button>
+          </div>
           <ChartToggle view={view} setView={setView} types={['table', 'bar', 'pie']} />
         </div>
       </CardHeader>
