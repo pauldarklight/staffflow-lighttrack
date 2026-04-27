@@ -120,42 +120,40 @@ export default function VerificationTab({ timesheets, invoices, placements, year
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-4">
             <CardTitle className="text-base">Controlerapport — Factuurverificatie</CardTitle>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
-                    <Info className="w-5 h-5" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="left" className="max-w-sm">
-                  <div className="space-y-3">
-                    <p className="font-semibold text-base">Hoe werkt deze verificatie?</p>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+                  <Info className="w-5 h-5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="max-w-sm">
+                <div className="space-y-3">
+                  <p className="font-semibold text-base">Hoe werkt deze verificatie?</p>
 
-                    <div className="space-y-2 text-sm">
-                      <div className="bg-blue-950 p-2 rounded">
-                        <p className="font-medium text-blue-100">📋 Verwacht bedrag:</p>
-                        <p className="text-blue-100/80 text-xs mt-1">Goedgekeurde dagen (Timesheet) × Dagtarief klant (Placement)</p>
-                        <p className="text-blue-300 text-xs mt-1">Voorbeeld: 20 dagen × €500/dag = €10.000</p>
-                      </div>
-
-                      <div className="bg-green-950 p-2 rounded">
-                        <p className="font-medium text-green-100">💳 Gefactureerd bedrag:</p>
-                        <p className="text-green-100/80 text-xs mt-1">Bedrag op de klantfactuur (Invoice)</p>
-                        <p className="text-green-300 text-xs mt-1">Dit is wat u werkelijk heeft gefactureerd</p>
-                      </div>
-
-                      <div className="bg-slate-700 p-2 rounded">
-                        <p className="font-medium text-slate-100">🔍 Verschil:</p>
-                        <p className="text-slate-200 text-xs mt-1">Gefactureerd − Verwacht</p>
-                        <p className="text-slate-300 text-xs mt-1">Positief (+) = té veel gefactureerd | Negatief (−) = té weinig</p>
-                      </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="bg-blue-950 p-2 rounded">
+                      <p className="font-medium text-blue-100">📋 Verwacht bedrag:</p>
+                      <p className="text-blue-100/80 text-xs mt-1">Goedgekeurde dagen (Timesheet) × Dagtarief klant (Placement)</p>
+                      <p className="text-blue-300 text-xs mt-1">Voorbeeld: 20 dagen × €500/dag = €10.000</p>
                     </div>
 
-                    <p className="text-xs text-slate-300 border-t border-slate-600 pt-2">✓ Ideaal: beide bedragen kloppen overeen (verschil ≈ €0)</p>
+                    <div className="bg-green-950 p-2 rounded">
+                      <p className="font-medium text-green-100">💳 Gefactureerd bedrag:</p>
+                      <p className="text-green-100/80 text-xs mt-1">Bedrag op de klantfactuur (Invoice)</p>
+                      <p className="text-green-300 text-xs mt-1">Dit is wat u werkelijk heeft gefactureerd</p>
+                    </div>
+
+                    <div className="bg-slate-700 p-2 rounded">
+                      <p className="font-medium text-slate-100">🔍 Verschil:</p>
+                      <p className="text-slate-200 text-xs mt-1">Gefactureerd − Verwacht</p>
+                      <p className="text-slate-300 text-xs mt-1">Positief (+) = té veel gefactureerd | Negatief (−) = té weinig</p>
+                    </div>
                   </div>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+
+                  <p className="text-xs text-slate-300 border-t border-slate-600 pt-2">✓ Ideaal: beide bedragen kloppen overeen (verschil ≈ €0)</p>
+                </div>
+              </TooltipContent>
+            </Tooltip>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
