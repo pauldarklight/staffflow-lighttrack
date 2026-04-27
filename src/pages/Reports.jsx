@@ -133,7 +133,10 @@ export default function Reports() {
       }
     });
   });
-  const commissionTable = Object.values(quarterCommission).sort((a, b) => {
+  const VASTE_WERKNEMERS = ['adnane', 'maxim', 'paul', 'thomas', 'yunes', 'marloes', 'arthur'];
+  const commissionTable = Object.values(quarterCommission).filter(row =>
+    VASTE_WERKNEMERS.some(n => row.name.toLowerCase().includes(n))
+  ).sort((a, b) => {
     const qOrder = { Q1: 1, Q2: 2, Q3: 3, Q4: 4 };
     return qOrder[a.quarter] - qOrder[b.quarter] || a.name.localeCompare(b.name);
   });
