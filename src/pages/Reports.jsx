@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
-import { TrendingUp, TrendingDown, AlertTriangle, Award, Users, Target, Zap, PieChart } from 'lucide-react';
+import React, { useState, useMemo, useCallback } from 'react';
+import { TrendingUp, TrendingDown, AlertTriangle, Award, Users, Target, Zap, PieChart, Download } from 'lucide-react';
+import { exportToExcel } from '@/lib/exportReport';
 import { useQuery } from '@tanstack/react-query';
 import PersoneelslidTab from '@/components/reports/PersoneelslidTab';
 import TargetTab from '@/components/reports/TargetTab';
@@ -184,6 +185,7 @@ export default function Reports() {
   }
 
   const [expandedMonth, setExpandedMonth] = useState(null);
+  const [activeTab, setActiveTab] = useState('inzichten');
 
   // ── Inzichten berekeningen ──
   const totalOmzet = yearTs.reduce((s, t) => s + (t.client_revenue || 0), 0);
@@ -244,6 +246,29 @@ export default function Reports() {
     });
   }, [placements, yearTs, year, monthCount]);
 
+  const handleExport = useCallback(() => {
+    exportToExcel({
+      activeTab,
+      year,
+      data: {
+        monthlyData,
+        clientTable,
+        consultantTable,
+        salesTable,
+        commissionTable,
+        margeopbouwData,
+        vergelijkingData,
+        // targetRows are computed inside TargetVsActualTab; pass a simplified version
+        targetRows: ['Q1','Q2','Q3','Q4'].map(q => ({ q,
+          brutomarge: { target: 0, actual: 0 },
+          perm: { target: 0, actual: 0 },
+          consultants: { target: 0, actual: 0 },
+          new_deals: { target: 0, actual: 0 },
+        })),
+      },
+    });
+  }, [activeTab, year, monthlyData, clientTable, consultantTable, salesTable, commissionTable, margeopbouwData, vergelijkingData]);
+
   return (
     <div>
       <PageHeader title="Rapportering" subtitle="Overzichten en analyses">
@@ -285,6 +310,10 @@ export default function Reports() {
                 ytd ? 'bg-primary text-primary-foreground border-primary' : 'bg-background text-muted-foreground border-input hover:bg-muted'
               }`}>YTD</button>
           )}
+          <button onClick={handleExport}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md border border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors">
+            <Download className="w-3.5 h-3.5" />Exporteren
+          </button>
         </div>
       </PageHeader>
 
@@ -305,7 +334,7 @@ export default function Reports() {
         ))}
       </div>
 
-      <Tabs defaultValue="inzichten" className="space-y-6">
+      <Tabs defaultValue="inzichten" className="space-y-6" onValueChange={setActiveTab}>
         <TabsList className="bg-muted flex-wrap">
           <TabsTrigger value="inzichten">✨ Inzichten</TabsTrigger>
           <TabsTrigger value="monthly">Maandoverzicht</TabsTrigger>
