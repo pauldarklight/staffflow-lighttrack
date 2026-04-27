@@ -118,16 +118,16 @@ export default function Reports() {
         const startDate = p.start_date ? new Date(p.start_date) : null;
         if (!startDate || startDate.getFullYear() !== parseInt(year)) return;
         const q = getQuarter(startDate.getMonth() + 1);
-        const key = `${sc.name}-${q}`;
+        const key = `${sc.name}-${q}-${startDate.getFullYear()}`;
         const fee = p.perm_fee_amount || ((p.perm_annual_salary || 0) * ((p.perm_fee_percentage || 20) / 100));
-        if (!quarterCommission[key]) quarterCommission[key] = { name: sc.name, quarter: q, marge: 0 };
+        if (!quarterCommission[key]) quarterCommission[key] = { name: sc.name, quarter: q, year: startDate.getFullYear(), marge: 0 };
         quarterCommission[key].marge += fee * pct;
       } else {
         const pTs = yearTs.filter(t => t.placement_id === p.id);
         pTs.forEach(t => {
           const q = getQuarter(t.month);
-          const key = `${sc.name}-${q}`;
-          if (!quarterCommission[key]) quarterCommission[key] = { name: sc.name, quarter: q, marge: 0 };
+          const key = `${sc.name}-${q}-${t.year}`;
+          if (!quarterCommission[key]) quarterCommission[key] = { name: sc.name, quarter: q, year: t.year, marge: 0 };
           quarterCommission[key].marge += (t.margin || 0) * pct;
         });
       }
@@ -501,7 +501,7 @@ export default function Reports() {
         </TabsContent>
 
         <TabsContent value="commission">
-          <CommissionTab commissionTable={commissionTable} />
+          <CommissionTab commissionTable={commissionTable} years={years} currentYear={parseInt(year)} />
         </TabsContent>
 
         <TabsContent value="margeopbouw">

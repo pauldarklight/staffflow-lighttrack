@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend, PieChart, Pie, Cell } from 'recharts';
 import { List } from 'lucide-react';
 import { formatCurrency, getMonthName } from '@/lib/formatters';
@@ -299,13 +300,16 @@ export function SalesTab({ salesTable }) {
   );
 }
 
-export function CommissionTab({ commissionTable }) {
+export function CommissionTab({ commissionTable, years, currentYear }) {
   const [view, setView] = useState('bar');
   const [filterQuarter, setFilterQuarter] = useState('all');
+  const [filterYear, setFilterYear] = useState(String(currentYear));
 
-  const filtered = filterQuarter === 'all'
-    ? commissionTable
-    : commissionTable.filter(row => row.quarter === filterQuarter);
+  const filtered = commissionTable.filter(row => {
+    const quarterMatch = filterQuarter === 'all' || row.quarter === filterQuarter;
+    const yearMatch = filterYear === 'all' || String(row.year) === filterYear;
+    return quarterMatch && yearMatch;
+  });
 
   const chartData = filtered.map(row => ({ name: `${row.name} ${row.quarter}`, marge: row.marge, commissie: row.marge * 0.1 }));
   const pieData = filtered.map(row => ({ name: `${row.name} ${row.quarter}`, commissie: row.marge * 0.1 }));
@@ -313,7 +317,14 @@ export function CommissionTab({ commissionTable }) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
         <CardTitle className="text-base">Commissie per Kwartaal</CardTitle>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select value={filterYear} onValueChange={setFilterYear}>
+            <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Alle jaren</SelectItem>
+              {(years || []).map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+            </SelectContent>
+          </Select>
           <div className="flex rounded-md border border-border overflow-hidden">
             {[['all','Alle'], ['Q1','Q1'], ['Q2','Q2'], ['Q3','Q3'], ['Q4','Q4']].map(([val, label]) => (
               <button key={val} onClick={() => setFilterQuarter(val)}
