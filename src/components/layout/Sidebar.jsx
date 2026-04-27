@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, FileText, Clock, CreditCard, BarChart2, Layers, FileStack, FileUp, ChevronLeft, ChevronRight, Settings } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, Clock, CreditCard, BarChart2, CheckCircle, Layers, FileStack, FileUp, ChevronLeft, ChevronRight, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -11,6 +11,7 @@ const navItems = [
   { path: '/Timesheets', label: 'Timesheets', icon: Clock },
   { path: '/Billing', label: 'Facturatie', icon: CreditCard },
   { path: '/Reports', label: 'Rapporten', icon: BarChart2 },
+  { path: '/Controlemechanisme', label: 'Verificatie', icon: CheckCircle },
   { path: '/Templates', label: 'Sjablonen', icon: FileStack },
   { path: '/ImportData', label: 'Import Data', icon: FileUp },
 ];
