@@ -315,7 +315,10 @@ export default function Reports() {
           <TabsTrigger value="vergelijking">Verwacht vs Werkelijk</TabsTrigger>
           <TabsTrigger value="targets">🎯 Targets</TabsTrigger>
           <TabsTrigger value="targets_vs_actual">📊 Target vs Werkelijk</TabsTrigger>
-          <TabsTrigger value="entity_dashboard">📋 Dashboard</TabsTrigger>
+          <TabsTrigger value="entity_dashboard" className="gap-1.5">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            Dashboard
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="inzichten">
