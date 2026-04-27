@@ -3,6 +3,7 @@ import { TrendingUp, TrendingDown, AlertTriangle, Award, Users, Target, Zap, Pie
 import { useQuery } from '@tanstack/react-query';
 import PersoneelslidTab from '@/components/reports/PersoneelslidTab';
 import TargetTab from '@/components/reports/TargetTab';
+import TargetVsActualTab from '@/components/reports/TargetVsActualTab';
 import { MonthlyTab, ClientsTab, ConsultantsTab, SalesTab, CommissionTab, MargeopbouwTab, FacturatieTab, VergelijkingTab } from '@/components/reports/ReportTabs';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -317,6 +318,7 @@ export default function Reports() {
           <TabsTrigger value="personeelslid">Per Personeelslid</TabsTrigger>
           <TabsTrigger value="vergelijking">Verwacht vs Werkelijk</TabsTrigger>
           <TabsTrigger value="targets">🎯 Targets</TabsTrigger>
+          <TabsTrigger value="targets_vs_actual">📊 Target vs Werkelijk</TabsTrigger>
         </TabsList>
 
         <TabsContent value="inzichten">
@@ -520,6 +522,10 @@ export default function Reports() {
 
         <TabsContent value="targets">
           <TargetTab timesheets={timesheets} placements={placements} year={year} />
+        </TabsContent>
+
+        <TabsContent value="targets_vs_actual">
+          <TargetVsActualTab timesheets={timesheets} placements={placements} year={year} />
         </TabsContent>
 
         <TabsContent value="vergelijking">
