@@ -309,8 +309,7 @@ export default function Reports() {
           <TabsTrigger value="consultants">Per Consultant</TabsTrigger>
           <TabsTrigger value="sales">Per Sales Werknemer</TabsTrigger>
 
-          <TabsTrigger value="margeopbouw">Margeopbouw</TabsTrigger>
-          <TabsTrigger value="invoiced">Facturatiestatus</TabsTrigger>
+
           <TabsTrigger value="personeelslid">Per Personeelslid</TabsTrigger>
           <TabsTrigger value="vergelijking">Verwacht vs Werkelijk</TabsTrigger>
           <TabsTrigger value="targets">🎯 Targets</TabsTrigger>
@@ -504,13 +503,7 @@ export default function Reports() {
           <SalesTab salesTable={salesTable} />
         </TabsContent>
 
-        <TabsContent value="margeopbouw">
-          <MargeopbouwTab data={margeopbouwData} year={year} />
-        </TabsContent>
 
-        <TabsContent value="invoiced">
-          <FacturatieTab invoicedClients={invoicedClients} invoicedConsultants={invoicedConsultants} />
-        </TabsContent>
 
         <TabsContent value="personeelslid">
           <PersoneelslidTab timesheets={timesheets} year={year} years={years} />
