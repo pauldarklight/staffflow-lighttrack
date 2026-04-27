@@ -1,0 +1,40 @@
+{
+  "name": "Target",
+  "type": "object",
+  "properties": {
+    "year": {
+      "type": "integer",
+      "description": "Jaar"
+    },
+    "quarter": {
+      "type": "string",
+      "enum": [
+        "Q1",
+        "Q2",
+        "Q3",
+        "Q4"
+      ],
+      "description": "Kwartaal"
+    },
+    "target_brutomarge": {
+      "type": "number",
+      "description": "Doelstelling brutomarge (\u20ac)"
+    },
+    "target_perm": {
+      "type": "number",
+      "description": "Doelstelling PERM fees (\u20ac)"
+    },
+    "target_consultants": {
+      "type": "number",
+      "description": "Doelstelling actieve consultants (#)"
+    },
+    "target_new_deals": {
+      "type": "number",
+      "description": "Doelstelling nieuwe deals (#)"
+    }
+  },
+  "required": [
+    "year",
+    "quarter"
+  ]
+}

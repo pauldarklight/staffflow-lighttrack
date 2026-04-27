@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { TrendingUp, TrendingDown, AlertTriangle, Award, Users, Target, Zap, PieChart } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import PersoneelslidTab from '@/components/reports/PersoneelslidTab';
+import TargetTab from '@/components/reports/TargetTab';
 import { MonthlyTab, ClientsTab, ConsultantsTab, SalesTab, CommissionTab, MargeopbouwTab, FacturatieTab, VergelijkingTab } from '@/components/reports/ReportTabs';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -315,6 +316,7 @@ export default function Reports() {
           <TabsTrigger value="invoiced">Facturatiestatus</TabsTrigger>
           <TabsTrigger value="personeelslid">Per Personeelslid</TabsTrigger>
           <TabsTrigger value="vergelijking">Verwacht vs Werkelijk</TabsTrigger>
+          <TabsTrigger value="targets">🎯 Targets</TabsTrigger>
         </TabsList>
 
         <TabsContent value="inzichten">
@@ -514,6 +516,10 @@ export default function Reports() {
 
         <TabsContent value="personeelslid">
           <PersoneelslidTab timesheets={timesheets} year={year} years={years} />
+        </TabsContent>
+
+        <TabsContent value="targets">
+          <TargetTab timesheets={timesheets} placements={placements} year={year} />
         </TabsContent>
 
         <TabsContent value="vergelijking">
