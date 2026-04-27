@@ -310,7 +310,7 @@ export default function Reports() {
           <TabsTrigger value="sales">Per Sales Werknemer</TabsTrigger>
 
 
-          <TabsTrigger value="personeelslid">Per Personeelslid</TabsTrigger>
+
           <TabsTrigger value="vergelijking">Verwacht vs Werkelijk</TabsTrigger>
           <TabsTrigger value="targets">🎯 Targets</TabsTrigger>
           <TabsTrigger value="targets_vs_actual">📊 Target vs Werkelijk</TabsTrigger>
@@ -505,9 +505,7 @@ export default function Reports() {
 
 
 
-        <TabsContent value="personeelslid">
-          <PersoneelslidTab timesheets={timesheets} year={year} years={years} />
-        </TabsContent>
+
 
         <TabsContent value="targets">
           <TargetTab timesheets={timesheets} placements={placements} year={year} />
