@@ -423,22 +423,30 @@ export function ConsultantsTab({ consultantTable }) {
 // ─── SALES TAB ─────────────────────────────────────────────────────────────────
 export function SalesTab({ salesTable }) {
   const [view, setView] = useState('bar');
-  const [metric, setMetric] = useState('omzet_marge'); // omzet_marge | omzet | marge
+  const [metric, setMetric] = useState('omzet_marge'); // omzet_marge | omzet | marge | deals
 
   const metricOptions = [
     { value: 'omzet_marge', label: 'Omzet & Marge' },
     { value: 'omzet', label: 'Alleen Omzet' },
     { value: 'marge', label: 'Alleen Marge' },
+    { value: 'deals', label: 'Aantal Deals' },
   ];
 
-  const chartData = salesTable.map(([name, d]) => ({ name, omzet: d.omzet, marge: d.marge }));
-  const pieData = salesTable.map(([name, d]) => ({ name, value: metric === 'omzet' ? d.omzet : d.marge }));
+  const chartData = salesTable.map(([name, d]) => ({ name, omzet: d.omzet, marge: d.marge, deals: d.deals || 0 }));
+  const pieData = salesTable.map(([name, d]) => ({
+    name,
+    value: metric === 'omzet' ? d.omzet : metric === 'marge' ? d.marge : metric === 'deals' ? (d.deals || 0) : d.omzet,
+  }));
 
   const barKeys = () => {
     if (metric === 'omzet_marge') return <><Bar dataKey="omzet" fill="hsl(221, 83%, 53%)" name="Omzet" radius={[4,4,0,0]} /><Bar dataKey="marge" fill="hsl(142, 72%, 29%)" name="Marge" radius={[4,4,0,0]} /></>;
     if (metric === 'omzet') return <Bar dataKey="omzet" fill="hsl(221, 83%, 53%)" name="Omzet" radius={[4,4,0,0]} />;
-    return <Bar dataKey="marge" fill="hsl(142, 72%, 29%)" name="Marge" radius={[4,4,0,0]} />;
+    if (metric === 'marge') return <Bar dataKey="marge" fill="hsl(142, 72%, 29%)" name="Marge" radius={[4,4,0,0]} />;
+    return <Bar dataKey="deals" fill="hsl(262, 83%, 58%)" name="Deals" radius={[4,4,0,0]} />;
   };
+
+  const yFormatter = metric === 'deals' ? v => `${v}` : v => `€${(v/1000).toFixed(0)}k`;
+  const tooltipFormatter = metric === 'deals' ? v => `${v} deals` : v => formatCurrency(v);
 
   return (
     <Card>
@@ -457,8 +465,8 @@ export function SalesTab({ salesTable }) {
                 <BarChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
                   <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `€${(v/1000).toFixed(0)}k`} />
-                  <Tooltip formatter={v => formatCurrency(v)} />
+                  <YAxis tick={{ fontSize: 12 }} tickFormatter={yFormatter} />
+                  <Tooltip formatter={tooltipFormatter} />
                   <Legend />
                   {barKeys()}
                 </BarChart>
@@ -473,6 +481,7 @@ export function SalesTab({ salesTable }) {
           <table className="w-full text-sm">
             <thead><tr className="border-b bg-muted/50">
               <th className="text-left py-3 px-4 font-medium text-muted-foreground">Sales</th>
+              <th className="text-right py-3 px-4 font-medium text-muted-foreground">Deals</th>
               <th className="text-right py-3 px-4 font-medium text-muted-foreground">Toeg. Omzet</th>
               <th className="text-right py-3 px-4 font-medium text-muted-foreground">Toeg. Marge</th>
             </tr></thead>
@@ -480,12 +489,13 @@ export function SalesTab({ salesTable }) {
               {salesTable.map(([name, data]) => (
                 <tr key={name} className="border-b border-border/50 hover:bg-muted/30">
                   <td className="py-3 px-4 font-medium">{name}</td>
+                  <td className="py-3 px-4 text-right font-semibold text-violet-600">{data.deals || 0}</td>
                   <td className="py-3 px-4 text-right">{formatCurrency(data.omzet)}</td>
                   <td className="py-3 px-4 text-right font-semibold text-emerald-600">{formatCurrency(data.marge)}</td>
                 </tr>
               ))}
               {salesTable.length === 0 && (
-                <tr><td colSpan={3} className="py-8 text-center text-muted-foreground">Geen sales contributors gekoppeld aan placements</td></tr>
+                <tr><td colSpan={4} className="py-8 text-center text-muted-foreground">Geen sales contributors gekoppeld aan placements</td></tr>
               )}
             </tbody>
           </table>

@@ -101,10 +101,11 @@ export default function Reports() {
     }
     (p.sales_contributors || []).forEach(sc => {
       if (sc.name) {
-        if (!salesData[sc.name]) salesData[sc.name] = { omzet: 0, marge: 0 };
+        if (!salesData[sc.name]) salesData[sc.name] = { omzet: 0, marge: 0, deals: 0 };
         const pct = (sc.percentage || 0) / 100;
         salesData[sc.name].omzet += totalRevenue * pct;
         salesData[sc.name].marge += totalMargin * pct;
+        salesData[sc.name].deals += 1;
       }
     });
   });
