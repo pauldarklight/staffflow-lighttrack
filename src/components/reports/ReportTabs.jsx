@@ -310,6 +310,7 @@ export function ConsultantsTab({ consultantTable }) {
   const [view, setView] = useState('bar');
   const [metric, setMetric] = useState('alle'); // alle | omzet | marge | kost | marge_perc
   const [sortBy, setSortBy] = useState('marge'); // marge | omzet | kost | margeperc
+  const [search, setSearch] = useState('');
 
   const metricOptions = [
     { value: 'alle', label: 'Omzet, Kost & Marge' },
@@ -323,7 +324,9 @@ export function ConsultantsTab({ consultantTable }) {
     { value: 'kost', label: 'Sorteer: Kost' },
   ];
 
-  const sorted = [...consultantTable].sort(([, a], [, b]) => (b[sortBy] || 0) - (a[sortBy] || 0));
+  const sorted = [...consultantTable]
+    .filter(([name]) => name.toLowerCase().includes(search.toLowerCase()))
+    .sort(([, a], [, b]) => (b[sortBy] || 0) - (a[sortBy] || 0));
   const chartData = sorted.slice(0, 10).map(([name, d]) => ({
     name: name.split(' ').slice(0,2).join(' '),
     omzet: d.omzet, marge: d.marge, kost: d.kost,
@@ -346,6 +349,13 @@ export function ConsultantsTab({ consultantTable }) {
       <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2 flex-wrap">
         <CardTitle className="text-base">Marge per Consultant</CardTitle>
         <div className="flex items-center gap-2 flex-wrap">
+          <input
+            type="text"
+            placeholder="Zoek consultant..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="h-7 px-2 text-xs border border-input rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-ring w-40"
+          />
           {view !== 'table' && <>
             <MetricSelect value={metric} onChange={setMetric} options={metricOptions} />
             <MetricSelect value={sortBy} onChange={setSortBy} options={sortOptions} />
