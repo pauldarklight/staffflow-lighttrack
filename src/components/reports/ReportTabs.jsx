@@ -214,9 +214,9 @@ export function MonthlyTab({ monthlyData, year }) {
 // ─── CLIENTS TAB ───────────────────────────────────────────────────────────────
 export function ClientsTab({ clientTable }) {
   const [view, setView] = useState('bar');
-  const [metric, setMetric] = useState('omzet_marge'); // omzet_marge | omzet | marge | marge_perc
-  const [topN, setTopN] = useState('top10');
+  const [metric, setMetric] = useState('omzet_marge');
   const [sortKey, setSortKey] = useState('omzet_desc');
+  const [search, setSearch] = useState('');
 
   const metricOptions = [
     { value: 'omzet_marge', label: 'Omzet & Marge' },
@@ -224,32 +224,17 @@ export function ClientsTab({ clientTable }) {
     { value: 'marge', label: 'Alleen Marge' },
     { value: 'marge_perc', label: 'Marge %' },
   ];
-  const topNOptions = [
-    { value: 'top5', label: 'Top 5' },
-    { value: 'top10', label: 'Top 10' },
-    { value: 'top20', label: 'Top 20' },
-    { value: 'all', label: 'Alle' },
-    { value: 'bottom2', label: 'Slechtste 2' },
-    { value: 'bottom5', label: 'Slechtste 5' },
-    { value: 'bottom10', label: 'Slechtste 10' },
-  ];
 
   const [sortCol, sortDir] = sortKey.split('_');
-  const sortedClientTable = [...clientTable].sort(([, a], [, b]) => {
-    const aVal = sortCol === 'marge' ? a.marge : sortCol === 'marge_perc' ? (a.omzet > 0 ? a.marge / a.omzet : 0) : a.omzet;
-    const bVal = sortCol === 'marge' ? b.marge : sortCol === 'marge_perc' ? (b.omzet > 0 ? b.marge / b.omzet : 0) : b.omzet;
-    return sortDir === 'desc' ? bVal - aVal : aVal - bVal;
-  });
+  const sortedClientTable = [...clientTable]
+    .filter(([name]) => name.toLowerCase().includes(search.toLowerCase()))
+    .sort(([, a], [, b]) => {
+      const aVal = sortCol === 'marge' ? a.marge : sortCol === 'marge_perc' ? (a.omzet > 0 ? a.marge / a.omzet : 0) : a.omzet;
+      const bVal = sortCol === 'marge' ? b.marge : sortCol === 'marge_perc' ? (b.omzet > 0 ? b.marge / b.omzet : 0) : b.omzet;
+      return sortDir === 'desc' ? bVal - aVal : aVal - bVal;
+    });
 
-  const getSliced = () => {
-    if (topN === 'all') return sortedClientTable;
-    if (topN.startsWith('bottom')) {
-      const n = parseInt(topN.replace('bottom', ''));
-      return sortedClientTable.slice(sortedClientTable.length - n);
-    }
-    return sortedClientTable.slice(0, parseInt(topN.replace('top', '')));
-  };
-  const sliced = getSliced();
+  const sliced = sortedClientTable.slice(0, 10);
   const chartData = sliced.map(([name, d]) => ({
     name: name.length > 14 ? name.slice(0,13)+'…' : name,
     omzet: d.omzet, marge: d.marge,
@@ -272,6 +257,14 @@ export function ClientsTab({ clientTable }) {
       <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2 flex-wrap">
         <CardTitle className="text-base">Omzet & Marge per Klant</CardTitle>
         <div className="flex items-center gap-2 flex-wrap">
+          <input
+            type="text"
+            placeholder="Zoek klant..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="h-7 px-2 text-xs border border-input rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-ring w-40"
+          />
+          {view !== 'table' && <MetricSelect value={metric} onChange={setMetric} options={metricOptions} />}
           <Select value={sortKey} onValueChange={setSortKey}>
             <SelectTrigger className="h-7 w-44 text-xs">
               <SelectValue />
@@ -285,10 +278,6 @@ export function ClientsTab({ clientTable }) {
               <SelectItem value="marge_perc_asc" className="text-xs">↑ Laagste marge %</SelectItem>
             </SelectContent>
           </Select>
-          {view !== 'table' && <>
-            <MetricSelect value={metric} onChange={setMetric} options={metricOptions} />
-            <MetricSelect value={topN} onChange={setTopN} options={topNOptions} />
-          </>}
           <ChartToggle view={view} setView={setView} types={['table', 'bar', 'pie']} />
         </div>
       </CardHeader>
