@@ -119,43 +119,81 @@ export default function TargetVsActualTab({ timesheets, placements, year }) {
       </div>
 
       {/* Per kwartaal: 3 kaarten (Brutomarge, Actieve Consultants, PERM) */}
-      {displayRows.map(r => (
-        <Card key={r.q}>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg">{r.q} {year}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {!r.hasTgt ? (
-              <p className="text-sm text-muted-foreground italic">Geen targets ingesteld voor {r.q}</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <MetricCard 
-                  label="Brutomarge" 
-                  target={r.brutomarge.target} 
-                  actual={r.brutomarge.actual}
-                />
-                <MetricCard 
-                  label="Actieve Consultants" 
-                  target={r.consultants.target} 
-                  actual={r.consultants.actual}
-                  isCount={true}
-                />
-                <MetricCard 
-                  label="PERM Fees" 
-                  target={r.perm.target} 
-                  actual={r.perm.actual}
-                />
-                <MetricCard 
-                  label="New Deals" 
-                  target={r.new_deals.target} 
-                  actual={r.new_deals.actual}
-                  isCount={true}
-                />
+      {displayRows.map(r => {
+        const totalFinTarget = r.brutomarge.target + r.perm.target;
+        const totalFinActual = r.brutomarge.actual + r.perm.actual;
+        const avgPct = (
+          (r.brutomarge.target > 0 ? (r.brutomarge.actual / r.brutomarge.target) * 100 : 0) +
+          (r.perm.target > 0 ? (r.perm.actual / r.perm.target) * 100 : 0) +
+          (r.consultants.target > 0 ? (r.consultants.actual / r.consultants.target) * 100 : 0) +
+          (r.new_deals.target > 0 ? (r.new_deals.actual / r.new_deals.target) * 100 : 0)
+        ) / 4;
+        
+        const performanceLabel = avgPct >= 120 ? '⭐ Uitstekend' : avgPct >= 100 ? '✓ Op target' : avgPct >= 80 ? '⚠ Bijna' : '✗ Achter';
+        const performanceColor = avgPct >= 120 ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : avgPct >= 100 ? 'bg-blue-100 text-blue-800 border-blue-300' : avgPct >= 80 ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-red-100 text-red-800 border-red-300';
+
+        return (
+          <Card key={r.q} className={avgPct >= 120 ? 'border-emerald-200' : avgPct >= 100 ? 'border-primary/30' : 'border-border'}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle className="text-lg">{r.q} {year}</CardTitle>
+                <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${performanceColor}`}>
+                  {performanceLabel}
+                </span>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      ))}
+            </CardHeader>
+            <CardContent>
+              {!r.hasTgt ? (
+                <p className="text-sm text-muted-foreground italic">Geen targets ingesteld voor {r.q}</p>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <MetricCard 
+                      label="Brutomarge" 
+                      target={r.brutomarge.target} 
+                      actual={r.brutomarge.actual}
+                    />
+                    <MetricCard 
+                      label="Actieve Consultants" 
+                      target={r.consultants.target} 
+                      actual={r.consultants.actual}
+                      isCount={true}
+                    />
+                    <MetricCard 
+                      label="PERM Fees" 
+                      target={r.perm.target} 
+                      actual={r.perm.actual}
+                    />
+                    <MetricCard 
+                      label="New Deals" 
+                      target={r.new_deals.target} 
+                      actual={r.new_deals.actual}
+                      isCount={true}
+                    />
+                  </div>
+                  
+                  {/* Summary: Combined Financial Performance */}
+                  <div className="border-t pt-4 mt-4 bg-gradient-to-r from-primary/5 to-transparent rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Gezamenlijke Financiële Performance</p>
+                        <p className="text-sm text-muted-foreground">Brutomarge + PERM Fees</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-primary">{formatCurrency(totalFinActual)}</div>
+                        <div className="text-xs text-muted-foreground">van {formatCurrency(totalFinTarget)}</div>
+                        <div className={`text-lg font-bold mt-1 ${totalFinTarget > 0 && (totalFinActual / totalFinTarget) >= 1 ? 'text-emerald-600' : 'text-orange-600'}`}>
+                          {totalFinTarget > 0 ? Math.round((totalFinActual / totalFinTarget) * 100) : 0}%
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }
