@@ -341,7 +341,7 @@ export default function Reports() {
           <TabsTrigger value="monthly">Maandoverzicht</TabsTrigger>
           <TabsTrigger value="clients">Per Klant</TabsTrigger>
           <TabsTrigger value="consultants">Per Consultant</TabsTrigger>
-          <TabsTrigger value="sales">Per Sales</TabsTrigger>
+          <TabsTrigger value="sales">Per Sales Werknemer</TabsTrigger>
           <TabsTrigger value="commission">Commissie</TabsTrigger>
           <TabsTrigger value="margeopbouw">Margeopbouw</TabsTrigger>
           <TabsTrigger value="invoiced">Facturatiestatus</TabsTrigger>

@@ -451,7 +451,7 @@ export function SalesTab({ salesTable }) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2 flex-wrap">
-        <CardTitle className="text-base">Overzicht per Commerciële Consultant</CardTitle>
+        <CardTitle className="text-base">Overzicht per Sales Werknemer</CardTitle>
         <div className="flex items-center gap-2 flex-wrap">
           {view !== 'table' && salesTable.length > 0 && <MetricSelect value={metric} onChange={setMetric} options={metricOptions} />}
           <ChartToggle view={view} setView={setView} types={['table', 'bar', 'pie']} />
