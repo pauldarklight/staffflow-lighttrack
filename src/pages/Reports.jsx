@@ -311,7 +311,7 @@ export default function Reports() {
 
 
 
-          <TabsTrigger value="vergelijking">Verwacht vs Werkelijk</TabsTrigger>
+
           <TabsTrigger value="targets">🎯 Targets</TabsTrigger>
           <TabsTrigger value="targets_vs_actual">📊 Target vs Werkelijk</TabsTrigger>
           <TabsTrigger value="entity_dashboard" className="gap-1.5">
@@ -519,17 +519,7 @@ export default function Reports() {
           <EntityDashboard timesheets={timesheets} placements={placements} years={years} />
         </TabsContent>
 
-        <TabsContent value="vergelijking">
-          <VergelijkingTab
-            vergelijkingData={vergelijkingData}
-            placements={placements}
-            timesheets={timesheets}
-            year={year}
-            ytd={ytd}
-            expandedMonth={expandedMonth}
-            setExpandedMonth={setExpandedMonth}
-          />
-        </TabsContent>
+
       </Tabs>
     </div>
   );
