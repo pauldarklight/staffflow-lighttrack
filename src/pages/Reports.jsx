@@ -5,14 +5,14 @@ import { useQuery } from '@tanstack/react-query';
 import PersoneelslidTab from '@/components/reports/PersoneelslidTab';
 import TargetTab from '@/components/reports/TargetTab';
 import TargetVsActualTab from '@/components/reports/TargetVsActualTab';
-import { MonthlyTab, ClientsTab, ConsultantsTab, SalesTab, CommissionTab, MargeopbouwTab, FacturatieTab, VergelijkingTab } from '@/components/reports/ReportTabs';
+import { MonthlyTab, ClientsTab, ConsultantsTab, SalesTab, MargeopbouwTab, FacturatieTab, VergelijkingTab } from '@/components/reports/ReportTabs';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import PageHeader from '@/components/shared/PageHeader';
-import { formatCurrency, getMonthName, getQuarter } from '@/lib/formatters';
+import { formatCurrency, getMonthName } from '@/lib/formatters';
 
 export default function Reports() {
   const now = new Date();
@@ -110,40 +110,6 @@ export default function Reports() {
     });
   });
   const salesTable = Object.entries(salesData).sort(([,a],[,b]) => b.marge - a.marge);
-
-  // Commission per quarter for sales
-  const quarterCommission = {};
-  placements.forEach(p => {
-    (p.sales_contributors || []).forEach(sc => {
-      if (!sc.name) return;
-      const pct = (sc.percentage || 0) / 100;
-      if (p.placement_type === 'perm') {
-        // PERM: one-time fee in Q of start_date, only in correct year
-        const startDate = p.start_date ? new Date(p.start_date) : null;
-        if (!startDate || startDate.getFullYear() !== parseInt(year)) return;
-        const q = getQuarter(startDate.getMonth() + 1);
-        const key = `${sc.name}-${q}-${startDate.getFullYear()}`;
-        const fee = p.perm_fee_amount || ((p.perm_annual_salary || 0) * ((p.perm_fee_percentage || 20) / 100));
-        if (!quarterCommission[key]) quarterCommission[key] = { name: sc.name, quarter: q, year: startDate.getFullYear(), marge: 0 };
-        quarterCommission[key].marge += fee * pct;
-      } else {
-        const pTs = yearTs.filter(t => t.placement_id === p.id);
-        pTs.forEach(t => {
-          const q = getQuarter(t.month);
-          const key = `${sc.name}-${q}-${t.year}`;
-          if (!quarterCommission[key]) quarterCommission[key] = { name: sc.name, quarter: q, year: t.year, marge: 0 };
-          quarterCommission[key].marge += (t.margin || 0) * pct;
-        });
-      }
-    });
-  });
-  const VASTE_WERKNEMERS = ['adnane', 'maxim', 'paul', 'thomas', 'yunes', 'marloes', 'arthur'];
-  const commissionTable = Object.values(quarterCommission).filter(row =>
-    VASTE_WERKNEMERS.some(n => row.name.toLowerCase().includes(n))
-  ).sort((a, b) => {
-    const qOrder = { Q1: 1, Q2: 2, Q3: 3, Q4: 4 };
-    return qOrder[a.quarter] - qOrder[b.quarter] || a.name.localeCompare(b.name);
-  });
 
   // Margeopbouw: cumulatieve marge per maand
   const margeopbouwData = useMemo(() => {
@@ -256,7 +222,6 @@ export default function Reports() {
         clientTable,
         consultantTable,
         salesTable,
-        commissionTable,
         margeopbouwData,
         vergelijkingData,
         // targetRows are computed inside TargetVsActualTab; pass a simplified version
@@ -268,7 +233,7 @@ export default function Reports() {
         })),
       },
     });
-  }, [activeTab, year, monthlyData, clientTable, consultantTable, salesTable, commissionTable, margeopbouwData, vergelijkingData]);
+  }, [activeTab, year, monthlyData, clientTable, consultantTable, salesTable, margeopbouwData, vergelijkingData]);
 
   return (
     <div>
@@ -338,7 +303,7 @@ export default function Reports() {
       <Tabs defaultValue="inzichten" className="space-y-6" onValueChange={setActiveTab}>
         <TabsList className="bg-muted flex-wrap">
           <TabsTrigger value="inzichten">✨ Inzichten</TabsTrigger>
-          <TabsTrigger value="monthly">Maandoverzicht</TabsTrigger>
+          <TabsTrigger value="monthly">Periodeoverzicht</TabsTrigger>
           <TabsTrigger value="clients">Per Klant</TabsTrigger>
           <TabsTrigger value="consultants">Per Consultant</TabsTrigger>
           <TabsTrigger value="sales">Per Sales Werknemer</TabsTrigger>
@@ -533,8 +498,6 @@ export default function Reports() {
         <TabsContent value="sales">
           <SalesTab salesTable={salesTable} />
         </TabsContent>
-
-
 
         <TabsContent value="margeopbouw">
           <MargeopbouwTab data={margeopbouwData} year={year} />
