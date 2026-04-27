@@ -216,6 +216,7 @@ export function ClientsTab({ clientTable }) {
   const [view, setView] = useState('bar');
   const [metric, setMetric] = useState('omzet_marge'); // omzet_marge | omzet | marge | marge_perc
   const [topN, setTopN] = useState('top10');
+  const [sortKey, setSortKey] = useState('omzet_desc');
 
   const metricOptions = [
     { value: 'omzet_marge', label: 'Omzet & Marge' },
@@ -233,13 +234,20 @@ export function ClientsTab({ clientTable }) {
     { value: 'bottom10', label: 'Slechtste 10' },
   ];
 
+  const [sortCol, sortDir] = sortKey.split('_');
+  const sortedClientTable = [...clientTable].sort(([, a], [, b]) => {
+    const aVal = sortCol === 'marge' ? a.marge : sortCol === 'marge_perc' ? (a.omzet > 0 ? a.marge / a.omzet : 0) : a.omzet;
+    const bVal = sortCol === 'marge' ? b.marge : sortCol === 'marge_perc' ? (b.omzet > 0 ? b.marge / b.omzet : 0) : b.omzet;
+    return sortDir === 'desc' ? bVal - aVal : aVal - bVal;
+  });
+
   const getSliced = () => {
-    if (topN === 'all') return clientTable;
+    if (topN === 'all') return sortedClientTable;
     if (topN.startsWith('bottom')) {
       const n = parseInt(topN.replace('bottom', ''));
-      return [...clientTable].reverse().slice(0, n);
+      return sortedClientTable.slice(sortedClientTable.length - n);
     }
-    return clientTable.slice(0, parseInt(topN.replace('top', '')));
+    return sortedClientTable.slice(0, parseInt(topN.replace('top', '')));
   };
   const sliced = getSliced();
   const chartData = sliced.map(([name, d]) => ({
@@ -264,6 +272,19 @@ export function ClientsTab({ clientTable }) {
       <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2 flex-wrap">
         <CardTitle className="text-base">Omzet & Marge per Klant</CardTitle>
         <div className="flex items-center gap-2 flex-wrap">
+          <Select value={sortKey} onValueChange={setSortKey}>
+            <SelectTrigger className="h-7 w-44 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="omzet_desc" className="text-xs">↓ Hoogste omzet</SelectItem>
+              <SelectItem value="omzet_asc" className="text-xs">↑ Laagste omzet</SelectItem>
+              <SelectItem value="marge_desc" className="text-xs">↓ Hoogste marge</SelectItem>
+              <SelectItem value="marge_asc" className="text-xs">↑ Laagste marge</SelectItem>
+              <SelectItem value="marge_perc_desc" className="text-xs">↓ Hoogste marge %</SelectItem>
+              <SelectItem value="marge_perc_asc" className="text-xs">↑ Laagste marge %</SelectItem>
+            </SelectContent>
+          </Select>
           {view !== 'table' && <>
             <MetricSelect value={metric} onChange={setMetric} options={metricOptions} />
             <MetricSelect value={topN} onChange={setTopN} options={topNOptions} />
@@ -294,7 +315,7 @@ export function ClientsTab({ clientTable }) {
               <th className="text-right py-3 px-4 font-medium text-muted-foreground">Marge %</th>
             </tr></thead>
             <tbody>
-              {clientTable.map(([name, data]) => (
+              {sortedClientTable.map(([name, data]) => (
                 <tr key={name} className="border-b border-border/50 hover:bg-muted/30">
                   <td className="py-3 px-4 font-medium">{name}</td>
                   <td className="py-3 px-4 text-right">{formatCurrency(data.omzet)}</td>
