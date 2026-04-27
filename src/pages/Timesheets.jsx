@@ -507,7 +507,8 @@ export default function Timesheets() {
                       </td>
                       <td className="py-3 px-4 text-right bg-primary/10 text-muted-foreground">{formatCurrency(t.client_revenue)}</td>
                       <td className="py-3 px-4 text-right bg-primary/10 font-bold text-foreground">{formatCurrency(t.consultant_revenue)}</td>
-                      <td className={`py-3 px-4 text-right font-bold ${(t.margin || 0) >= 0 ? 'text-primary' : 'text-red-500'}`}>
+                      <td className={`py-3 px-4 text-right font-bold flex items-center justify-end gap-1.5 ${(t.margin || 0) < 80 ? 'text-red-600' : (t.margin || 0) >= 0 ? 'text-primary' : 'text-red-500'}`}>
+                        {(t.margin || 0) < 80 && <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />}
                         {formatCurrency(t.margin)}
                       </td>
                       <td className="py-3 px-2 text-center">
