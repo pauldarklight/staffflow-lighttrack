@@ -210,7 +210,7 @@ export function MonthlyTab({ monthlyData, year }) {
 export function ClientsTab({ clientTable }) {
   const [view, setView] = useState('bar');
   const [metric, setMetric] = useState('omzet_marge'); // omzet_marge | omzet | marge | marge_perc
-  const [topN, setTopN] = useState('10');
+  const [topN, setTopN] = useState('top10');
 
   const metricOptions = [
     { value: 'omzet_marge', label: 'Omzet & Marge' },
@@ -219,13 +219,24 @@ export function ClientsTab({ clientTable }) {
     { value: 'marge_perc', label: 'Marge %' },
   ];
   const topNOptions = [
-    { value: '5', label: 'Top 5' },
-    { value: '10', label: 'Top 10' },
-    { value: '20', label: 'Top 20' },
-    { value: '999', label: 'Alle' },
+    { value: 'top5', label: 'Top 5' },
+    { value: 'top10', label: 'Top 10' },
+    { value: 'top20', label: 'Top 20' },
+    { value: 'all', label: 'Alle' },
+    { value: 'bottom2', label: 'Slechtste 2' },
+    { value: 'bottom5', label: 'Slechtste 5' },
+    { value: 'bottom10', label: 'Slechtste 10' },
   ];
 
-  const sliced = clientTable.slice(0, parseInt(topN));
+  const getSliced = () => {
+    if (topN === 'all') return clientTable;
+    if (topN.startsWith('bottom')) {
+      const n = parseInt(topN.replace('bottom', ''));
+      return [...clientTable].reverse().slice(0, n);
+    }
+    return clientTable.slice(0, parseInt(topN.replace('top', '')));
+  };
+  const sliced = getSliced();
   const chartData = sliced.map(([name, d]) => ({
     name: name.length > 14 ? name.slice(0,13)+'…' : name,
     omzet: d.omzet, marge: d.marge,
