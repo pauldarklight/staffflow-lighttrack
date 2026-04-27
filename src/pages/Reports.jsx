@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { TrendingUp, TrendingDown, AlertTriangle, Award, Users, Target, Zap, PieChart } from 'lucide-react';
+import { TrendingUp, TrendingDown, AlertTriangle, Award, Users, Target, Zap, PieChart, BarChart2, List } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import VergelijkingDrillDown from '@/components/reports/VergelijkingDrillDown';
 import PersoneelslidTab from '@/components/reports/PersoneelslidTab';
+import { MonthlyTab, ClientsTab, ConsultantsTab, SalesTab, CommissionTab, MargeopbouwTab } from '@/components/reports/ReportTabs';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -139,20 +140,26 @@ export default function Reports() {
     return qOrder[a.quarter] - qOrder[b.quarter] || a.name.localeCompare(b.name);
   });
 
-  // Cash planning
-  const cashData = Array.from({ length: monthCount }, (_, i) => {
-    const m = i + 1;
-    const mTs = yearTs.filter(t => t.month === m);
-    const weeklyMargin = mTs.reduce((s, t) => s + (t.margin || 0), 0) / 4;
-    const clientInv = yearInv.filter(inv => inv.month === m && inv.invoice_type === 'client_invoice');
-    const avgTerms = clientInv.length > 0 ? clientInv.reduce((s, inv) => s + (inv.payment_terms_days || 30), 0) / clientInv.length : 30;
-    return {
-      name: getMonthName(m).slice(0, 3),
-      weekelijkse_marge: Math.round(weeklyMargin),
-      gem_betalingstermijn: Math.round(avgTerms),
-      verwachte_inkomsten: mTs.reduce((s, t) => s + (t.client_revenue || 0), 0),
-    };
-  });
+  // Margeopbouw: cumulatieve marge per maand
+  const margeopbouwData = useMemo(() => {
+    let cumMarge = 0;
+    return Array.from({ length: 12 }, (_, i) => {
+      const m = i + 1;
+      const mTs = timesheets.filter(t => t.year === parseInt(year) && t.month === m);
+      const marge = mTs.reduce((s, t) => s + (t.margin || 0), 0);
+      const omzet = mTs.reduce((s, t) => s + (t.client_revenue || 0), 0);
+      const kost = mTs.reduce((s, t) => s + (t.consultant_revenue || 0), 0);
+      cumMarge += marge;
+      return {
+        name: getMonthName(m).slice(0, 3),
+        marge,
+        omzet,
+        kost,
+        cumulatieve_marge: cumMarge,
+        marge_perc: omzet > 0 ? Math.round((marge / omzet) * 100) : 0,
+      };
+    });
+  }, [timesheets, year]);
 
   // Invoiced status
   const invoicedConsultants = yearInv.filter(i => i.invoice_type === 'consultant_invoice' && i.status === 'paid');
@@ -303,7 +310,7 @@ export default function Reports() {
           <TabsTrigger value="consultants">Per Consultant</TabsTrigger>
           <TabsTrigger value="sales">Per Sales</TabsTrigger>
           <TabsTrigger value="commission">Commissie</TabsTrigger>
-          <TabsTrigger value="cash">Cashplanning</TabsTrigger>
+          <TabsTrigger value="margeopbouw">Margeopbouw</TabsTrigger>
           <TabsTrigger value="invoiced">Facturatiestatus</TabsTrigger>
           <TabsTrigger value="personeelslid">Per Personeelslid</TabsTrigger>
           <TabsTrigger value="vergelijking">Verwacht vs Werkelijk</TabsTrigger>
@@ -477,151 +484,27 @@ export default function Reports() {
         </TabsContent>
 
         <TabsContent value="monthly">
-          <Card>
-            <CardHeader><CardTitle className="text-base">Maandelijks Overzicht {year}</CardTitle></CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={320}>
-                <BarChart data={monthlyData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
-                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `€${(v/1000).toFixed(0)}k`} />
-                  <Tooltip formatter={v => formatCurrency(v)} />
-                  <Legend />
-                  <Bar dataKey="omzet" fill="hsl(221, 83%, 53%)" radius={[4, 4, 0, 0]} name="Omzet" />
-                  <Bar dataKey="marge" fill="hsl(262, 83%, 58%)" radius={[4, 4, 0, 0]} name="Marge" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+          <MonthlyTab monthlyData={monthlyData} year={year} />
         </TabsContent>
 
         <TabsContent value="clients">
-          <Card>
-            <CardHeader><CardTitle className="text-base">Omzet & Marge per Klant</CardTitle></CardHeader>
-            <CardContent className="p-0">
-              <table className="w-full text-sm">
-                <thead><tr className="border-b bg-muted/50">
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Klant</th>
-                  <th className="text-right py-3 px-4 font-medium text-muted-foreground">Omzet</th>
-                  <th className="text-right py-3 px-4 font-medium text-muted-foreground">Marge</th>
-                  <th className="text-right py-3 px-4 font-medium text-muted-foreground">Marge %</th>
-                </tr></thead>
-                <tbody>
-                  {clientTable.map(([name, data]) => (
-                    <tr key={name} className="border-b border-border/50 hover:bg-muted/30">
-                      <td className="py-3 px-4 font-medium">{name}</td>
-                      <td className="py-3 px-4 text-right">{formatCurrency(data.omzet)}</td>
-                      <td className="py-3 px-4 text-right font-semibold text-emerald-600">{formatCurrency(data.marge)}</td>
-                      <td className="py-3 px-4 text-right">{data.omzet > 0 ? ((data.marge / data.omzet) * 100).toFixed(1) : 0}%</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
+          <ClientsTab clientTable={clientTable} />
         </TabsContent>
 
         <TabsContent value="consultants">
-          <Card>
-            <CardHeader><CardTitle className="text-base">Marge per Consultant</CardTitle></CardHeader>
-            <CardContent className="p-0">
-              <table className="w-full text-sm">
-                <thead><tr className="border-b bg-muted/50">
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Consultant</th>
-                  <th className="text-right py-3 px-4 font-medium text-muted-foreground">Omzet</th>
-                  <th className="text-right py-3 px-4 font-medium text-muted-foreground">Kost</th>
-                  <th className="text-right py-3 px-4 font-medium text-muted-foreground">Marge</th>
-                  <th className="text-right py-3 px-4 font-medium text-muted-foreground">Marge %</th>
-                </tr></thead>
-                <tbody>
-                  {consultantTable.map(([name, data]) => (
-                    <tr key={name} className="border-b border-border/50 hover:bg-muted/30">
-                      <td className="py-3 px-4 font-medium">{name}</td>
-                      <td className="py-3 px-4 text-right">{formatCurrency(data.omzet)}</td>
-                      <td className="py-3 px-4 text-right text-muted-foreground">{formatCurrency(data.kost)}</td>
-                      <td className="py-3 px-4 text-right font-semibold text-emerald-600">{formatCurrency(data.marge)}</td>
-                      <td className="py-3 px-4 text-right">{data.omzet > 0 ? ((data.marge / data.omzet) * 100).toFixed(1) : 0}%</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
+          <ConsultantsTab consultantTable={consultantTable} />
         </TabsContent>
 
         <TabsContent value="sales">
-          <Card>
-            <CardHeader><CardTitle className="text-base">Overzicht per Commerciële Consultant</CardTitle></CardHeader>
-            <CardContent className="p-0">
-              <table className="w-full text-sm">
-                <thead><tr className="border-b bg-muted/50">
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Sales</th>
-                  <th className="text-right py-3 px-4 font-medium text-muted-foreground">Toeg. Omzet</th>
-                  <th className="text-right py-3 px-4 font-medium text-muted-foreground">Toeg. Marge</th>
-                </tr></thead>
-                <tbody>
-                  {salesTable.map(([name, data]) => (
-                    <tr key={name} className="border-b border-border/50 hover:bg-muted/30">
-                      <td className="py-3 px-4 font-medium">{name}</td>
-                      <td className="py-3 px-4 text-right">{formatCurrency(data.omzet)}</td>
-                      <td className="py-3 px-4 text-right font-semibold text-emerald-600">{formatCurrency(data.marge)}</td>
-                    </tr>
-                  ))}
-                  {salesTable.length === 0 && (
-                    <tr><td colSpan={3} className="py-8 text-center text-muted-foreground">Geen sales contributors gekoppeld aan placements</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
+          <SalesTab salesTable={salesTable} />
         </TabsContent>
 
         <TabsContent value="commission">
-          <Card>
-            <CardHeader><CardTitle className="text-base">Commissie per Kwartaal</CardTitle></CardHeader>
-            <CardContent className="p-0">
-              <table className="w-full text-sm">
-                <thead><tr className="border-b bg-muted/50">
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Sales</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Kwartaal</th>
-                  <th className="text-right py-3 px-4 font-medium text-muted-foreground">Toeg. Marge</th>
-                  <th className="text-right py-3 px-4 font-medium text-muted-foreground">Commissie (schatting)</th>
-                </tr></thead>
-                <tbody>
-                  {commissionTable.map((row, idx) => (
-                    <tr key={idx} className="border-b border-border/50 hover:bg-muted/30">
-                      <td className="py-3 px-4 font-medium">{row.name}</td>
-                      <td className="py-3 px-4">{row.quarter}</td>
-                      <td className="py-3 px-4 text-right">{formatCurrency(row.marge)}</td>
-                      <td className="py-3 px-4 text-right font-semibold text-primary">{formatCurrency(row.marge * 0.1)}</td>
-                    </tr>
-                  ))}
-                  {commissionTable.length === 0 && (
-                    <tr><td colSpan={4} className="py-8 text-center text-muted-foreground">Geen commissiedata beschikbaar</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
+          <CommissionTab commissionTable={commissionTable} />
         </TabsContent>
 
-        <TabsContent value="cash">
-          <Card>
-            <CardHeader><CardTitle className="text-base">Cashplanning {year}</CardTitle></CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={320}>
-                <LineChart data={cashData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
-                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `€${(v/1000).toFixed(0)}k`} />
-                  <Tooltip formatter={v => formatCurrency(v)} />
-                  <Legend />
-                  <Line type="monotone" dataKey="verwachte_inkomsten" stroke="hsl(221, 83%, 53%)" strokeWidth={2} name="Verwachte inkomsten" />
-                  <Line type="monotone" dataKey="weekelijkse_marge" stroke="hsl(262, 83%, 58%)" strokeWidth={2} name="Wekelijkse marge" />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+        <TabsContent value="margeopbouw">
+          <MargeopbouwTab data={margeopbouwData} year={year} />
         </TabsContent>
 
         <TabsContent value="invoiced">
