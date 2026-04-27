@@ -7,6 +7,7 @@ import EntityDashboard from '@/components/reports/EntityDashboard';
 import TargetTab from '@/components/reports/TargetTab';
 import TargetVsActualTab from '@/components/reports/TargetVsActualTab';
 import BusinessGrowthTab from '@/components/reports/BusinessGrowthTab';
+import VerificationTab from '@/components/reports/VerificationTab';
 import { MonthlyTab, ClientsTab, ConsultantsTab, SalesTab, MargeopbouwTab, FacturatieTab, VergelijkingTab } from '@/components/reports/ReportTabs';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -316,6 +317,7 @@ export default function Reports() {
           <TabsTrigger value="targets">🎯 Targets</TabsTrigger>
           <TabsTrigger value="targets_vs_actual">📊 Targets vs Actuals</TabsTrigger>
           <TabsTrigger value="business_growth">📈 Business Growth</TabsTrigger>
+          <TabsTrigger value="verification">🔍 Controlemechanisme</TabsTrigger>
           <TabsTrigger value="entity_dashboard" className="gap-1.5">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
             Dashboard
@@ -519,6 +521,10 @@ export default function Reports() {
 
         <TabsContent value="business_growth">
           <BusinessGrowthTab timesheets={timesheets} placements={placements} year={year} />
+        </TabsContent>
+
+        <TabsContent value="verification">
+          <VerificationTab timesheets={timesheets} invoices={invoices} placements={placements} year={year} />
         </TabsContent>
 
         <TabsContent value="entity_dashboard">
