@@ -301,17 +301,33 @@ export function SalesTab({ salesTable }) {
 
 export function CommissionTab({ commissionTable }) {
   const [view, setView] = useState('bar');
-  const chartData = commissionTable.map(row => ({ name: `${row.name} ${row.quarter}`, marge: row.marge, commissie: row.marge * 0.1 }));
-  const pieData = commissionTable.map(row => ({ name: `${row.name} ${row.quarter}`, commissie: row.marge * 0.1 }));
+  const [filterQuarter, setFilterQuarter] = useState('all');
+
+  const filtered = filterQuarter === 'all'
+    ? commissionTable
+    : commissionTable.filter(row => row.quarter === filterQuarter);
+
+  const chartData = filtered.map(row => ({ name: `${row.name} ${row.quarter}`, marge: row.marge, commissie: row.marge * 0.1 }));
+  const pieData = filtered.map(row => ({ name: `${row.name} ${row.quarter}`, commissie: row.marge * 0.1 }));
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
         <CardTitle className="text-base">Commissie per Kwartaal</CardTitle>
-        <ChartToggle view={view} setView={setView} types={['table', 'bar', 'line', 'pie']} />
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-md border border-border overflow-hidden">
+            {[['all','Alle'], ['Q1','Q1'], ['Q2','Q2'], ['Q3','Q3'], ['Q4','Q4']].map(([val, label]) => (
+              <button key={val} onClick={() => setFilterQuarter(val)}
+                className={`px-2.5 py-1 text-xs font-medium transition-colors whitespace-nowrap ${filterQuarter === val ? 'bg-primary text-primary-foreground' : 'bg-background text-muted-foreground hover:bg-muted'}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <ChartToggle view={view} setView={setView} types={['table', 'bar', 'line', 'pie']} />
+        </div>
       </CardHeader>
       <CardContent className={view === 'table' ? 'p-0' : ''}>
         {view === 'bar' && (
-          commissionTable.length === 0
+          filtered.length === 0
             ? <p className="py-8 text-center text-muted-foreground text-sm">Geen commissiedata beschikbaar</p>
             : <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={chartData}>
@@ -326,7 +342,7 @@ export function CommissionTab({ commissionTable }) {
               </ResponsiveContainer>
         )}
         {view === 'line' && (
-          commissionTable.length === 0
+          filtered.length === 0
             ? <p className="py-8 text-center text-muted-foreground text-sm">Geen commissiedata beschikbaar</p>
             : <ResponsiveContainer width="100%" height={280}>
                 <LineChart data={chartData}>
@@ -341,7 +357,7 @@ export function CommissionTab({ commissionTable }) {
               </ResponsiveContainer>
         )}
         {view === 'pie' && (
-          commissionTable.length === 0
+          filtered.length === 0
             ? <p className="py-8 text-center text-muted-foreground text-sm">Geen data</p>
             : <PieChartView data={pieData} dataKey="commissie" height={280} />
         )}
@@ -354,7 +370,7 @@ export function CommissionTab({ commissionTable }) {
               <th className="text-right py-3 px-4 font-medium text-muted-foreground">Commissie (schatting)</th>
             </tr></thead>
             <tbody>
-              {commissionTable.map((row, idx) => (
+              {filtered.map((row, idx) => (
                 <tr key={idx} className="border-b border-border/50 hover:bg-muted/30">
                   <td className="py-3 px-4 font-medium">{row.name}</td>
                   <td className="py-3 px-4">{row.quarter}</td>
@@ -362,7 +378,7 @@ export function CommissionTab({ commissionTable }) {
                   <td className="py-3 px-4 text-right font-semibold text-primary">{formatCurrency(row.marge * 0.1)}</td>
                 </tr>
               ))}
-              {commissionTable.length === 0 && (
+              {filtered.length === 0 && (
                 <tr><td colSpan={4} className="py-8 text-center text-muted-foreground">Geen commissiedata beschikbaar</td></tr>
               )}
             </tbody>
