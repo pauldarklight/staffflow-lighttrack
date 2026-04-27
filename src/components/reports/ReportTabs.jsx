@@ -366,21 +366,19 @@ export function ConsultantsTab({ consultantTable }) {
             className="h-7 px-2 text-xs border border-input rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-ring w-40"
           />
           {view !== 'table' && <MetricSelect value={metric} onChange={setMetric} options={metricOptions} />}
-          <div className="flex rounded-md border border-border overflow-hidden">
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="h-7 w-32 text-xs border-0 rounded-none border-r border-border focus:ring-0">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {sortOptions.map(o => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label.replace('Sorteer: ', '')}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <button onClick={() => setSortDir(d => d === 'desc' ? 'asc' : 'desc')}
-              className="px-2 text-xs font-medium bg-background text-muted-foreground hover:bg-muted transition-colors whitespace-nowrap"
-              title={sortDir === 'desc' ? 'Hoogste eerst' : 'Laagste eerst'}>
-              {sortDir === 'desc' ? '↓ Hoog' : '↑ Laag'}
-            </button>
-          </div>
+          <Select value={`${sortBy}_${sortDir}`} onValueChange={v => { const [col, dir] = v.split('_'); setSortBy(col); setSortDir(dir); }}>
+            <SelectTrigger className="h-7 w-44 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="marge_desc" className="text-xs">↓ Hoogste marge</SelectItem>
+              <SelectItem value="marge_asc" className="text-xs">↑ Laagste marge</SelectItem>
+              <SelectItem value="omzet_desc" className="text-xs">↓ Hoogste omzet</SelectItem>
+              <SelectItem value="omzet_asc" className="text-xs">↑ Laagste omzet</SelectItem>
+              <SelectItem value="kost_desc" className="text-xs">↓ Hoogste kost</SelectItem>
+              <SelectItem value="kost_asc" className="text-xs">↑ Laagste kost</SelectItem>
+            </SelectContent>
+          </Select>
           <ChartToggle view={view} setView={setView} types={['table', 'bar', 'pie']} />
         </div>
       </CardHeader>
