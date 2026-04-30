@@ -40,11 +40,11 @@ function SummaryStrip({ data }) {
 // ── Expandable row detail panel ──────────────────────────────────────────────
 
 function RowDetail({ row, isClient, manualOkiOki, onManualOkiOkiChange }) {
-  const oki = row.okiOkiAmount ?? (
-    manualOkiOki && manualOkiOki[row.invoiceId] !== undefined && manualOkiOki[row.invoiceId] !== ''
-      ? parseFloat(manualOkiOki[row.invoiceId])
-      : null
-  );
+  // Manual input always takes priority; fall back to auto-matched value
+  const manualVal = manualOkiOki && manualOkiOki[row.invoiceId] !== undefined && manualOkiOki[row.invoiceId] !== ''
+    ? parseFloat(manualOkiOki[row.invoiceId])
+    : null;
+  const oki = manualVal !== null ? manualVal : row.okiOkiAmount;
   const okiDiff = oki !== null ? oki - row.invoiceAmount : null;
   const okiMatch = okiDiff !== null ? Math.abs(okiDiff) < 0.01 : false;
 
@@ -81,25 +81,24 @@ function RowDetail({ row, isClient, manualOkiOki, onManualOkiOkiChange }) {
             </div>
           </div>
 
-          {/* Oki Oki (alleen voor klantfacturen) */}
+          {/* Oki Oki — altijd invulbaar, ook als auto-gematcht */}
           {isClient && (
             <div className="space-y-1">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Oki Oki verificatie</p>
               <div className="flex justify-between text-sm items-center gap-2">
-                <span className="text-muted-foreground">Oki Oki bedrag</span>
-                {row.okiOkiAmount !== null ? (
-                  <span className="font-semibold text-purple-700">{formatCurrency(row.okiOkiAmount)}</span>
-                ) : (
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="Manueel invullen..."
-                    value={manualOkiOki[row.invoiceId] ?? ''}
-                    onChange={e => onManualOkiOkiChange(row.invoiceId, e.target.value)}
-                    className="w-36 text-right text-sm border border-purple-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-purple-400 bg-purple-50 text-purple-700 placeholder:text-purple-300"
-                  />
-                )}
+                <span className="text-muted-foreground shrink-0">Oki Oki bedrag</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder={row.okiOkiAmount !== null ? String(row.okiOkiAmount) : 'Manueel invullen...'}
+                  value={manualOkiOki[row.invoiceId] ?? (row.okiOkiAmount !== null ? row.okiOkiAmount : '')}
+                  onChange={e => onManualOkiOkiChange(row.invoiceId, e.target.value)}
+                  className="w-36 text-right text-sm border border-purple-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-purple-400 bg-purple-50 text-purple-700 placeholder:text-purple-300"
+                />
               </div>
+              {row.okiOkiAmount !== null && !manualOkiOki[row.invoiceId] && (
+                <p className="text-xs text-purple-500 mt-1">↑ Auto-gematcht via CSV. Pas aan indien nodig.</p>
+              )}
               {oki !== null && (
                 <div className="flex justify-between text-sm border-t pt-1 mt-1">
                   <span className="font-semibold">Δ Oki Oki vs App</span>
@@ -108,9 +107,6 @@ function RowDetail({ row, isClient, manualOkiOki, onManualOkiOkiChange }) {
                     : <span className={`font-bold ${okiDiff >= 0 ? 'text-orange-700' : 'text-red-700'}`}>{okiDiff >= 0 ? '+' : ''}{formatCurrency(okiDiff)}</span>
                   }
                 </div>
-              )}
-              {row.okiOkiAmount === null && (!manualOkiOki || !manualOkiOki[row.invoiceId]) && (
-                <p className="text-xs text-muted-foreground mt-2">Vul het bedrag uit Oki Oki in om te vergelijken.</p>
               )}
             </div>
           )}
