@@ -120,6 +120,7 @@ export default function VerificationTab({ timesheets, invoices, placements, year
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-4">
             <CardTitle className="text-base">Controlerapport — Factuurverificatie</CardTitle>
+            <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <button className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
@@ -154,7 +155,8 @@ export default function VerificationTab({ timesheets, invoices, placements, year
                 </div>
               </TooltipContent>
             </Tooltip>
-          </CardHeader>
+            </TooltipProvider>
+            </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
