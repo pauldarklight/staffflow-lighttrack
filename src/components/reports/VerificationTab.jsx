@@ -69,7 +69,7 @@ function SummaryCards({ data, label }) {
 
 // ── Client verification table ───────────────────────────────────────────────
 
-function ClientVerificationTable({ data, okiOkiData }) {
+function ClientVerificationTable({ data, okiOkiData, manualOkiOki, onManualOkiOkiChange }) {
   const totalExpected = data.reduce((s, d) => s + d.expectedAmount, 0);
   const totalInvoiced = data.reduce((s, d) => s + d.invoiceAmount, 0);
   const totalDiff     = totalInvoiced - totalExpected;
@@ -129,8 +129,8 @@ function ClientVerificationTable({ data, okiOkiData }) {
                 <th className="text-right py-3 px-4 font-bold text-primary">Verwacht</th>
                 <th className="text-right py-3 px-4 font-bold text-blue-600">Gefactureerd</th>
                 <th className="text-right py-3 px-4 font-bold text-foreground">Verschil</th>
-                {okiOkiData && <th className="text-right py-3 px-4 font-bold text-purple-700">Oki Oki</th>}
-                {okiOkiData && <th className="text-right py-3 px-4 font-bold text-purple-700">Δ Oki Oki</th>}
+                <th className="text-right py-3 px-4 font-bold text-purple-700">Oki Oki</th>
+                <th className="text-right py-3 px-4 font-bold text-purple-700">Δ Oki Oki</th>
                 <th className="text-center py-3 px-4 font-bold text-foreground">Status</th>
               </tr>
             </thead>
@@ -149,24 +149,31 @@ function ClientVerificationTable({ data, okiOkiData }) {
                   <td className={`py-3 px-4 text-right font-bold ${row.isMatching ? 'text-emerald-700' : row.difference > 0 ? 'text-orange-700' : 'text-red-700'}`}>
                     {row.difference >= 0 ? '+' : ''}{formatCurrency(row.difference)}
                   </td>
-                  {okiOkiData && (
-                    <td className="py-3 px-4 text-right font-semibold text-purple-700">
-                      {row.okiOkiAmount !== null ? formatCurrency(row.okiOkiAmount) : (
-                        <span className="text-xs text-muted-foreground flex items-center justify-end gap-1">
-                          <Link2Off className="w-3 h-3" /> —
-                        </span>
-                      )}
-                    </td>
-                  )}
-                  {okiOkiData && (
-                    <td className={`py-3 px-4 text-right font-bold ${row.okiOkiDiff === null ? 'text-muted-foreground' : row.okiOkiMatch3way ? 'text-emerald-700' : 'text-red-700'}`}>
-                      {row.okiOkiDiff !== null ? (
-                        row.okiOkiMatch3way
-                          ? <span className="flex items-center justify-end gap-1"><CheckCircle2 className="w-3 h-3" /> OK</span>
-                          : <>{row.okiOkiDiff >= 0 ? '+' : ''}{formatCurrency(row.okiOkiDiff)}</>
-                      ) : '—'}
-                    </td>
-                  )}
+                  <td className="py-3 px-4 text-right">
+                    {row.okiOkiAmount !== null ? (
+                      <span className="font-semibold text-purple-700">{formatCurrency(row.okiOkiAmount)}</span>
+                    ) : (
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="0,00"
+                        value={manualOkiOki[row.invoiceId] ?? ''}
+                        onChange={e => onManualOkiOkiChange(row.invoiceId, e.target.value)}
+                        className="w-28 text-right text-sm border border-purple-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-purple-400 bg-purple-50 text-purple-700 placeholder:text-purple-200"
+                      />
+                    )}
+                  </td>
+                  <td className="py-3 px-4 text-right font-bold">
+                    {(() => {
+                      const oki = row.okiOkiAmount ?? (manualOkiOki[row.invoiceId] !== undefined && manualOkiOki[row.invoiceId] !== '' ? parseFloat(manualOkiOki[row.invoiceId]) : null);
+                      if (oki === null) return <span className="text-muted-foreground">—</span>;
+                      const diff = oki - row.invoiceAmount;
+                      const match = Math.abs(diff) < 0.01;
+                      return match
+                        ? <span className="flex items-center justify-end gap-1 text-emerald-700"><CheckCircle2 className="w-3 h-3" /> OK</span>
+                        : <span className={diff >= 0 ? 'text-orange-700' : 'text-red-700'}>{diff >= 0 ? '+' : ''}{formatCurrency(diff)}</span>;
+                    })()}
+                  </td>
                   <td className="py-3 px-4 text-center">
                     <StatusBadgeCell {...row} />
                   </td>
@@ -183,8 +190,13 @@ function ClientVerificationTable({ data, okiOkiData }) {
                 <td className={`py-3 px-4 text-right font-bold ${totalDiff === 0 ? 'text-emerald-700' : totalDiff > 0 ? 'text-orange-700' : 'text-red-700'}`}>
                   {totalDiff >= 0 ? '+' : ''}{formatCurrency(totalDiff)}
                 </td>
-                {okiOkiData && <td className="py-3 px-4 text-right font-bold text-purple-700">{formatCurrency(data.reduce((s, r) => s + (r.okiOkiAmount || 0), 0))}</td>}
-                {okiOkiData && <td />}
+                <td className="py-3 px-4 text-right font-bold text-purple-700">
+                  {formatCurrency(data.reduce((s, r) => {
+                    const oki = r.okiOkiAmount ?? (manualOkiOki[r.invoiceId] !== undefined && manualOkiOki[r.invoiceId] !== '' ? parseFloat(manualOkiOki[r.invoiceId]) : 0);
+                    return s + (oki || 0);
+                  }, 0))}
+                </td>
+                <td />
                 <td />
               </tr>
             </tfoot>
@@ -307,6 +319,11 @@ function ConsultantVerificationTable({ data }) {
 export default function VerificationTab({ timesheets, invoices, placements, year }) {
   const [filterMonth, setFilterMonth] = useState(String(new Date().getMonth() + 1));
   const [okiOkiData, setOkiOkiData] = useState(null);
+  const [manualOkiOki, setManualOkiOki] = useState({});
+
+  const handleManualOkiOkiChange = (invoiceId, value) => {
+    setManualOkiOki(prev => ({ ...prev, [invoiceId]: value }));
+  };
   const yr = parseInt(year);
   const mo = parseInt(filterMonth);
 
@@ -408,7 +425,7 @@ export default function VerificationTab({ timesheets, invoices, placements, year
           <div className="flex-1 h-px bg-blue-200 ml-2" />
         </div>
         <SummaryCards data={clientData} />
-        <ClientVerificationTable data={clientData} okiOkiData={okiOkiData} />
+        <ClientVerificationTable data={clientData} okiOkiData={okiOkiData} manualOkiOki={manualOkiOki} onManualOkiOkiChange={handleManualOkiOkiChange} />
       </div>
 
       {/* ── Sectie 2: Consultantfacturen ── */}
