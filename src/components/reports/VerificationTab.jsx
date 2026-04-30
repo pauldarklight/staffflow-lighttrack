@@ -2,12 +2,14 @@ import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Info, Link2, Link2Off } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatCurrency, getMonthName } from '@/lib/formatters';
+import OkiOkiImport from '@/components/reports/OkiOkiImport';
 
 export default function VerificationTab({ timesheets, invoices, placements, year }) {
   const [filterMonth, setFilterMonth] = useState(String(new Date().getMonth() + 1));
+  const [okiOkiData, setOkiOkiData] = useState(null); // imported Oki Oki rows
   const yr = parseInt(year);
   const mo = parseInt(filterMonth);
 
@@ -23,16 +25,36 @@ export default function VerificationTab({ timesheets, invoices, placements, year
       const dailyRate = placement?.client_rate || 0;
       const expectedAmount = approvedDays * dailyRate;
       
-      // Werkelijk factuurbedrag
+      // Werkelijk factuurbedrag (in app)
       const invoiceAmount = invoice.amount || 0;
       
-      // Verschil berekenen
+      // Oki Oki match: zoek op factuurnummer of klantnaam
+      let okiOkiMatch = null;
+      if (okiOkiData) {
+        const invNum = (invoice.invoice_number || '').toLowerCase().trim();
+        const clientName = (placement?.client_company_name || '').toLowerCase().trim();
+        okiOkiMatch = okiOkiData.find(row => {
+          const rowNum = (row.invoiceNumber || '').toLowerCase().trim();
+          const rowClient = (row.clientName || '').toLowerCase().trim();
+          if (invNum && rowNum && rowNum.includes(invNum)) return true;
+          if (invNum && rowNum && invNum.includes(rowNum)) return true;
+          if (clientName && rowClient && rowClient.includes(clientName.split(' ')[0])) return true;
+          return false;
+        }) || null;
+      }
+      const okiOkiAmount = okiOkiMatch ? okiOkiMatch.amount : null;
+
+      // Verschil: app vs berekend
       const difference = invoiceAmount - expectedAmount;
       const percentageDiff = expectedAmount > 0 ? Math.abs((difference / expectedAmount) * 100) : 0;
-      const isMatching = Math.abs(difference) < 0.01; // Tolerantie van 1 cent
+      const isMatching = Math.abs(difference) < 0.01;
       const isWarning = !isMatching && percentageDiff < 10;
       const isCritical = percentageDiff >= 10;
-      
+
+      // Oki Oki vs app verschil
+      const okiOkiDiff = okiOkiAmount !== null ? okiOkiAmount - invoiceAmount : null;
+      const okiOkiMatch3way = okiOkiAmount !== null ? Math.abs(okiOkiDiff) < 0.01 : null;
+
       return {
         invoiceId: invoice.id,
         invoiceNumber: invoice.invoice_number || '—',
@@ -48,9 +70,13 @@ export default function VerificationTab({ timesheets, invoices, placements, year
         isWarning,
         isCritical,
         status: invoice.status,
+        okiOkiAmount,
+        okiOkiDiff,
+        okiOkiMatch3way,
+        okiOkiMatchedRow: okiOkiMatch,
       };
     });
-  }, [invoices, timesheets, placements, yr, mo]);
+  }, [invoices, timesheets, placements, yr, mo, okiOkiData]);
 
   const matchingCount = verificationData.filter(d => d.isMatching).length;
   const warningCount = verificationData.filter(d => d.isWarning).length;
@@ -62,6 +88,9 @@ export default function VerificationTab({ timesheets, invoices, placements, year
 
   return (
     <div className="space-y-6">
+      {/* Oki Oki import */}
+      <OkiOkiImport onImport={setOkiOkiData} importedData={okiOkiData} />
+
       {/* Month filter */}
       <div className="flex items-center gap-4">
         <Select value={filterMonth} onValueChange={setFilterMonth}>
@@ -170,6 +199,8 @@ export default function VerificationTab({ timesheets, invoices, placements, year
                     <th className="text-right py-3 px-4 font-bold text-primary">Verwacht</th>
                     <th className="text-right py-3 px-4 font-bold text-blue-600">Gefactureerd</th>
                     <th className="text-right py-3 px-4 font-bold text-foreground">Verschil</th>
+                    {okiOkiData && <th className="text-right py-3 px-4 font-bold text-blue-700">Oki Oki</th>}
+                    {okiOkiData && <th className="text-right py-3 px-4 font-bold text-blue-700">Δ Oki Oki</th>}
                     <th className="text-center py-3 px-4 font-bold text-foreground">Status</th>
                   </tr>
                 </thead>
@@ -191,6 +222,32 @@ export default function VerificationTab({ timesheets, invoices, placements, year
                       <td className={`py-3 px-4 text-right font-bold ${row.isMatching ? 'text-emerald-700' : row.difference > 0 ? 'text-orange-700' : 'text-red-700'}`}>
                         {row.difference >= 0 ? '+' : ''}{formatCurrency(row.difference)}
                       </td>
+                      {okiOkiData && (
+                        <td className="py-3 px-4 text-right font-semibold text-blue-700">
+                          {row.okiOkiAmount !== null ? formatCurrency(row.okiOkiAmount) : (
+                            <span className="text-xs text-muted-foreground flex items-center justify-end gap-1">
+                              <Link2Off className="w-3 h-3" /> niet gevonden
+                            </span>
+                          )}
+                        </td>
+                      )}
+                      {okiOkiData && (
+                        <td className={`py-3 px-4 text-right font-bold ${
+                          row.okiOkiDiff === null ? 'text-muted-foreground' :
+                          row.okiOkiMatch3way ? 'text-emerald-700' :
+                          Math.abs(row.okiOkiDiff) < invoices.length ? 'text-amber-700' : 'text-red-700'
+                        }`}>
+                          {row.okiOkiDiff !== null ? (
+                            row.okiOkiMatch3way ? (
+                              <span className="flex items-center justify-end gap-1 text-emerald-700">
+                                <CheckCircle2 className="w-3 h-3" /> OK
+                              </span>
+                            ) : (
+                              <>{row.okiOkiDiff >= 0 ? '+' : ''}{formatCurrency(row.okiOkiDiff)}</>
+                            )
+                          ) : '—'}
+                        </td>
+                      )}
                       <td className="py-3 px-4 text-center">
                         {row.isMatching ? (
                           <Badge className="bg-emerald-100 text-emerald-700 border-emerald-300 flex items-center justify-center gap-1 w-fit mx-auto">
@@ -219,6 +276,12 @@ export default function VerificationTab({ timesheets, invoices, placements, year
                     <td className={`py-3 px-4 text-right font-bold ${totalDifference === 0 ? 'text-emerald-700' : totalDifference > 0 ? 'text-orange-700' : 'text-red-700'}`}>
                       {totalDifference >= 0 ? '+' : ''}{formatCurrency(totalDifference)}
                     </td>
+                    {okiOkiData && (
+                      <td className="py-3 px-4 text-right font-bold text-blue-700">
+                        {formatCurrency(verificationData.reduce((s, r) => s + (r.okiOkiAmount || 0), 0))}
+                      </td>
+                    )}
+                    {okiOkiData && <td />}
                     <td />
                   </tr>
                 </tfoot>
