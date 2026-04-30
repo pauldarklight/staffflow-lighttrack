@@ -81,12 +81,12 @@ function RowDetail({ row, isClient, manualOkiOki, onManualOkiOkiChange }) {
             </div>
           </div>
 
-          {/* Oki Oki — altijd invulbaar, ook als auto-gematcht */}
-          {isClient && (
+          {/* Oki Oki / manueel bedrag — altijd invulbaar */}
+          {(isClient || !isClient) && (
             <div className="space-y-1">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Oki Oki verificatie</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">{isClient ? 'Oki Oki verificatie' : 'Manuele verificatie'}</p>
               <div className="flex justify-between text-sm items-center gap-2">
-                <span className="text-muted-foreground shrink-0">Oki Oki bedrag</span>
+                <span className="text-muted-foreground shrink-0">{isClient ? 'Oki Oki bedrag' : 'Ontvangen bedrag'}</span>
                 <input
                   type="number"
                   step="0.01"
@@ -101,7 +101,7 @@ function RowDetail({ row, isClient, manualOkiOki, onManualOkiOkiChange }) {
               )}
               {oki !== null && (
                 <div className="flex justify-between text-sm border-t pt-1 mt-1">
-                  <span className="font-semibold">Δ Oki Oki vs App</span>
+                  <span className="font-semibold">{isClient ? 'Δ Oki Oki vs App' : 'Δ Manueel vs App'}</span>
                   {okiMatch
                     ? <span className="flex items-center gap-1 text-emerald-700 font-bold"><CheckCircle2 className="w-3 h-3" /> OK</span>
                     : <span className={`font-bold ${okiDiff >= 0 ? 'text-orange-700' : 'text-red-700'}`}>{okiDiff >= 0 ? '+' : ''}{formatCurrency(okiDiff)}</span>
@@ -351,6 +351,8 @@ export default function VerificationTab({ timesheets, invoices, placements, year
           invoicedLabel="Ontvangen factuur"
           expectedColor="text-emerald-700"
           invoicedColor="text-orange-600"
+          manualOkiOki={manualOkiOki}
+          onManualOkiOkiChange={handleManualOkiOkiChange}
         />
       </div>
     </div>
