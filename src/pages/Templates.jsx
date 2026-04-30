@@ -36,7 +36,6 @@ const LANG_LABELS = { nl: '🇧🇪 NL', en: '🇬🇧 EN' };
 const GROUPS = [
 
   { key: 'contract', label: 'Contracten', types: ['contract_client', 'contract_consultant', 'contract_subcontractor', 'contract_addendum'] },
-  { key: 'invoice', label: 'Facturen', types: ['invoice_client', 'invoice_consultant'] },
 ];
 
 export default function Templates() {
