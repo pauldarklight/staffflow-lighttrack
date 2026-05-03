@@ -44,16 +44,21 @@ function parseNum(val) {
   return isNaN(n) ? null : n;
 }
 
+function excelSerialToDate(serial) {
+  // Excel serial: days since 1900-01-01 (with Lotus 1-2-3 leap year bug: serial 60 = fake 1900-02-29)
+  const epoch = new Date(1899, 11, 30); // Dec 30, 1899
+  const d = new Date(epoch.getTime() + serial * 86400000);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 function parseDate(val) {
   if (!val) return null;
-  // Excel serial date
-  if (typeof val === 'number') {
-    const date = XLSX.SSF.parse_date_code(val);
-    if (date) {
-      const m = String(date.m).padStart(2, '0');
-      const d = String(date.d).padStart(2, '0');
-      return `${date.y}-${m}-${d}`;
-    }
+  // Excel serial date (number)
+  if (typeof val === 'number' && val > 1000) {
+    return excelSerialToDate(val);
   }
   // String date
   const s = String(val).trim();
