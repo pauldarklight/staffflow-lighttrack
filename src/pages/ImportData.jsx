@@ -1,14 +1,15 @@
 import React, { useState, useRef } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle2, AlertTriangle, Upload, Loader2, FileSpreadsheet, RefreshCw, Search, X, FolderOpen } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Upload, Loader2, FileSpreadsheet, RefreshCw, Search, X, FolderOpen, History, ExternalLink } from 'lucide-react';
 import PageHeader from '@/components/shared/PageHeader';
 import { formatCurrency, getMonthName } from '@/lib/formatters';
+import { formatDate } from '@/lib/formatters';
 
 export default function ImportData() {
   const [status, setStatus] = useState('idle'); // idle | extracting | preview | creating | done | error
@@ -32,6 +33,11 @@ export default function ImportData() {
 
   const queryClient = useQueryClient();
 
+  const { data: importLogs = [] } = useQuery({
+    queryKey: ['importLogs'],
+    queryFn: () => base44.entities.ImportLog.list('-created_date', 50),
+  });
+
   // Upload a file from computer
   const handleFileUpload = async (file) => {
     setUploadLoading(true);
@@ -49,6 +55,16 @@ export default function ImportData() {
       setSelectedSheet(response.data?.sheet_name || sheets[0] || '');
       if (response.data?.detected_month) setDetectedMonth(response.data.detected_month);
       if (response.data?.detected_year) setDetectedYear(response.data.detected_year);
+      // Log the upload
+      await base44.entities.ImportLog.create({
+        file_name: file.name,
+        file_url,
+        sheet_name: response.data?.sheet_name || sheets[0] || '',
+        detected_month: response.data?.detected_month || null,
+        detected_year: response.data?.detected_year || null,
+        status: 'uploaded',
+      });
+      queryClient.invalidateQueries({ queryKey: ['importLogs'] });
     } catch (e) {
       setErrorMsg(e.response?.data?.error || e.message || 'Upload mislukt');
       setStatus('error');
@@ -145,6 +161,19 @@ export default function ImportData() {
     queryClient.invalidateQueries({ queryKey: ['placements'] });
     queryClient.invalidateQueries({ queryKey: ['contracts'] });
     queryClient.invalidateQueries({ queryKey: ['timesheets'] });
+    // Update the most recent log for this file
+    if (uploadedFile) {
+      const matchingLog = importLogs.find(l => l.file_url === uploadedFile.url);
+      if (matchingLog) {
+        await base44.entities.ImportLog.update(matchingLog.id, {
+          status: 'imported',
+          rows_created: created.length,
+          rows_skipped: skipped.length,
+          sheet_name: selectedSheet,
+        });
+        queryClient.invalidateQueries({ queryKey: ['importLogs'] });
+      }
+    }
     setStatus('done');
   };
 
@@ -486,6 +515,70 @@ export default function ImportData() {
           </Card>
         )}
       </div>
+
+      {/* Import geschiedenis */}
+      {importLogs.length > 0 && (
+        <div className="max-w-4xl mt-10">
+          <div className="flex items-center gap-2 mb-3">
+            <History className="w-4 h-4 text-muted-foreground" />
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Import geschiedenis</h2>
+          </div>
+          <Card>
+            <CardContent className="p-0">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/40">
+                    <th className="text-left py-2 px-4 font-medium text-muted-foreground">Bestand</th>
+                    <th className="text-left py-2 px-4 font-medium text-muted-foreground">Tabblad</th>
+                    <th className="text-left py-2 px-4 font-medium text-muted-foreground">Periode</th>
+                    <th className="text-left py-2 px-4 font-medium text-muted-foreground">Status</th>
+                    <th className="text-right py-2 px-4 font-medium text-muted-foreground">Aangemaakt</th>
+                    <th className="text-left py-2 px-4 font-medium text-muted-foreground">Datum</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {importLogs.map(log => (
+                    <tr key={log.id} className="border-b hover:bg-muted/20">
+                      <td className="py-2 px-4">
+                        <div className="flex items-center gap-2">
+                          <FileSpreadsheet className="w-4 h-4 text-muted-foreground shrink-0" />
+                          <span className="font-medium truncate max-w-[200px]">{log.file_name}</span>
+                          {log.file_url && (
+                            <a href={log.file_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-2 px-4 text-muted-foreground">{log.sheet_name || '—'}</td>
+                      <td className="py-2 px-4 text-muted-foreground">
+                        {log.detected_month && log.detected_year
+                          ? `${getMonthName(log.detected_month)} ${log.detected_year}`
+                          : '—'}
+                      </td>
+                      <td className="py-2 px-4">
+                        {log.status === 'imported' ? (
+                          <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-xs">✓ Verwerkt</Badge>
+                        ) : log.status === 'extracted' ? (
+                          <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs">Geëxtraheerd</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs text-muted-foreground">Geüpload</Badge>
+                        )}
+                      </td>
+                      <td className="py-2 px-4 text-right">
+                        {log.status === 'imported'
+                          ? <span className="text-emerald-700 font-semibold">{log.rows_created ?? '—'} <span className="text-xs font-normal text-muted-foreground">/ {(log.rows_skipped ?? 0) + (log.rows_created ?? 0)} rijen</span></span>
+                          : <span className="text-muted-foreground">—</span>}
+                      </td>
+                      <td className="py-2 px-4 text-muted-foreground text-xs">{formatDate(log.created_date)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

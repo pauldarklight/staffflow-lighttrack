@@ -1,0 +1,51 @@
+{
+  "name": "ImportLog",
+  "type": "object",
+  "properties": {
+    "file_name": {
+      "type": "string",
+      "description": "Naam van het ge\u00fcploade bestand"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL van het bestand"
+    },
+    "sheet_name": {
+      "type": "string",
+      "description": "Verwerkt tabblad"
+    },
+    "detected_month": {
+      "type": "integer",
+      "description": "Gedetecteerde maand"
+    },
+    "detected_year": {
+      "type": "integer",
+      "description": "Gedetecteerd jaar"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "uploaded",
+        "extracted",
+        "imported"
+      ],
+      "default": "uploaded",
+      "description": "Status van de import"
+    },
+    "rows_created": {
+      "type": "integer",
+      "description": "Aantal aangemaakte placements"
+    },
+    "rows_skipped": {
+      "type": "integer",
+      "description": "Aantal overgeslagen rijen"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Extra opmerkingen"
+    }
+  },
+  "required": [
+    "file_name"
+  ]
+}
