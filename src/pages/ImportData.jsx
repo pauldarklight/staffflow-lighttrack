@@ -139,8 +139,8 @@ export default function ImportData() {
       const dagfee = parseFloat(row.client_rate) || 0;
       const marge = parseFloat(row.marge_per_dag) || 0;
       const consultantRate = parseFloat(row.consultant_rate) || (dagfee - marge);
-
       const importLabel = uploadedFile ? uploadedFile.name : 'Actuals Excel';
+
       const placement = await base44.entities.Placement.create({
         placement_type: 'freelancer',
         consultant_first_name: firstName,
@@ -154,21 +154,17 @@ export default function ImportData() {
         notes: `Geïmporteerd vanuit Actuals Excel – ${importLabel}`,
       });
 
-      await base44.entities.Contract.create({ placement_id: placement.id, contract_type: 'client', status: 'draft', recipient_name: row.client_company.trim(), recipient_email: '', notes: 'Auto aangemaakt via import Jan 2026' });
-      await base44.entities.Contract.create({ placement_id: placement.id, contract_type: 'consultant', status: 'draft', recipient_name: row.consultant_name.trim(), recipient_email: '', notes: 'Auto aangemaakt via import Jan 2026' });
-
       if (row.days_worked > 0) {
-        const daysWorked = parseFloat(row.days_worked);
-        const clientRevenue = parseFloat(row.omzet) || (daysWorked * dagfee);
-        const consultantCost = daysWorked * consultantRate;
-        const margin = parseFloat(row.margin) || parseFloat(row.total_marge) || (daysWorked * marge);
         const tsMonth = detectedMonth || parseInt(importMonth);
         const tsYear = detectedYear || parseInt(importYear);
         await base44.entities.Timesheet.create({
-          placement_id: placement.id, month: tsMonth, year: tsYear,
-          days_worked: daysWorked, client_revenue: clientRevenue,
-          consultant_revenue: consultantCost, margin: margin,
-          status: 'approved', consultant_name: row.consultant_name.trim(), client_company: row.client_company.trim(),
+          placement_id: placement.id,
+          month: tsMonth,
+          year: tsYear,
+          days_worked: parseFloat(row.days_worked),
+          status: 'approved',
+          consultant_name: row.consultant_name.trim(),
+          client_company: row.client_company.trim(),
         });
       }
 
@@ -177,9 +173,7 @@ export default function ImportData() {
 
     setResults({ created, skipped });
     queryClient.invalidateQueries({ queryKey: ['placements'] });
-    queryClient.invalidateQueries({ queryKey: ['contracts'] });
     queryClient.invalidateQueries({ queryKey: ['timesheets'] });
-    // Update the most recent log for this file
     if (uploadedFile) {
       const matchingLog = importLogs.find(l => l.file_url === uploadedFile.url);
       if (matchingLog) {
@@ -525,7 +519,7 @@ export default function ImportData() {
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">
-                Per placement zijn automatisch 2 contracten (klant + consultant) en 1 goedgekeurde timesheet voor januari 2026 aangemaakt.
+                Per placement is automatisch 1 goedgekeurde timesheet (enkel dagen) aangemaakt. Geen contracten aangemaakt.
               </p>
               {results.skipped.length > 0 && (
                 <div className="text-xs text-muted-foreground">
