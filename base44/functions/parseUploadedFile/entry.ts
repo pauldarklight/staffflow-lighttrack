@@ -136,10 +136,14 @@ Deno.serve(async (req) => {
       const start_date = parseDate(cellVal(sheet, 'B', r));
 
       // Sales contributors (filter out 0% and null)
+      // Percentages can be stored as decimals (0.30) or whole numbers (30)
       const sales_contributors = SALES_PEOPLE
         .map(sp => {
           const pct = parseNum(cellVal(sheet, sp.col, r));
-          return pct && pct > 0 ? { name: sp.name, percentage: Math.round(pct * (pct <= 1 ? 100 : 1)) } : null;
+          if (!pct || pct === 0) return null;
+          // Normalize: if stored as decimal (0.01 - 1.0), convert to percentage
+          const percentage = pct > 0 && pct <= 1 ? Math.round(pct * 100) : Math.round(pct);
+          return percentage > 0 ? { name: sp.name, percentage } : null;
         })
         .filter(Boolean);
 
@@ -162,11 +166,15 @@ Deno.serve(async (req) => {
     let detectedYear = year ? parseInt(year) : null;
 
     if (!detectedMonth || !detectedYear) {
-      const MONTHS_NL = ['jan','feb','maa','mar','apr','mei','jun','jul','aug','sep','okt','oct','nov','dec'];
+      const MONTHS_NL = ['jan','feb','maa','apr','mei','jun','jul','aug','sep','okt','nov','dec'];
       const MONTHS_EN = ['january','february','march','april','may','june','july','august','september','october','november','december'];
       const sLow = sheetName.toLowerCase();
-      MONTHS_NL.forEach((m, i) => { if (sLow.includes(m)) detectedMonth = detectedMonth || (i < 2 ? i+1 : i === 2 || i === 3 ? i+1 : i+1); });
-      if (!detectedMonth) MONTHS_EN.forEach((m, i) => { if (sLow.includes(m)) detectedMonth = i + 1; });
+      if (!detectedMonth) {
+        MONTHS_NL.forEach((m, i) => { if (sLow.includes(m)) detectedMonth = i + 1; });
+      }
+      if (!detectedMonth) {
+        MONTHS_EN.forEach((m, i) => { if (sLow.includes(m)) detectedMonth = i + 1; });
+      }
       const yearMatch = sheetName.match(/20\d{2}/);
       if (yearMatch) detectedYear = parseInt(yearMatch[0]);
     }
