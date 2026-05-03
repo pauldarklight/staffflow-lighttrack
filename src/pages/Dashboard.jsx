@@ -30,7 +30,16 @@ export default function Dashboard() {
     queryFn: () => base44.entities.Invoice.list(),
   });
 
-  const activePlacements = placements.filter(p => p.status === 'active');
+  // Actieve placements = status active EN gestart voor/op einde van displayMonth EN geen einddatum of einddatum >= begin van displayMonth
+  const periodStart = new Date(displayYear, displayMonth - 1, 1);
+  const periodEnd = new Date(displayYear, displayMonth, 0);
+  const activePlacements = placements.filter(p => {
+    if (p.status !== 'active') return false;
+    if (!p.start_date) return false;
+    const start = new Date(p.start_date);
+    const end = p.end_date ? new Date(p.end_date) : null;
+    return start <= periodEnd && (!end || end >= periodStart);
+  });
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
   const currentYear = now.getFullYear();
