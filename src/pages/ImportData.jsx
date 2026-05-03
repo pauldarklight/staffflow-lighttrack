@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle2, AlertTriangle, Upload, Loader2, FileSpreadsheet, RefreshCw, Search, X, FolderOpen, History, ExternalLink } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Upload, Loader2, FileSpreadsheet, RefreshCw, Search, X, FolderOpen, History, ExternalLink, RotateCcw } from 'lucide-react';
 import PageHeader from '@/components/shared/PageHeader';
 import { formatCurrency, getMonthName } from '@/lib/formatters';
 import { formatDate } from '@/lib/formatters';
@@ -70,6 +70,32 @@ export default function ImportData() {
       setStatus('error');
     }
     setUploadLoading(false);
+  };
+
+  const handleReExtract = async (log) => {
+    setUploadedFile({ name: log.file_name, url: log.file_url });
+    setSelectedSheet(log.sheet_name || '');
+    if (log.detected_month) setDetectedMonth(log.detected_month);
+    if (log.detected_year) setDetectedYear(log.detected_year);
+    setStatus('extracting');
+    setErrorMsg('');
+    try {
+      const response = await base44.functions.invoke('parseUploadedFile', {
+        file_url: log.file_url,
+        sheet_name: log.sheet_name || '',
+        month: log.detected_month || importMonth,
+        year: log.detected_year || importYear,
+      });
+      const rows = (response.data?.rows || []).filter(r => r.consultant_name && r.client_company);
+      if (rows.length === 0) throw new Error('Geen geldige rijen gevonden.');
+      setExtracted(rows);
+      setAvailableSheets(response.data?.sheets || []);
+      setStatus('preview');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (e) {
+      setErrorMsg(e.response?.data?.error || e.message || 'Onbekende fout');
+      setStatus('error');
+    }
   };
 
   const handleExtract = async () => {
@@ -447,9 +473,11 @@ export default function ImportData() {
                       <th className="text-right py-2 px-3">Dagfee</th>
                       <th className="text-right py-2 px-3">Marge/dag</th>
                       <th className="text-right py-2 px-3">Cons. tarief</th>
-                      <th className="text-right py-2 px-3">Dagen jan</th>
+                      <th className="text-right py-2 px-3">Dagen</th>
+                      <th className="text-right py-2 px-3">Omzet</th>
+                      <th className="text-right py-2 px-3">Marge</th>
                       <th className="text-left py-2 px-3">Start</th>
-                      <th className="text-left py-2 px-3">Einde</th>
+                      <th className="text-left py-2 px-3">Sales</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -461,8 +489,12 @@ export default function ImportData() {
                         <td className="py-2 px-3 text-right text-emerald-600">{r.marge_per_dag ? formatCurrency(r.marge_per_dag) : '—'}</td>
                         <td className="py-2 px-3 text-right text-muted-foreground">{r.consultant_rate ? formatCurrency(r.consultant_rate) : '—'}</td>
                         <td className="py-2 px-3 text-right">{r.days_worked || '—'}</td>
+                        <td className="py-2 px-3 text-right text-blue-600">{r.omzet ? formatCurrency(r.omzet) : '—'}</td>
+                        <td className="py-2 px-3 text-right text-emerald-600">{r.margin ? formatCurrency(r.margin) : '—'}</td>
                         <td className="py-2 px-3 text-muted-foreground">{r.start_date || '—'}</td>
-                        <td className="py-2 px-3 text-muted-foreground">{r.end_date || '—'}</td>
+                        <td className="py-2 px-3 text-xs text-muted-foreground">
+                          {(r.sales_contributors || []).map(s => `${s.name} ${s.percentage}%`).join(', ') || '—'}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -534,6 +566,7 @@ export default function ImportData() {
                     <th className="text-left py-2 px-4 font-medium text-muted-foreground">Status</th>
                     <th className="text-right py-2 px-4 font-medium text-muted-foreground">Aangemaakt</th>
                     <th className="text-left py-2 px-4 font-medium text-muted-foreground">Datum</th>
+                    <th className="py-2 px-4" />
                   </tr>
                 </thead>
                 <tbody>
@@ -571,6 +604,18 @@ export default function ImportData() {
                           : <span className="text-muted-foreground">—</span>}
                       </td>
                       <td className="py-2 px-4 text-muted-foreground text-xs">{formatDate(log.created_date)}</td>
+                      <td className="py-2 px-4">
+                        {log.file_url && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs gap-1"
+                            onClick={() => handleReExtract(log)}
+                          >
+                            <RotateCcw className="w-3 h-3" /> Herextraheer
+                          </Button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
