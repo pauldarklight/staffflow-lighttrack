@@ -24,6 +24,8 @@ export default function ImportData() {
   const [uploadLoading, setUploadLoading] = useState(false);
   const [availableSheets, setAvailableSheets] = useState([]);
   const [selectedSheet, setSelectedSheet] = useState('');
+  const [detectedMonth, setDetectedMonth] = useState(null);
+  const [detectedYear, setDetectedYear] = useState(null);
   const [importMonth, setImportMonth] = useState(String(new Date().getMonth() + 1));
   const [importYear, setImportYear] = useState(String(new Date().getFullYear()));
   const fileInputRef = useRef(null);
@@ -40,11 +42,13 @@ export default function ImportData() {
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       // Parse it to get sheet names
-      const response = await base44.functions.invoke('parseUploadedFile', { file_url, month: importMonth });
+      const response = await base44.functions.invoke('parseUploadedFile', { file_url, month: importMonth, year: importYear });
       const sheets = response.data?.sheets || [];
       setUploadedFile({ name: file.name, url: file_url });
       setAvailableSheets(sheets);
       setSelectedSheet(response.data?.sheet_name || sheets[0] || '');
+      if (response.data?.detected_month) setDetectedMonth(response.data.detected_month);
+      if (response.data?.detected_year) setDetectedYear(response.data.detected_year);
     } catch (e) {
       setErrorMsg(e.response?.data?.error || e.message || 'Upload mislukt');
       setStatus('error');
@@ -61,7 +65,9 @@ export default function ImportData() {
         // Use uploaded file
         response = await base44.functions.invoke('parseUploadedFile', {
           file_url: uploadedFile.url,
-          month: selectedSheet || importMonth,
+          sheet_name: selectedSheet || '',
+          month: importMonth,
+          year: importYear,
         });
       } else {
         // Fallback: use hardcoded server-side file
@@ -121,9 +127,11 @@ export default function ImportData() {
         const daysWorked = parseFloat(row.days_worked);
         const clientRevenue = parseFloat(row.omzet) || (daysWorked * dagfee);
         const consultantCost = daysWorked * consultantRate;
-        const margin = parseFloat(row.total_marge) || (daysWorked * marge);
+        const margin = parseFloat(row.margin) || parseFloat(row.total_marge) || (daysWorked * marge);
+        const tsMonth = detectedMonth || parseInt(importMonth);
+        const tsYear = detectedYear || parseInt(importYear);
         await base44.entities.Timesheet.create({
-          placement_id: placement.id, month: 1, year: 2026,
+          placement_id: placement.id, month: tsMonth, year: tsYear,
           days_worked: daysWorked, client_revenue: clientRevenue,
           consultant_revenue: consultantCost, margin: margin,
           status: 'approved', consultant_name: row.consultant_name.trim(), client_company: row.client_company.trim(),
