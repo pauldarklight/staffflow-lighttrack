@@ -169,6 +169,8 @@ export default function Placements() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [sortBy, setSortBy] = useState('default');
   const [sectionFilter, setSectionFilter] = useState('all');
+  const [periodMonth, setPeriodMonth] = useState('all');
+  const [periodYear, setPeriodYear] = useState('all');
   const queryClient = useQueryClient();
 
   const { data: placements = [], isLoading } = useQuery({
@@ -322,6 +324,21 @@ export default function Placements() {
     else if (sectionFilter === 'import_perm') rows = rows.filter(p => isImported(p) && p.placement_type === 'perm');
     else if (sectionFilter === 'import_all') rows = rows.filter(p => isImported(p));
 
+    // Period filter: actief in de gekozen maand/jaar
+    if (periodMonth !== 'all' && periodYear !== 'all') {
+      const m = parseInt(periodMonth);
+      const y = parseInt(periodYear);
+      const periodStart = new Date(y, m - 1, 1);
+      const periodEnd = new Date(y, m, 0); // last day of month
+      rows = rows.filter(p => {
+        if (!p.start_date) return false;
+        const start = new Date(p.start_date);
+        const end = effectiveEndDate(p) ? new Date(effectiveEndDate(p)) : null;
+        // Actief als start <= einde van de maand EN (geen einddatum OF einddatum >= begin van de maand)
+        return start <= periodEnd && (!end || end >= periodStart);
+      });
+    }
+
     if (search) {
       const q = search.toLowerCase();
       rows = rows.filter(p =>
@@ -354,7 +371,7 @@ export default function Placements() {
     return rows;
   }, [enriched, search, statusFilter, typeFilter, sortBy]);
 
-  const hasFilters = search || statusFilter !== 'all' || typeFilter !== 'all' || sortBy !== 'default' || sectionFilter !== 'all';
+  const hasFilters = search || statusFilter !== 'all' || typeFilter !== 'all' || sortBy !== 'default' || sectionFilter !== 'all' || periodMonth !== 'all' || periodYear !== 'all';
 
   return (
     <div>
@@ -432,8 +449,26 @@ export default function Placements() {
             <SelectItem value="import_all">Import (alle)</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={periodMonth} onValueChange={setPeriodMonth}>
+          <SelectTrigger className="w-32 h-8 text-xs"><SelectValue placeholder="Maand" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Alle maanden</SelectItem>
+            {['Januari','Februari','Maart','April','Mei','Juni','Juli','Augustus','September','Oktober','November','December'].map((m, i) => (
+              <SelectItem key={i+1} value={String(i+1)}>{m}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={periodYear} onValueChange={setPeriodYear}>
+          <SelectTrigger className="w-24 h-8 text-xs"><SelectValue placeholder="Jaar" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Alle jaren</SelectItem>
+            {[2024, 2025, 2026, 2027].map(y => (
+              <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         {hasFilters && (
-          <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => { setSearch(''); setStatusFilter('all'); setTypeFilter('all'); setSortBy('default'); setSectionFilter('all'); }}>
+          <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => { setSearch(''); setStatusFilter('all'); setTypeFilter('all'); setSortBy('default'); setSectionFilter('all'); setPeriodMonth('all'); setPeriodYear('all'); }}>
             <X className="w-3.5 h-3.5 mr-1" /> Reset
           </Button>
         )}
