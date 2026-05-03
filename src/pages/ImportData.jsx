@@ -129,19 +129,29 @@ export default function ImportData() {
     setStatus('creating');
     const created = [];
     const skipped = [];
+    const importLabel = uploadedFile ? uploadedFile.name : 'Actuals Excel';
+    const tsMonth = detectedMonth || parseInt(importMonth);
+    const tsYear = detectedYear || parseInt(importYear);
 
+    // Separate valid from invalid rows
+    const validRows = [];
     for (const row of extracted) {
-      if (!row.consultant_name || !row.client_company) { skipped.push({ ...row, reason: 'Ontbrekende naam of bedrijf' }); continue; }
+      if (!row.consultant_name || !row.client_company) {
+        skipped.push({ ...row, reason: 'Ontbrekende naam of bedrijf' });
+      } else {
+        validRows.push(row);
+      }
+    }
 
+    // Bulk create all placements in one call
+    const placementData = validRows.map(row => {
       const nameParts = row.consultant_name.trim().split(' ');
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
       const dagfee = parseFloat(row.client_rate) || 0;
       const marge = parseFloat(row.marge_per_dag) || 0;
       const consultantRate = parseFloat(row.consultant_rate) || (dagfee - marge);
-      const importLabel = uploadedFile ? uploadedFile.name : 'Actuals Excel';
-
-      const placement = await base44.entities.Placement.create({
+      return {
         placement_type: 'freelancer',
         consultant_first_name: firstName,
         consultant_last_name: lastName,
@@ -152,24 +162,32 @@ export default function ImportData() {
         end_date: row.end_date || null,
         sales_contributors: (row.sales_contributors || []).filter(s => s.name && s.percentage > 0),
         notes: `Geïmporteerd vanuit Actuals Excel – ${importLabel}`,
-      });
+      };
+    });
 
-      if (row.days_worked > 0) {
-        const tsMonth = detectedMonth || parseInt(importMonth);
-        const tsYear = detectedYear || parseInt(importYear);
-        await base44.entities.Timesheet.create({
-          placement_id: placement.id,
+    const createdPlacements = await base44.entities.Placement.bulkCreate(placementData);
+
+    // Bulk create timesheets for rows with days_worked
+    const timesheetData = validRows
+      .map((row, i) => {
+        if (!row.days_worked || parseFloat(row.days_worked) <= 0) return null;
+        return {
+          placement_id: createdPlacements[i].id,
           month: tsMonth,
           year: tsYear,
           days_worked: parseFloat(row.days_worked),
           status: 'approved',
           consultant_name: row.consultant_name.trim(),
           client_company: row.client_company.trim(),
-        });
-      }
+        };
+      })
+      .filter(Boolean);
 
-      created.push(row);
+    if (timesheetData.length > 0) {
+      await base44.entities.Timesheet.bulkCreate(timesheetData);
     }
+
+    created.push(...validRows);
 
     setResults({ created, skipped });
     queryClient.invalidateQueries({ queryKey: ['placements'] });
