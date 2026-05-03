@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Users, TrendingUp, ArrowUpRight } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import PageHeader from '@/components/shared/PageHeader';
 import StatCard from '@/components/shared/StatCard';
 import { formatCurrency, getMonthName } from '@/lib/formatters';
@@ -34,7 +35,7 @@ export default function Dashboard() {
   const currentMonth = now.getMonth() + 1;
   const currentYear = now.getFullYear();
 
-  // Find the most recent month that actually has timesheet data
+  // Find the most recent month that actually has timesheet data (for default)
   const latestTs = timesheets.length > 0
     ? timesheets.reduce((best, t) => {
         const tDate = t.year * 100 + t.month;
@@ -42,8 +43,11 @@ export default function Dashboard() {
         return tDate > bDate ? t : best;
       })
     : null;
-  const displayMonth = latestTs ? latestTs.month : currentMonth;
-  const displayYear = latestTs ? latestTs.year : currentYear;
+  const defaultMonth = latestTs ? latestTs.month : currentMonth;
+  const defaultYear = latestTs ? latestTs.year : currentYear;
+
+  const [displayMonth, setDisplayMonth] = useState(defaultMonth);
+  const [displayYear, setDisplayYear] = useState(defaultYear);
 
   // Actieve placements = status active EN gestart voor/op einde van displayMonth EN geen einddatum of einddatum >= begin van displayMonth
   const periodStart = new Date(displayYear, displayMonth - 1, 1);
@@ -87,12 +91,29 @@ export default function Dashboard() {
     .slice(0, 5)
     .map(([name, value]) => ({ name, value }));
 
+  const years = [2024, 2025, 2026, 2027];
+
   return (
     <div>
       <PageHeader
         title="Dashboard"
         subtitle={`${getMonthName(displayMonth)} ${displayYear} — Overzicht`}
-      />
+      >
+        <Select value={String(displayMonth)} onValueChange={v => setDisplayMonth(parseInt(v))}>
+          <SelectTrigger className="w-36 h-8 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {Array.from({ length: 12 }, (_, i) => (
+              <SelectItem key={i + 1} value={String(i + 1)}>{getMonthName(i + 1)}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={String(displayYear)} onValueChange={v => setDisplayYear(parseInt(v))}>
+          <SelectTrigger className="w-24 h-8 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </PageHeader>
 
       {/* KPI row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
