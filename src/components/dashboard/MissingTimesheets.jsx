@@ -5,8 +5,13 @@ import { Clock, ChevronDown, ChevronUp } from 'lucide-react';
 export default function MissingTimesheets({ placements, timesheets }) {
   const [open, setOpen] = useState(false);
   const now = new Date();
-  const month = now.getMonth() + 1;
-  const year = now.getFullYear();
+
+  // Use the most recent month with timesheet data, fallback to current month
+  const latestTs = timesheets.length > 0
+    ? timesheets.reduce((best, t) => (t.year * 100 + t.month > best.year * 100 + best.month ? t : best))
+    : null;
+  const month = latestTs ? latestTs.month : now.getMonth() + 1;
+  const year = latestTs ? latestTs.year : now.getFullYear();
 
   const activeFree = placements.filter(p => p.status === 'active' && (!p.placement_type || p.placement_type === 'freelancer'));
   const submitted = new Set(timesheets.filter(t => t.month === month && t.year === year).map(t => t.placement_id));

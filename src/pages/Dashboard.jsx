@@ -35,7 +35,18 @@ export default function Dashboard() {
   const currentMonth = now.getMonth() + 1;
   const currentYear = now.getFullYear();
 
-  const monthlyTimesheets = timesheets.filter(t => t.month === currentMonth && t.year === currentYear);
+  // Find the most recent month that actually has timesheet data
+  const latestTs = timesheets.length > 0
+    ? timesheets.reduce((best, t) => {
+        const tDate = t.year * 100 + t.month;
+        const bDate = best.year * 100 + best.month;
+        return tDate > bDate ? t : best;
+      })
+    : null;
+  const displayMonth = latestTs ? latestTs.month : currentMonth;
+  const displayYear = latestTs ? latestTs.year : currentYear;
+
+  const monthlyTimesheets = timesheets.filter(t => t.month === displayMonth && t.year === displayYear);
   const totalRevenue = monthlyTimesheets.reduce((sum, t) => sum + (t.client_revenue || 0), 0);
   const totalMargin = monthlyTimesheets.reduce((sum, t) => sum + (t.margin || 0), 0);
   const pendingInvoices = invoices.filter(i => i.status === 'sent' || i.status === 'draft');
@@ -70,7 +81,7 @@ export default function Dashboard() {
     <div>
       <PageHeader
         title="Dashboard"
-        subtitle={`${getMonthName(currentMonth)} ${currentYear} — Overzicht`}
+        subtitle={`${getMonthName(displayMonth)} ${displayYear} — Overzicht`}
       />
 
       {/* KPI row */}
