@@ -27,9 +27,11 @@ export default function ImportData() {
   const [selectedSheet, setSelectedSheet] = useState('');
   const [detectedMonth, setDetectedMonth] = useState(null);
   const [detectedYear, setDetectedYear] = useState(null);
-  const [importMonth, setImportMonth] = useState(String(new Date().getMonth() + 1));
-  const [importYear, setImportYear] = useState(String(new Date().getFullYear()));
+  const [importMonth, setImportMonth] = useState('');
+  const [importYear, setImportYear] = useState('');
   const fileInputRef = useRef(null);
+
+  const periodSelected = importMonth && importYear;
 
   const queryClient = useQueryClient();
 
@@ -349,11 +351,55 @@ export default function ImportData() {
           </Card>
         )}
 
-        {/* Upload from computer */}
-        <Card className="border-primary/30 bg-primary/5">
+        {/* Stap 0: Periode selecteren */}
+        <Card className="border-amber-300 bg-amber-50/40">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <FolderOpen className="w-5 h-5 text-primary" /> Bestand uploaden van computer
+              <AlertTriangle className="w-5 h-5 text-amber-600" /> Stap 1 — Selecteer de periode van de data
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">Kies eerst de maand en het jaar waarop de te importeren data betrekking heeft. Dit is verplicht.</p>
+            <div className="flex gap-3 flex-wrap">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Maand</label>
+                <Select value={importMonth} onValueChange={setImportMonth}>
+                  <SelectTrigger className="w-36 h-9">
+                    <SelectValue placeholder="Kies maand..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {['Januari','Februari','Maart','April','Mei','Juni','Juli','Augustus','September','Oktober','November','December'].map((m, i) => (
+                      <SelectItem key={i+1} value={String(i+1)}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Jaar</label>
+                <Select value={importYear} onValueChange={setImportYear}>
+                  <SelectTrigger className="w-28 h-9">
+                    <SelectValue placeholder="Jaar..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[2024, 2025, 2026, 2027].map(y => (
+                      <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {periodSelected && (
+              <p className="text-sm font-semibold text-emerald-700">✓ Periode: {['Januari','Februari','Maart','April','Mei','Juni','Juli','Augustus','September','Oktober','November','December'][parseInt(importMonth)-1]} {importYear}</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Upload from computer */}
+        <Card className={`border-primary/30 bg-primary/5 ${!periodSelected ? 'opacity-50 pointer-events-none' : ''}`}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <FolderOpen className="w-5 h-5 text-primary" /> Stap 2 — Bestand uploaden
+              {!periodSelected && <span className="text-xs font-normal text-amber-600 ml-2">(selecteer eerst een periode)</span>}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -361,9 +407,9 @@ export default function ImportData() {
 
             <div
               className="border-2 border-dashed border-primary/30 rounded-lg p-6 text-center cursor-pointer hover:bg-primary/5 transition-colors"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => periodSelected && fileInputRef.current?.click()}
               onDragOver={e => e.preventDefault()}
-              onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFileUpload(f); }}
+              onDrop={e => { e.preventDefault(); if (!periodSelected) return; const f = e.dataTransfer.files[0]; if (f) handleFileUpload(f); }}
             >
               {uploadLoading ? (
                 <div className="flex flex-col items-center gap-2">
@@ -411,7 +457,7 @@ export default function ImportData() {
         {/* Step 1: Extract */}
         {(status === 'idle' || status === 'error') && (
           <Card>
-            <CardHeader><CardTitle className="text-base">Stap 1 — Gegevens extraheren</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">Stap 3 — Gegevens extraheren</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
                 {uploadedFile
