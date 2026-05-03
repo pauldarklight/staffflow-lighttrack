@@ -44,10 +44,11 @@ export default function FlowOverview() {
   const [infoOpen, setInfoOpen] = useState({});
   const now = new Date();
   const [periodYear, setPeriodYear] = useState(String(now.getFullYear()));
+  const [periodMonth, setPeriodMonth] = useState(String(now.getMonth() + 1));
   const [contractStatusFilter, setContractStatusFilter] = useState('all');
-  const [contractMonthFilter, setContractMonthFilter] = useState('all');
-  const [tsMonthFilter, setTsMonthFilter] = useState('all');
-  const [invMonthFilter, setInvMonthFilter] = useState('all');
+  const [contractMonthFilter, setContractMonthFilter] = useState(String(now.getMonth() + 1));
+  const [tsMonthFilter, setTsMonthFilter] = useState(String(now.getMonth() + 1));
+  const [invMonthFilter, setInvMonthFilter] = useState(String(now.getMonth() + 1));
 
   const { data: placements = [] } = useQuery({ queryKey: ['placements'], queryFn: () => base44.entities.Placement.list('-created_date') });
   const { data: contracts = [] } = useQuery({ queryKey: ['contracts'], queryFn: () => base44.entities.Contract.list() });
@@ -173,8 +174,7 @@ export default function FlowOverview() {
     return rows;
   }, [placements, invoices, periodYear, invMonthFilter]);
 
-  const years = [];
-  for (let y = 2024; y <= 2027; y++) years.push(y);
+  const years = [2024, 2025, 2026, 2027];
 
   function CellStatus({ val, type }) {
     if (!val) return <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Circle className="w-3 h-3" /> —</span>;
@@ -205,9 +205,32 @@ export default function FlowOverview() {
     return <span className={`inline-flex items-center gap-1 text-xs font-medium ${color}`}><Icon className="w-3 h-3" />{both ? 'K+C' : cc ? 'Klant' : 'Cons.'} · {allSigned ? 'getekend' : 'concept/verstuurd'}</span>;
   }
 
+  const handlePeriodChange = (month, year) => {
+    setPeriodMonth(month);
+    setPeriodYear(year);
+    setContractMonthFilter(month);
+    setTsMonthFilter(month);
+    setInvMonthFilter(month);
+  };
+
   return (
     <div>
-      <PageHeader title="Flow Overzicht" subtitle="Geautomatiseerde pipeline: Placement → Contracten → Timesheets → Facturen" />
+      <PageHeader title="Flow Overzicht" subtitle="Geautomatiseerde pipeline: Placement → Contracten → Timesheets → Facturen">
+        <Select value={periodMonth} onValueChange={v => handlePeriodChange(v, periodYear)}>
+          <SelectTrigger className="w-36 h-8 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {Array.from({ length: 12 }, (_, i) => (
+              <SelectItem key={i + 1} value={String(i + 1)}>{getMonthName(i + 1)}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={periodYear} onValueChange={v => handlePeriodChange(periodMonth, v)}>
+          <SelectTrigger className="w-24 h-8 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </PageHeader>
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
