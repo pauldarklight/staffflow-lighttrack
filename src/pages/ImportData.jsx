@@ -42,6 +42,18 @@ export default function ImportData() {
 
   // Upload a file from computer
   const handleFileUpload = async (file) => {
+    // Check if a file was already uploaded for this period
+    const mo = parseInt(importMonth);
+    const yr = parseInt(importYear);
+    const existingForPeriod = importLogs.find(
+      l => l.detected_month === mo && l.detected_year === yr
+    );
+    if (existingForPeriod) {
+      setErrorMsg(`Er is al een bestand geüpload voor ${['Januari','Februari','Maart','April','Mei','Juni','Juli','Augustus','September','Oktober','November','December'][mo-1]} ${yr}: "${existingForPeriod.file_name}". Verwijder eerst de bestaande import of kies een andere periode.`);
+      setStatus('error');
+      return;
+    }
+
     setUploadLoading(true);
     setAvailableSheets([]);
     setSelectedSheet('');
@@ -404,6 +416,12 @@ export default function ImportData() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">Upload een Excel (.xlsx) of CSV bestand. De kolommen worden automatisch herkend.</p>
+
+            {status === 'error' && errorMsg && (
+              <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" /> {errorMsg}
+              </div>
+            )}
 
             <div
               className="border-2 border-dashed border-primary/30 rounded-lg p-6 text-center cursor-pointer hover:bg-primary/5 transition-colors"
