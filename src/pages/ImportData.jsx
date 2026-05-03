@@ -140,14 +140,6 @@ export default function ImportData() {
       const marge = parseFloat(row.marge_per_dag) || 0;
       const consultantRate = parseFloat(row.consultant_rate) || (dagfee - marge);
 
-      const existing = await base44.entities.Placement.filter({
-        consultant_first_name: firstName,
-        consultant_last_name: lastName,
-        client_company_name: row.client_company.trim(),
-      });
-
-      if (existing && existing.length > 0) { skipped.push({ ...row, reason: 'Bestaat al' }); continue; }
-
       const importLabel = uploadedFile ? uploadedFile.name : 'Actuals Excel';
       const placement = await base44.entities.Placement.create({
         placement_type: 'freelancer',
