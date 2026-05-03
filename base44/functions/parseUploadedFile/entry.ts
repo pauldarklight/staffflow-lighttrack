@@ -4,7 +4,8 @@ import * as XLSX from 'npm:xlsx@0.18.5';
 /**
  * KOLOMSTRUCTUUR (vastgelegd door gebruiker):
  * - Rij 1-4: negeren (headers/titels staan op rij 5, data vanaf rij 6)
- * - Kolom B  = start_date (startdatum freelancer)
+ * - Kolom A  = start_date (startdatum freelancer)
+ * - Kolom B  = end_date (einddatum freelancer)
  * - Kolom C  = client_rate (dagtarief klant)
  * - Kolom D  = marge_per_dag (marge per dag → consultant_rate = C - D)
  * - Kolom E  = weekly_gross_profit (negeren)
@@ -133,7 +134,8 @@ Deno.serve(async (req) => {
       const days_worked = parseNum(cellVal(sheet, 'J', r)) || 0;
       const omzet = parseNum(cellVal(sheet, 'K', r));
       const margin = parseNum(cellVal(sheet, 'L', r));
-      const start_date = parseDate(cellVal(sheet, 'B', r));
+      const start_date = parseDate(cellVal(sheet, 'A', r));
+      const end_date = parseDate(cellVal(sheet, 'B', r));
 
       // Sales contributors (filter out 0% and null)
       // Percentages can be stored as decimals (0.30) or whole numbers (30)
@@ -151,6 +153,7 @@ Deno.serve(async (req) => {
         consultant_name: String(consultant_name).trim(),
         client_company: String(client_company || '').trim(),
         start_date,
+        end_date,
         client_rate,
         consultant_rate,
         marge_per_dag,
