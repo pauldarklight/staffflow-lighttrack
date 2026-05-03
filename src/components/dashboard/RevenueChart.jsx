@@ -4,6 +4,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell } from 'recharts';
 import { formatCurrency, getMonthName } from '@/lib/formatters';
 
+const AVG_DAYS = 16; // Gemiddeld aantal factureerbare dagen per maand
+
 function getWorkingDays(y, m) {
   let count = 0;
   const date = new Date(y, m - 1, 1);
@@ -46,16 +48,12 @@ export default function RevenueChart({ timesheets, placements }) {
     const nowDate = new Date();
 
     if (mode === 'monthly') {
-      // Always show all 12 months; future months = forecast (grey)
       return Array.from({ length: 12 }, (_, i) => {
         const m = i + 1;
         const mTs = timesheets.filter(t => t.month === m && t.year === yr);
-        const workDays = getWorkingDays(yr, m);
         const isFuture = new Date(yr, m - 1, 1) > nowDate;
-        const forecast = activeFree.reduce((sum, p) => {
-          const fraction = (p.days_per_week || 5) / 5;
-          return sum + workDays * fraction * (p.client_rate || 0);
-        }, 0);
+        const forecast = activeFree.reduce((sum, p) => sum + AVG_DAYS * (p.client_rate || 0), 0);
+        const forecastMargin = activeFree.reduce((sum, p) => sum + AVG_DAYS * ((p.client_rate || 0) - (p.consultant_rate || 0)), 0);
         const werkelijk = mTs.reduce((s, t) => s + (t.client_revenue || 0), 0);
         const marge = mTs.reduce((s, t) => s + (t.margin || 0), 0);
         return {
@@ -64,7 +62,7 @@ export default function RevenueChart({ timesheets, placements }) {
           omzetWerkelijk: isFuture ? 0 : werkelijk,
           margeWerkelijk: isFuture ? 0 : marge,
           omzetPrognose: isFuture ? forecast : 0,
-          margePrognose: isFuture ? forecast * 0.2 : 0, // rough margin estimate for forecast
+          margePrognose: isFuture ? forecastMargin : 0,
         };
       });
     }
@@ -75,11 +73,7 @@ export default function RevenueChart({ timesheets, placements }) {
       return Array.from({ length: months }, (_, i) => {
         const m = i + 1;
         const mTs = timesheets.filter(t => t.month === m && t.year === yr);
-        const workDays = getWorkingDays(yr, m);
-        cumVerwacht += activeFree.reduce((sum, p) => {
-          const fraction = (p.days_per_week || 5) / 5;
-          return sum + workDays * fraction * (p.client_rate || 0);
-        }, 0);
+        cumVerwacht += activeFree.reduce((sum, p) => sum + AVG_DAYS * (p.client_rate || 0), 0);
         cumWerkelijk += mTs.reduce((s, t) => s + (t.client_revenue || 0), 0);
         cumMarge += mTs.reduce((s, t) => s + (t.margin || 0), 0);
         return { name: getMonthName(m).slice(0, 3), verwacht: cumVerwacht, werkelijk: cumWerkelijk, marge: cumMarge };
@@ -91,14 +85,8 @@ export default function RevenueChart({ timesheets, placements }) {
         const yTs = timesheets.filter(t => t.year === y);
         const omzet = yTs.reduce((s, t) => s + (t.client_revenue || 0), 0);
         const marge = yTs.reduce((s, t) => s + (t.margin || 0), 0);
-        let verwacht = 0;
-        for (let m = 1; m <= 12; m++) {
-          const workDays = getWorkingDays(y, m);
-          verwacht += activeFree.reduce((sum, p) => {
-            const fraction = (p.days_per_week || 5) / 5;
-            return sum + workDays * fraction * (p.client_rate || 0);
-          }, 0);
-        }
+        // 12 months × 16 avg days
+        const verwacht = activeFree.reduce((sum, p) => sum + 12 * AVG_DAYS * (p.client_rate || 0), 0);
         return { name: String(y), verwacht, werkelijk: omzet, marge };
       });
     }
@@ -109,13 +97,11 @@ export default function RevenueChart({ timesheets, placements }) {
         const d = new Date(nowDate.getFullYear(), nowDate.getMonth() + i, 1);
         const m = d.getMonth() + 1;
         const y = d.getFullYear();
-        const workDays = getWorkingDays(y, m);
         const verwacht = activeFree.reduce((sum, p) => {
           const startOk = !p.start_date || new Date(p.start_date) <= new Date(y, m - 1, 28);
           const endOk = !p.end_date || new Date(p.end_date) >= new Date(y, m - 1, 1);
           if (!startOk || !endOk) return sum;
-          const fraction = (p.days_per_week || 5) / 5;
-          return sum + workDays * fraction * (p.client_rate || 0);
+          return sum + AVG_DAYS * (p.client_rate || 0);
         }, 0);
         const mTs = timesheets.filter(t => t.month === m && t.year === y);
         const isFuture = d > nowDate;
@@ -208,11 +194,10 @@ export default function RevenueChart({ timesheets, placements }) {
             )}
           </ComposedChart>
         </ResponsiveContainer>
-        {mode === 'monthly' && (
-          <p className="text-xs text-muted-foreground text-center mt-2">
-            Grijze balken = prognose op basis van actieve contracten
-          </p>
-        )}
+        <p className="text-xs text-muted-foreground text-center mt-2">
+          Prognose berekend op basis van <strong>{AVG_DAYS} dagen/maand</strong> gemiddelde × dagtarief actieve freelancers
+          {(mode === 'monthly' || mode === 'forecast') && ' · grijze balken / stippellijn = toekomstige maanden'}
+        </p>
       </CardContent>
     </Card>
   );

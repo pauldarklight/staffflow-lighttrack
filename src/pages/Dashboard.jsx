@@ -65,6 +65,12 @@ export default function Dashboard() {
   const totalMargin = monthlyTimesheets.reduce((sum, t) => sum + (t.margin || 0), 0);
   const pendingInvoices = invoices.filter(i => i.status === 'sent' || i.status === 'draft');
 
+  // Prognose: 16 dagen gemiddelde × tarieven actieve freelancers
+  const AVG_DAYS = 16;
+  const activeFree = activePlacements.filter(p => !p.placement_type || p.placement_type === 'freelancer');
+  const forecastRevenue = activeFree.reduce((sum, p) => sum + AVG_DAYS * (p.client_rate || 0), 0);
+  const forecastMargin = activeFree.reduce((sum, p) => sum + AVG_DAYS * ((p.client_rate || 0) - (p.consultant_rate || 0)), 0);
+
   // Monthly revenue chart data (last 6 months)
   const monthlyData = [];
   for (let i = 5; i >= 0; i--) {
@@ -118,8 +124,18 @@ export default function Dashboard() {
       {/* KPI row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard title="Actieve Placements" value={activePlacements.length} icon={Users} subtitle={`${placements.length} totaal`} />
-        <StatCard title="Omzet deze maand" value={formatCurrency(totalRevenue)} icon={TrendingUp} />
-        <StatCard title="Marge deze maand" value={formatCurrency(totalMargin)} icon={ArrowUpRight} />
+        <StatCard
+          title="Omzet deze maand"
+          value={formatCurrency(totalRevenue)}
+          icon={TrendingUp}
+          subtitle={totalRevenue > 0 ? null : `Prognose: ${formatCurrency(forecastRevenue)} (${AVG_DAYS}d gem.)`}
+        />
+        <StatCard
+          title="Marge deze maand"
+          value={formatCurrency(totalMargin)}
+          icon={ArrowUpRight}
+          subtitle={totalMargin > 0 ? null : `Prognose: ${formatCurrency(forecastMargin)} (${AVG_DAYS}d gem.)`}
+        />
         <StatCard title="Openstaande facturen" value={pendingInvoices.length} icon={Users} subtitle={formatCurrency(pendingInvoices.reduce((s, i) => s + (i.total_amount || i.amount || 0), 0))} />
       </div>
 
