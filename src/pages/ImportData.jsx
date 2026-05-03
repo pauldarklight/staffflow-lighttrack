@@ -485,12 +485,12 @@ export default function ImportData() {
                       <tr key={i} className="border-b hover:bg-muted/20">
                         <td className="py-2 px-3 font-medium">{r.consultant_name}</td>
                         <td className="py-2 px-3 text-muted-foreground">{r.client_company}</td>
-                        <td className="py-2 px-3 text-right">{r.client_rate ? formatCurrency(r.client_rate) : '—'}</td>
-                        <td className="py-2 px-3 text-right text-emerald-600">{r.marge_per_dag ? formatCurrency(r.marge_per_dag) : '—'}</td>
-                        <td className="py-2 px-3 text-right text-muted-foreground">{r.consultant_rate ? formatCurrency(r.consultant_rate) : '—'}</td>
-                        <td className="py-2 px-3 text-right">{r.days_worked || '—'}</td>
-                        <td className="py-2 px-3 text-right text-blue-600">{r.omzet ? formatCurrency(r.omzet) : '—'}</td>
-                        <td className="py-2 px-3 text-right text-emerald-600">{r.margin ? formatCurrency(r.margin) : '—'}</td>
+                        <td className="py-2 px-3 text-right">{formatCurrency(r.client_rate || 0)}</td>
+                        <td className="py-2 px-3 text-right text-emerald-600">{formatCurrency(r.marge_per_dag || 0)}</td>
+                        <td className="py-2 px-3 text-right text-muted-foreground">{formatCurrency(r.consultant_rate || 0)}</td>
+                        <td className="py-2 px-3 text-right">{r.days_worked || 0}</td>
+                        <td className="py-2 px-3 text-right text-blue-600">{formatCurrency(r.omzet || 0)}</td>
+                        <td className="py-2 px-3 text-right text-emerald-600">{formatCurrency(r.margin || 0)}</td>
                         <td className="py-2 px-3 text-muted-foreground">{r.start_date || '—'}</td>
                         <td className="py-2 px-3 text-xs text-muted-foreground">
                           {(r.sales_contributors || []).map(s => `${s.name} ${s.percentage}%`).join(', ') || '—'}
