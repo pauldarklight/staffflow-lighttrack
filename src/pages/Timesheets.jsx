@@ -548,7 +548,38 @@ export default function Timesheets() {
                       </td>
                     </tr>
                   ))}
-
+                  {missingRows.filter(r => {
+                    const isImportedRow = r.placement?.notes?.includes('Geïmporteerd vanuit Actuals Excel');
+                    if (sectionFilter === 'freelancer' && isImportedRow) return false;
+                    if (sectionFilter === 'import_freelancer' && !isImportedRow) return false;
+                    if (sectionFilter === 'import_all' && !isImportedRow) return false;
+                    return !search || r.consultant_name.toLowerCase().includes(search.toLowerCase()) || r.client_company?.toLowerCase().includes(search.toLowerCase());
+                  }).map(r => {
+                    const estRevenue = r.days_worked * r.clientRate;
+                    const estCost = r.days_worked * r.consultantRate;
+                    return (
+                      <tr key={`virtual-${r.placement_id}`} className="border-b border-dashed border-amber-200 bg-amber-50/30 hover:bg-amber-50/50 transition-colors opacity-80">
+                        <td className="py-3 px-4">
+                          <span className="font-bold text-foreground">{r.consultant_name}</span>
+                        </td>
+                        <td className="py-3 px-4 text-muted-foreground">{r.client_company || '—'}</td>
+                        <td className="py-3 px-4 text-xs text-muted-foreground">{r.clientVat || '—'}</td>
+                        <td className="py-3 px-4 text-right text-muted-foreground text-xs">—</td>
+                        <td className="py-3 px-4 text-right font-bold text-foreground text-xs">
+                          <div>{formatCurrency(r.clientRate)}</div>
+                          <div className="text-muted-foreground font-normal">cons: {formatCurrency(r.consultantRate)}</div>
+                        </td>
+                        <td className="py-3 px-4 text-right bg-primary/5 text-muted-foreground">—</td>
+                        <td className="py-3 px-4 text-right bg-primary/5 text-muted-foreground">—</td>
+                        <td className="py-3 px-4 text-right text-muted-foreground">—</td>
+                        <td className="py-3 px-2 text-center"><span className="text-xs text-muted-foreground">—</span></td>
+                        <td className="py-3 px-2 text-center"><span className="text-xs text-muted-foreground">—</span></td>
+                        <td className="py-3 px-4 text-right">
+                          <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => { setForm({ placement_id: r.placement_id, month: r.month, year: r.year, days_worked: '', hours_worked: '', status: 'approved' }); setEditing(null); setShowForm(true); }}>Aanmaken</Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {filtered.length > 0 && (
                     <tr className="bg-muted/40 border-t-2 font-semibold">
                       <td colSpan={5} className="py-3 px-4 text-right text-xs text-muted-foreground font-bold">Totaal (gefilterd)</td>

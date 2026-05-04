@@ -235,7 +235,7 @@ export default function Contracts() {
       if (c.contract_type === 'client') map[c.placement_id].client = c;
       else map[c.placement_id].consultant = c;
     });
-    return Object.values(map).filter(col => getPlacement(col.placement_id)).map(col => {
+    return Object.values(map).map(col => {
       const p = getPlacement(col.placement_id);
       // Generate reference: REF-YYYY-NNN based on start date + index
       const year = p?.start_date ? new Date(p.start_date).getFullYear() : new Date().getFullYear();
@@ -311,10 +311,10 @@ export default function Contracts() {
 
 
       {/* Info banner */}
-      <div className="flex items-start gap-3 p-3 mb-4 bg-muted/40 border border-border rounded-lg text-sm text-muted-foreground">
-        <Info className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
+      <div className="flex items-start gap-3 p-3 mb-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+        <Info className="w-4 h-4 mt-0.5 shrink-0 text-amber-500" />
         <span>
-          Voor geïmporteerde gegevens worden geen contracten automatisch aangemaakt — deze zijn reeds opgesteld buiten het systeem. Enkel nieuwe placements die via LightTrack worden aangemaakt krijgen automatisch contractrecords.
+          <strong>Let op:</strong> voor geïmporteerde gegevens worden geen contracten automatisch aangemaakt — deze zijn reeds opgesteld buiten het systeem. Enkel nieuwe placements die via LightTrack worden aangemaakt krijgen automatisch contractrecords.
         </span>
       </div>
 
